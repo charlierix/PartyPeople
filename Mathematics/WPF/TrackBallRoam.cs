@@ -1,16 +1,17 @@
 ﻿using Game.Core;
-using Game.Mathematics;
+using Game.Math_WPF.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using System.Windows.Threading;
 
-namespace Game.WPF
+namespace Game.Math_WPF.WPF
 {
     /// <summary>
     /// This trackball physically moves the camera

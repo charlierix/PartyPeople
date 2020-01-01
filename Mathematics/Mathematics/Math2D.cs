@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Game.Mathematics
+namespace Game.Math_WPF.Mathematics
 {
     public static partial class Math2D
     {

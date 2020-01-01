@@ -1,4 +1,4 @@
-﻿using Game.Mathematics;
+﻿using Game.Math_WPF.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -10,7 +10,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
-namespace Game.WPF
+namespace Game.Math_WPF.WPF
 {
     /// <summary>
     /// This class will emulate an autoscroll.  It is meant for controls that implement their own scrolling (not derived

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Media.Media3D;
 
-namespace Game.Mathematics
+namespace Game.Math_WPF.Mathematics
 {
     /// <summary>
     /// This has similar interface as TriangleIndexedLinked, but defines a tetrahedron instead

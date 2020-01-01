@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Media.Media3D;
 
-namespace Game.Mathematics
+namespace Game.Math_WPF.Mathematics
 {
     //TODO: Make Triangle threadsafe instead of having a separate class
     #region class: Triangle_wpf

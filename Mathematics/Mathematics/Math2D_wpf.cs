@@ -1,5 +1,5 @@
 ﻿using Game.Core;
-using Game.Mathematics.Clipper;
+using Game.Math_WPF.Mathematics.Clipper;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,7 +8,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Media.Media3D;
 
-namespace Game.Mathematics
+namespace Game.Math_WPF.Mathematics
 {
     public static partial class Math2D
     {

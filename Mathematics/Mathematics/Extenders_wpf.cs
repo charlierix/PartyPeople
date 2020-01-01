@@ -4,7 +4,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Media.Media3D;
 
-namespace Game.Mathematics
+namespace Game.Math_WPF.Mathematics
 {
     // System.Numerics and wpf have several of the same named types.  Putting wpf in its own file
 

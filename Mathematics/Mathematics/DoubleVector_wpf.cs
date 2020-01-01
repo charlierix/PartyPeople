@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows.Media.Media3D;
 
-namespace Game.Mathematics
+namespace Game.Math_WPF.Mathematics
 {
     public struct DoubleVector_wpf
     {

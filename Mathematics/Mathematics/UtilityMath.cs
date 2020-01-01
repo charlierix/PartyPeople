@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Game.Mathematics
+namespace Game.Math_WPF.Mathematics
 {
     /// <summary>
     /// These are methods that are too generic to fit in Math1D, 2D, etc

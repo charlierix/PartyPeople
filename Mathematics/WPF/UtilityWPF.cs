@@ -1,12 +1,12 @@
 ﻿using Game.Core;
-using Game.Mathematics;
+using Game.Math_WPF.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows.Media;
 
-namespace Game.WPF
+namespace Game.Math_WPF.WPF
 {
     public static class UtilityWPF
     {

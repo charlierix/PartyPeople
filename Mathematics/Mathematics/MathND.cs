@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Game.Mathematics
+namespace Game.Math_WPF.Mathematics
 {
     //TODO: Make the GetPointOnSphere work for all dimensions, and not rely on wpf
     //http://mathoverflow.net/questions/136314/what-is-a-good-method-to-find-random-points-on-the-n-sphere-when-n-is-large

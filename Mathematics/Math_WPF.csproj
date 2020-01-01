@@ -17,8 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Mathematics\" />
-    <Folder Include="WPF\" />
+    <None Include="..\..\..\PartyPeople Attempt9 %2528.NET Core%2529\src\Mathematics\Mathematics\MIConvexHull\readme.txt" />
   </ItemGroup>
 
 </Project>

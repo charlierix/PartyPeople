@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Windows.Media;
 
-namespace Game.WPF
+namespace Game.Math_WPF.WPF
 {
     /// <summary>
     /// These are extension methods of various wpf types

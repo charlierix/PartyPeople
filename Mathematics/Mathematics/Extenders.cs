@@ -4,7 +4,7 @@ using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 
-namespace Game.Mathematics
+namespace Game.Math_WPF.Mathematics
 {
     public static partial class Extenders
     {

@@ -80,7 +80,7 @@ using System.Collections.Generic;
 //using System.Text; //for Int128.AsString() & StringBuilder
 //using System.IO; //streamReader & StreamWriter
 
-namespace Game.Mathematics.Clipper
+namespace Game.Math_WPF.Mathematics.Clipper
 {
     using PolygonClp = List<IntPoint>;
     using PolygonsClp = List<List<IntPoint>>;
