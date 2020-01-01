@@ -5,8 +5,74 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Game.Tester"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="Game Tester" SizeToContent="WidthAndHeight" MinWidth="300" MinHeight="200">
+    <Window.Resources>
+        <Style x:Key="headerLabel" TargetType="Label">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+        </Style>
 
+        <Style x:Key="subHeaderLabel" TargetType="Label">
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,6,0,-3"/>
+        </Style>
+
+        <Style x:Key="subHeaderLabelExtra" TargetType="Label">
+            <Setter Property="FontStyle" Value="Italic"/>
+            <Setter Property="Foreground" Value="#606060"/>
+            <Setter Property="Margin" Value="0,6,0,-3"/>
+        </Style>
+
+        <Style x:Key="boldItem" TargetType="ListBoxItem">
+            <Setter Property="FontSize" Value="16"/>
+            <!--<Setter Property="Foreground" Value="#3A5E8A"/>-->
+            <Setter Property="Foreground" Value="#000000"/>
+            <Setter Property="FontWeight" Value="DemiBold"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <!--<DropShadowEffect Color="#1A2A3D" Opacity=".2" ShadowDepth="2" BlurRadius="3" />-->
+                    <DropShadowEffect Color="#2F4D70" Opacity=".25" ShadowDepth="2" BlurRadius="3" />
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="#1E2024"/>
+        </Style>
+
+        <Style TargetType="ScrollViewer">
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+        </Style>
+
+        <Style TargetType="ListBox">
+            <Setter Property="MinWidth" Value="150"/>
+            <Setter Property="Margin" Value="5,0"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="10,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="8"/>
+            <RowDefinition Height="auto"/>
+        </Grid.RowDefinitions>
+
+        <WrapPanel Grid.Row="0" Orientation="Vertical" MaxHeight="500">
+            <!-- TODO: Create an entry that starts the old game tester (in it's own process) -->
+
+            <StackPanel>
+                <Label Content="Basic Tests" Style="{StaticResource subHeaderLabel}"/>
+                <ListBox>
+                    <ListBoxItem Content="Bepu" MouseUp="Bepu_MouseUp"/>
+                </ListBox>
+            </StackPanel>
+
+
+        </WrapPanel>
+
+        <!-- TODO: Bottom links -->
     </Grid>
 </Window>

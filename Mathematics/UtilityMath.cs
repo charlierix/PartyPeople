@@ -268,5 +268,34 @@ namespace Game.Mathematics
 
             return retVal.ToArray();
         }
+
+        private static string[] _suffix = { "  ", "K", "M", "G", "T", "P", "E", "Z", "Y" };  // longs run out around EB -- yotta is bigger than zetta :)
+        public static string GetSizeDisplay(long size, int decimalPlaces = 0, bool includeB = false)
+        {
+            //http://stackoverflow.com/questions/281640/how-do-i-get-a-human-readable-file-size-in-bytes-abbreviation-using-net
+
+            if (size == 0)
+            {
+                return "0 " + _suffix[0] + (includeB ? "B" : "");
+            }
+
+            long abs = Math.Abs(size);
+
+            int place = Convert.ToInt32(Math.Floor(Math.Log(abs, 1024)));
+
+            string numberText;
+            if (decimalPlaces > 0)
+            {
+                double num = abs / Math.Pow(1024, place);
+                numberText = (Math.Sign(size) * num).ToStringSignificantDigits(decimalPlaces);
+            }
+            else
+            {
+                double num = Math.Ceiling(abs / Math.Pow(1024, place));        //NOTE: windows uses ceiling, so doing the same (showing decimal places just clutters the view if looking at a list)
+                numberText = (Math.Sign(size) * num).ToString("N0");
+            }
+
+            return numberText + " " + _suffix[place] + (includeB ? "B" : "");
+        }
     }
 }

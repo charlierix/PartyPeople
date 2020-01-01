@@ -15,14 +15,26 @@ using System.Windows.Shapes;
 
 namespace Game.Tester
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
+        #region Constructor
+
         public MainWindow()
         {
             InitializeComponent();
+
+            Background = SystemColors.ControlBrush;
         }
+
+        #endregion
+
+        #region Event Listeners
+
+        private void Bepu_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.BepuTester().Show();
+        }
+
+        #endregion
     }
 }
