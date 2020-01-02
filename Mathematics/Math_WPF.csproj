@@ -5,6 +5,7 @@
     <AssemblyName>Game.Math_WPF</AssemblyName>
     <RootNamespace>Game.Math_WPF</RootNamespace>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
   <ItemGroup>

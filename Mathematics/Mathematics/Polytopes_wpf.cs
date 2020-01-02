@@ -9,6 +9,41 @@ namespace Game.Math_WPF.Mathematics
 {
     public static partial class Polytopes
     {
+        public static (Point3D, Point3D)[] GetCubeLines(Point3D min, Point3D max)
+        {
+            return new[]
+            {
+                // bottom face
+                (new Point3D(min.X, min.Y, min.Z), new Point3D(max.X, min.Y, min.Z)),
+                (new Point3D(max.X, min.Y, min.Z), new Point3D(max.X, max.Y, min.Z)),
+                (new Point3D(max.X, max.Y, min.Z), new Point3D(min.X, max.Y, min.Z)),
+                (new Point3D(min.X, max.Y, min.Z), new Point3D(min.X, min.Y, min.Z)),
+
+                // top face
+                (new Point3D(min.X, min.Y, max.Z), new Point3D(max.X, min.Y, max.Z)),
+                (new Point3D(max.X, min.Y, max.Z), new Point3D(max.X, max.Y, max.Z)),
+                (new Point3D(max.X, max.Y, max.Z), new Point3D(min.X, max.Y, max.Z)),
+                (new Point3D(min.X, max.Y, max.Z), new Point3D(min.X, min.Y, max.Z)),
+
+                // side faces
+                (new Point3D(min.X, min.Y, min.Z), new Point3D(min.X, min.Y, max.Z)),
+                (new Point3D(max.X, min.Y, min.Z), new Point3D(max.X, min.Y, max.Z)),
+                (new Point3D(max.X, max.Y, min.Z), new Point3D(max.X, max.Y, max.Z)),
+                (new Point3D(min.X, max.Y, min.Z), new Point3D(min.X, max.Y, max.Z)),
+            };
+        }
+
+        public static Triangle_wpf GetEquilateralTriangle(double radius, double z = 0)
+        {
+            Vector3D up = new Vector3D(0, 0, 1);
+
+            Vector3D top = new Vector3D(0, radius, z);
+            Vector3D left = top.GetRotatedVector(up, 120);
+            Vector3D right = top.GetRotatedVector(up, -120);
+
+            return new Triangle_wpf(top.ToPoint(), left.ToPoint(), right.ToPoint());
+        }
+
         /// <summary>
         /// Creates a regular tetrahedron
         /// </summary>
