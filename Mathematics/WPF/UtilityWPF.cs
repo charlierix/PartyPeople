@@ -3,8 +3,12 @@ using Game.Math_WPF.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
+using System.Windows;
+using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 
 namespace Game.Math_WPF.WPF
 {
@@ -13,6 +17,15 @@ namespace Game.Math_WPF.WPF
         #region Declaration Section
 
         private const double INV256 = 1d / 256d;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class POINT
+        {
+            public int x = 0; public int y = 0;
+        }
+
+        [DllImport("User32", EntryPoint = "ClientToScreen", SetLastError = true, ExactSpelling = true, CharSet = CharSet.Auto)]
+        private static extern int ClientToScreen(IntPtr hWnd, [In, Out] POINT pt);
 
         #endregion
 
@@ -1006,6 +1019,121 @@ namespace Game.Math_WPF.WPF
             double max = Math.Max(hue1, hue2);
 
             return Math.Abs(min + 360 - max);
+        }
+
+        #endregion
+
+        #region math
+
+        //---------------------------------------------------------------------------
+        //
+        // (c) Copyright Microsoft Corporation.
+        // This source is subject to the Microsoft Limited Permissive License.
+        // See http://www.microsoft.com/resources/sharedsource/licensingbasics/limitedpermissivelicense.mspx
+        // All other rights reserved.
+        //
+        // This file is part of the 3D Tools for Windows Presentation Foundation
+        // project.  For more information, see:
+        // 
+        // http://CodePlex.com/Wiki/View.aspx?ProjectName=3DTools
+        //
+        //---------------------------------------------------------------------------
+
+        private static Matrix3D GetViewMatrix(ProjectionCamera camera)
+        {
+            if (camera == null) throw new ArgumentNullException("camera");
+
+            // This math is identical to what you find documented for
+            // D3DXMatrixLookAtRH with the exception that WPF uses a
+            // LookDirection vector rather than a LookAt point.
+
+            Vector3D zAxis = -camera.LookDirection;
+            zAxis.Normalize();
+
+            Vector3D xAxis = Vector3D.CrossProduct(camera.UpDirection, zAxis);
+            xAxis.Normalize();
+
+            Vector3D yAxis = Vector3D.CrossProduct(zAxis, xAxis);
+
+            Vector3D position = (Vector3D)camera.Position;
+            double offsetX = -Vector3D.DotProduct(xAxis, position);
+            double offsetY = -Vector3D.DotProduct(yAxis, position);
+            double offsetZ = -Vector3D.DotProduct(zAxis, position);
+
+            Matrix3D m = new Matrix3D(
+                xAxis.X, yAxis.X, zAxis.X, 0,
+                xAxis.Y, yAxis.Y, zAxis.Y, 0,
+                xAxis.Z, yAxis.Z, zAxis.Z, 0,
+                offsetX, offsetY, offsetZ, 1);
+
+            return m;
+        }
+        /// <summary>
+        ///     Computes the effective view matrix for the given
+        ///     camera.
+        /// </summary>
+        public static Matrix3D GetViewMatrix(Camera camera)
+        {
+            if (camera == null) throw new ArgumentNullException("camera");
+
+            ProjectionCamera projectionCamera = camera as ProjectionCamera;
+
+            if (projectionCamera != null)
+            {
+                return GetViewMatrix(projectionCamera);
+            }
+
+            MatrixCamera matrixCamera = camera as MatrixCamera;
+
+            if (matrixCamera != null)
+            {
+                return matrixCamera.ViewMatrix;
+            }
+
+            throw new ArgumentException(String.Format("Unsupported camera type '{0}'.", camera.GetType().FullName), "camera");
+        }
+
+        /// <summary>
+        /// This converts the position into screen coords
+        /// </summary>
+        /// <remarks>
+        /// Got this here:
+        /// http://blogs.msdn.com/llobo/archive/2006/05/02/Code-for-getting-screen-relative-Position-in-WPF.aspx
+        /// </remarks>
+        public static Point TransformToScreen(Point point, Visual relativeTo)
+        {
+            HwndSource hwndSource = PresentationSource.FromVisual(relativeTo) as HwndSource;
+            Visual root = hwndSource.RootVisual;
+
+            // Translate the point from the visual to the root.
+            GeneralTransform transformToRoot = relativeTo.TransformToAncestor(root);
+            Point pointRoot = transformToRoot.Transform(point);
+
+            // Transform the point from the root to client coordinates.
+            Matrix m = Matrix.Identity;
+            Transform transform = VisualTreeHelper.GetTransform(root);
+
+            if (transform != null)
+            {
+                m = Matrix.Multiply(m, transform.Value);
+            }
+
+            Vector offset = VisualTreeHelper.GetOffset(root);
+            m.Translate(offset.X, offset.Y);
+
+            Point pointClient = m.Transform(pointRoot);
+
+            // Convert from “device-independent pixels” into pixels.
+            pointClient = hwndSource.CompositionTarget.TransformToDevice.Transform(pointClient);
+
+            POINT pointClientPixels = new POINT();
+            pointClientPixels.x = (0 < pointClient.X) ? (int)(pointClient.X + 0.5) : (int)(pointClient.X - 0.5);
+            pointClientPixels.y = (0 < pointClient.Y) ? (int)(pointClient.Y + 0.5) : (int)(pointClient.Y - 0.5);
+
+            // Transform the point into screen coordinates.
+            POINT pointScreenPixels = pointClientPixels;
+            ClientToScreen(hwndSource.Handle, pointScreenPixels);
+            return new Point(pointScreenPixels.x, pointScreenPixels.y);
         }
 
         #endregion

@@ -1394,7 +1394,7 @@ namespace Game.Math_WPF.WPF
 
             // Now need to rotate the axis into the camera's coords
             // Get the camera's current view matrix.
-            Matrix3D viewMatrix = MathUtils.GetViewMatrix(_camera);
+            Matrix3D viewMatrix = UtilityWPF.GetViewMatrix(_camera);
             viewMatrix.Invert();
 
             // Transform the trackball rotation axis relative to the camera orientation.
@@ -1459,7 +1459,7 @@ namespace Game.Math_WPF.WPF
 
             // Now need to rotate the axis into the camera's coords
             // Get the camera's current view matrix.
-            Matrix3D viewMatrix = MathUtils.GetViewMatrix(_camera);
+            Matrix3D viewMatrix = UtilityWPF.GetViewMatrix(_camera);
             viewMatrix.Invert();
 
             // Transform the trackball rotation axis relative to the camera orientation.
