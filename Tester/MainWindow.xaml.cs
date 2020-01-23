@@ -30,6 +30,10 @@ namespace Game.Tester
 
         #region Event Listeners
 
+        private void UnitTests_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.UnitTests().Show();
+        }
         private void Bepu_MouseUp(object sender, MouseButtonEventArgs e)
         {
             new Game.Bepu.Testers.BepuTester().Show();

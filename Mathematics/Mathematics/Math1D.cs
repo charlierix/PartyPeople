@@ -11,6 +11,7 @@ namespace Game.Math_WPF.Mathematics
         #region Declaration Section
 
         public const double NEARZERO = UtilityMath.NEARZERO;
+        public const float NEARZERO_F = UtilityMath.NEARZERO_F;
 
         private const double _180_over_PI = (180d / Math.PI);
         private const double _PI_over_180 = (Math.PI / 180d);
@@ -26,9 +27,18 @@ namespace Game.Math_WPF.Mathematics
 
         #region simple
 
+        public static bool IsNearZero(float testValue)
+        {
+            return Math.Abs(testValue) <= NEARZERO_F;
+        }
         public static bool IsNearZero(double testValue)
         {
             return Math.Abs(testValue) <= NEARZERO;
+        }
+
+        public static bool IsNearValue(float testValue, float compareTo)
+        {
+            return testValue >= compareTo - NEARZERO_F && testValue <= compareTo + NEARZERO_F;
         }
         public static bool IsNearValue(double testValue, double compareTo)
         {
@@ -36,23 +46,106 @@ namespace Game.Math_WPF.Mathematics
         }
 
         /// <summary>
+        /// This returns true if all the values passed in are near each other
+        /// </summary>
+        public static bool IsNearValue(params float[] values)
+        {
+            if (values == null)
+            {
+                throw new ArgumentNullException($"{nameof(values)}");
+            }
+            else if (values.Length < 2)
+            {
+                throw new ArgumentException($"Not enough values passed in: {values.Length}");
+            }
+
+            float avg = values.Average();
+
+            for (int cntr = 0; cntr < values.Length; cntr++)
+            {
+                // Manually inlining IsNearValue()
+                if (!(values[cntr] >= avg - NEARZERO_F && values[cntr] <= avg + NEARZERO_F))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+        /// <summary>
+        /// This returns true if all the values passed in are near each other
+        /// </summary>
+        public static bool IsNearValue(params double[] values)
+        {
+            if (values == null)
+            {
+                throw new ArgumentNullException($"{nameof(values)}");
+            }
+            else if (values.Length < 2)
+            {
+                throw new ArgumentException($"Not enough values passed in: {values.Length}");
+            }
+
+            double avg = values.Average();
+
+            for (int cntr = 0; cntr < values.Length; cntr++)
+            {
+                // Manually inlining IsNearValue()
+                if (!(values[cntr] >= avg - NEARZERO && values[cntr] <= avg + NEARZERO))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Returns true if the double is NaN or Infinity
         /// </summary>
+        public static bool IsInvalid(float testValue)
+        {
+            return float.IsNaN(testValue) || float.IsInfinity(testValue);
+        }
         public static bool IsInvalid(double testValue)
         {
             return double.IsNaN(testValue) || double.IsInfinity(testValue);
         }
 
         //TODO: Come up with a better name for these.  The test value must exceed a threshold before these return true (a value that IsNearZero would call true won't make these true)
+        public static bool IsNearNegative(float testValue)
+        {
+            return testValue < -NEARZERO_F;
+        }
         public static bool IsNearNegative(double testValue)
         {
             return testValue < -NEARZERO;
+        }
+        public static bool IsNearPositive(float testValue)
+        {
+            return testValue > NEARZERO_F;
         }
         public static bool IsNearPositive(double testValue)
         {
             return testValue > NEARZERO;
         }
 
+        public static bool IsDivisible(float larger, float smaller)
+        {
+            if (IsNearZero(smaller))
+            {
+                // Divide by zero.  Nothing is divisible by zero, not even zero.  (I looked up "is zero divisible by zero", and got very
+                // technical reasons why it's not.  It would be cool to be able to view the world the way math people do.  Visualizing
+                // complex equations, etc)
+                return false;
+            }
+
+            // Divide the larger by the smaller.  If the result is an integer (or very close to an integer), then they are divisible
+            double division = larger / smaller;
+            double divisionInt = Math.Round(division);
+
+            return IsNearValue(division, divisionInt);
+        }
         public static bool IsDivisible(double larger, double smaller)
         {
             if (IsNearZero(smaller))
@@ -70,6 +163,11 @@ namespace Game.Math_WPF.Mathematics
             return IsNearValue(division, divisionInt);
         }
 
+        public static bool IsSameSign(float value1, float value2)
+        {
+            // dot product of two scalars is just multiplication
+            return value1 * value2 > 0;
+        }
         public static bool IsSameSign(double value1, double value2)
         {
             // dot product of two scalars is just multiplication
@@ -216,14 +314,23 @@ namespace Game.Math_WPF.Mathematics
         {
             return values.Max();
         }
+        public static float Max(params float[] values)
+        {
+            return values.Max();
+        }
         public static double Max(params double[] values)
         {
             return values.Max();
         }
 
+        public static float Avg(params float[] values)
+        {
+            return values.Average();
+        }
         public static double Avg(params double[] values)
         {
-            return values.Sum() / values.Length.ToDouble();
+            //return values.Sum() / values.Length.ToDouble();
+            return values.Average();
         }
         public static double Avg(Tuple<double, double>[] weightedValues)
         {

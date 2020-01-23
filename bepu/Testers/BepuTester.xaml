@@ -33,19 +33,38 @@
                 <RowDefinition Height="4"/>
                 <RowDefinition Height="auto"/>
             </Grid.RowDefinitions>
-            
+
             <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                 <StackPanel>
-                    <Expander Header="Add Simple">
+                    <Expander Header="Add Simple" IsExpanded="True">
                         <StackPanel Style="{StaticResource expanderStackPanel}">
-                            <Button Content="Sphere"/>
-                            <Button Content="Box" Margin="0,2,0,0"/>
+
+                            <TextBox x:Name="txtSimpleCount" Text="1"/>
+
+                            <!--<CheckBox Content="random size"/>-->
+                            <!--<CheckBox Content="static"/>-->
+
+                            <!-- Random velocities probably shouldn't be applied at creation.  Instead make a section to whack them -->
+                            <!--<CheckBox Content="random velocity"/>-->
+                            <!--<CheckBox Content="random spin"/>-->
+
+                            <Button Content="Sphere" Margin="0,8,0,0"/>
+                            <Button Content="Box" Margin="0,2,0,0" Click="Box_Click"/>
 
                         </StackPanel>
                     </Expander>
 
                     <!-- TODO: Add Joined Bodies -->
                     <!-- TODO: Forces -->
+
+                    <!-- TODO: On left click: (see tower wrecker) -->
+                    <!-- fire slug -->
+                    <!-- apply force (explode, implode, in, out, swirl || around point | along line ) | see tower wrecker -->
+                    <!-- remove ( line | radius ) -->
+                    <!-- grab (radius) -->
+                    <!-- toggle static/dynamic -->
+                    <!-- convert to attractor/repulsor/neutral -->
+                    <!-- melt touching bodies into a blob | shatter large body -->
 
                 </StackPanel>
             </ScrollViewer>
@@ -56,9 +75,9 @@
                         <Setter Property="Margin" Value="2"/>
                     </Style>
                 </UniformGrid.Resources>
-                
-                <Button Content="Start"/>
-                <Button Content="Clear"/>
+
+                <!--<Button Content="Start"/>-->
+                <Button Content="Clear" Click="Clear_Click"/>
             </UniformGrid>
         </Grid>
 
@@ -67,11 +86,11 @@
             <Border.Effect>
                 <DropShadowEffect Color="#BECCB4" BlurRadius="14" Opacity=".2" Direction="0" ShadowDepth="0" />
             </Border.Effect>
-            
+
             <Viewport3D Name="_viewport" IsHitTestVisible="False">
                 <!-- Camera -->
                 <Viewport3D.Camera>
-                    <PerspectiveCamera x:Name="_camera" Position="0,0,25" LookDirection="0,0,-1" UpDirection="0,1,0" FieldOfView="45"/>
+                    <PerspectiveCamera x:Name="_camera" Position="0,0,60" LookDirection="0,0,-1" UpDirection="0,1,0" FieldOfView="45"/>
                 </Viewport3D.Camera>
                 <!-- Lights -->
                 <ModelVisual3D>

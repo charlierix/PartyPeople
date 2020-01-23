@@ -13,7 +13,8 @@ namespace Game.Math_WPF.Mathematics
     {
         #region Declaration Section
 
-        public const double NEARZERO = .000000001d;
+        public const double NEARZERO = 1e-9d;       //.000000001d;
+        public const float NEARZERO_F = 5e-6f;      // float doesn't seem to be precise enough for 9 places, drop it back to 6 (testing quaternion.tounit.lensqr caused this to need to be reduced)
 
         private const double FOURTHIRDS = 4d / 3d;
 
@@ -80,22 +81,26 @@ namespace Game.Math_WPF.Mathematics
         }
 
         /// <summary>
-        /// This makes sure that value is between min an max
+        /// Makes sure the returned value is between min and max
         /// </summary>
-        public static double Cap(double value, double min, double max)
+        public static double Clamp(double value, double min, double max)
         {
             if (value < min)
-            {
                 return min;
-            }
             else if (value > max)
-            {
                 return max;
-            }
-            else
-            {
-                return value;
-            }
+            return value;
+        }
+        /// <summary>
+        /// Makes sure the returned value is between min and max
+        /// </summary>
+        public static float Clamp(float value, float min, float max)
+        {
+            if (value < min)
+                return min;
+            else if (value > max)
+                return max;
+            return value;
         }
 
         /// <summary>

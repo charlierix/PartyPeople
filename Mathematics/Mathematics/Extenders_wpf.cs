@@ -213,6 +213,11 @@ namespace Game.Math_WPF.Mathematics
             return Math3D.IsInvalid(vector);
         }
 
+        public static System.Numerics.Vector3 ToVector3(this Vector3D vector)
+        {
+            return new System.Numerics.Vector3((float)vector.X, (float)vector.Y, (float)vector.Z);
+        }
+
         public static Point3D ToPoint(this Vector3D vector)
         {
             return new Point3D(vector.X, vector.Y, vector.Z);
@@ -396,6 +401,11 @@ namespace Game.Math_WPF.Mathematics
                         point.Z.IsNearValue(compare.Z);
         }
 
+        public static System.Numerics.Vector3 ToVector3(this Point3D point)
+        {
+            return new System.Numerics.Vector3((float)point.X, (float)point.Y, (float)point.Z);
+        }
+
         public static Vector3D ToVector(this Point3D point)
         {
             return new Vector3D(point.X, point.Y, point.Z);
@@ -495,8 +505,8 @@ namespace Game.Math_WPF.Mathematics
                         quaternion.W.IsNearValue(compare.W);
         }
 
-        // I copy the code in each of these overloads, rather than make a private method to increase speed
-        //TODO: I don't use these rotate extension methods anymore, but it would be worth testing whether to use this matrix transform, or use: new RotateTransform3D(new QuaternionRotation3D(quaternion))
+        // The code is copied in each of these overloads, rather than make a private method to increase speed
+        //TODO: Test whether to use this matrix transform, or use: new RotateTransform3D(new QuaternionRotation3D(quaternion))
         public static Vector3D GetRotatedVector(this Quaternion quaternion, Vector3D vector)
         {
             Matrix3D matrix = new Matrix3D();
@@ -638,7 +648,7 @@ namespace Game.Math_WPF.Mathematics
             }
             else
             {
-                return new Quaternion(quaternion.Axis, quaternion.Angle * -1d);
+                return new Quaternion(quaternion.Axis, -quaternion.Angle);
             }
         }
 
@@ -647,6 +657,11 @@ namespace Game.Math_WPF.Mathematics
             Quaternion retVal = quaternion;
             retVal.Normalize();
             return retVal;
+        }
+
+        public static System.Numerics.Quaternion ToQuat_numerics(this Quaternion quaternion)
+        {
+            return new System.Numerics.Quaternion((float)quaternion.X, (float)quaternion.Y, (float)quaternion.Z, (float)quaternion.W);
         }
 
         #endregion

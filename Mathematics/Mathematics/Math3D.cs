@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 
 namespace Game.Math_WPF.Mathematics
@@ -33,6 +34,18 @@ namespace Game.Math_WPF.Mathematics
         #region Declaration Section
 
         public const double NEARZERO = UtilityMath.NEARZERO;
+
+        #endregion
+
+        #region simple
+
+        /// <summary>
+        /// Returns true if the vector contains NaN or Infinity
+        /// </summary>
+        public static bool IsInvalid(Vector3 testVect)
+        {
+            return Math1D.IsInvalid(testVect.X) || Math1D.IsInvalid(testVect.Y) || Math1D.IsInvalid(testVect.Z);
+        }
 
         #endregion
 

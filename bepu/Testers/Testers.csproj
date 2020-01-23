@@ -7,4 +7,17 @@
     <RootNamespace>Game.Bepu.Testers</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\Mathematics\Math_WPF.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="BepuPhysics">
+      <HintPath>..\..\lib\bepu\BepuPhysics.dll</HintPath>
+    </Reference>
+    <Reference Include="BepuUtilities">
+      <HintPath>..\..\lib\bepu\BepuUtilities.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
