@@ -1,0 +1,32 @@
+﻿<Window x:Class="Game.Bepu.Testers.ColorTools.ColorExtractorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Game.Bepu.Testers.ColorTools"
+        mc:Ignorable="d"
+        Title="ColorExtractorWindow" Width="800" Height="700">
+    <Grid>
+
+        <!-- input box is an image -->
+
+        <!-- populate that box with: -->
+        <!--    browse for image (or dragdrop) -->
+        <!--    snipping tool (rectangle or lasso) -->
+
+        <!-- give options to remove parts of the image: -->
+        <!--    lasso tool -->
+        <!--    magic wand color picker -->
+        <!--    use an image classifier to identify what they click on and throw out all except -->
+        <!--        if you use something like this, have a source image box and a final image box so they can click on multiple items -->
+
+
+
+        <!-- show a graph of the colors used -->
+        <!-- show a cluster of the colors (sort of like how windows 10 picks the title bar color based on wallpaper.  but don't just pick one color, pick a few) -->
+        <!--    that output cluster should have a link that spawns a color picker window based on those extracted colors -->
+
+
+
+    </Grid>
+</Window>

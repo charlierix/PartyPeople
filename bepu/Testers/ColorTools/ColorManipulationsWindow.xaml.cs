@@ -1,0 +1,481 @@
+﻿using Game.Core;
+using Game.Math_WPF.Mathematics;
+using Game.Math_WPF.WPF;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
+
+namespace Game.Bepu.Testers.ColorTools
+{
+    public partial class ColorManipulationsWindow : Window
+    {
+        #region Declaration Section
+
+        private const string FILE = "ColorManipulations Options.xml";
+
+        private List<string> _grayFolders = new List<string>();
+        private List<Tuple<Guid, BitmapSource>> _grayCache = new List<Tuple<Guid, BitmapSource>>();
+
+        #endregion
+
+        #region Constructor
+
+        public ColorManipulationsWindow()
+        {
+            InitializeComponent();
+
+            Background = SystemColors.ControlBrush;
+
+            radAverage.Tag = Guid.NewGuid();
+            radDesaturate.Tag = Guid.NewGuid();
+            rad601.Tag = Guid.NewGuid();
+            rad709.Tag = Guid.NewGuid();
+        }
+
+        #endregion
+
+        #region Event Listeners
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var options = UtilityCore.ReadOptions<ColorManipulationsOptions>(FILE);
+
+                if (options?.ImageFolders_Gray?.Length > 0)
+                {
+                    foreach (string folder in options.ImageFolders_Gray)
+                    {
+                        if (AddFolder_Grayscale(folder))
+                        {
+                            _grayFolders.Add(folder);
+                        }
+                    }
+
+                    // Select the first image (will fire the changed event)
+                    if (lstImages.Items.Count > 0)
+                    {
+                        lstImages.SelectedIndex = 0;
+                        lstImages.Focus();      // need to do this to highlight the selected item
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            try
+            {
+                try
+                {
+                    var options = new ColorManipulationsOptions()
+                    {
+                        ImageFolders_Gray = _grayFolders.ToArray(),
+                    };
+
+                    UtilityCore.SaveOptions(options, FILE);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.ToString(), this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        #endregion
+        #region Event Listeners - grayscale
+
+        private void lstImages_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            try
+            {
+                if (lstImages == null)
+                {
+                    return;
+                }
+
+                Image selectedItem = lstImages.SelectedItem as Image;
+                if (selectedItem == null)
+                {
+                    return;
+                }
+
+                BitmapImage source = (BitmapImage)selectedItem.Source;
+
+                // Put this into the color image control
+
+                BitmapImage bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.UriSource = source.UriSource;
+                bitmap.EndInit();
+
+                imageColor.Source = bitmap;
+
+                _grayCache.Clear();
+
+                // Make sure the gray image is showing
+                RadioGray_Checked(this, new RoutedEventArgs());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void AddFolder_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dialog = new System.Windows.Forms.FolderBrowserDialog();
+                dialog.Description = "Please select root folder";
+                if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+                {
+                    return;
+                }
+
+                string selectedPath = dialog.SelectedPath;
+
+                if (AddFolder_Grayscale(selectedPath))
+                {
+                    _grayFolders.Add(selectedPath);
+                }
+
+                // Select the first image (will fire the changed event)
+                if (lstImages.Items.Count > 0 && lstImages.SelectedIndex < 0)
+                {
+                    lstImages.SelectedIndex = 0;
+                    lstImages.Focus();      // need to do this to highlight the selected item
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void ClearImages_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _grayFolders.Clear();
+                _grayCache.Clear();
+
+                imageColor.Source = null;
+                imageGray.Source = null;
+                lstImages.Items.Clear();
+
+                lblNumImages.Text = lstImages.Items.Count.ToString("N0");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        //TODO: Cache these by currently selected source image
+        private void RadioGray_Checked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                #region Get color image
+
+                if (lstImages == null)
+                {
+                    return;
+                }
+
+                Image imageCtrl = lstImages.SelectedItem as Image;
+                if (imageCtrl == null)
+                {
+                    return;
+                }
+
+                BitmapSource bitmap = imageCtrl.Source as BitmapSource;
+                if (bitmap == null)
+                {
+                    return;
+                }
+
+                #endregion
+
+                #region Decide which gray method
+
+                Func<Color, Color> convertGray = null;
+                Guid radioGuid = Guid.Empty;
+
+                if (radAverage.IsChecked.Value)
+                {
+                    convertGray = ConvertToGray_Average;
+                    radioGuid = (Guid)radAverage.Tag;
+                }
+                else if (radDesaturate.IsChecked.Value)
+                {
+                    convertGray = ConvertToGray_Desaturate;
+                    radioGuid = (Guid)radDesaturate.Tag;
+                }
+                else if (rad601.IsChecked.Value)
+                {
+                    convertGray = ConvertToGray_BT601;
+                    radioGuid = (Guid)rad601.Tag;
+                }
+                else if (rad709.IsChecked.Value)
+                {
+                    convertGray = ConvertToGray_BT709;
+                    radioGuid = (Guid)rad709.Tag;
+                }
+                else
+                {
+                    throw new ApplicationException("Unknown gray selection");
+                }
+
+                #endregion
+
+                // Try to pull a cached image
+                var cached = _grayCache.FirstOrDefault(o => o.Item1 == radioGuid);
+                if (cached != null)
+                {
+                    imageGray.Source = cached.Item2;
+                    return;
+                }
+
+                // Turn the bitmap into an array of colors
+                var colors = UtilityWPF.ConvertToColorArray(bitmap, true, Colors.Transparent);
+
+                // Convert the colors to grays
+                //Color[] grays = colors.GetColors(0, 0, colors.Width, colors.Height).
+                //    Select(o => convertGray(o)).
+                //    ToArray();
+
+                Color[] grays = colors.GetColors(0, 0, colors.Width, colors.Height).
+                    Select((o, i) => new { Color = o, Index = i }).
+                    AsParallel().
+                    Select(o => new { Color = convertGray(o.Color), Index = o.Index }).
+                    OrderBy(o => o.Index).
+                    Select(o => o.Color).
+                    ToArray();
+
+                // Cache gray
+                var cacheImage = Tuple.Create(radioGuid, GetBitmap(grays, colors.Width, colors.Height));
+                _grayCache.Add(cacheImage);
+
+                // Show the gray
+                imageGray.Source = cacheImage.Item2;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        #endregion
+
+        #region Private Methods - grayscale
+
+        private bool AddFolder_Grayscale(string folder)
+        {
+            int prevCount = lstImages.Items.Count;
+
+            string[] childFolders = Directory.GetDirectories(folder);
+            if (childFolders.Length == 0)
+            {
+                // Single folder
+                foreach (string filename in Directory.GetFiles(folder))
+                {
+                    try
+                    {
+                        AddImage_Grayscale(filename);
+                    }
+                    catch (Exception)
+                    {
+                        continue;       // probably not an image
+                    }
+                }
+            }
+            else
+            {
+                // Child folders
+                foreach (string childFolder in childFolders)
+                {
+                    AddFolder_Grayscale(childFolder);
+                }
+            }
+
+            lblNumImages.Text = lstImages.Items.Count.ToString("N0");
+
+            return prevCount != lstImages.Items.Count;      // if the count is unchanged, then no images were added
+        }
+        private void AddImage_Grayscale(string filename)
+        {
+            string filenameFixed = System.IO.Path.GetFullPath(filename);
+
+            BitmapImage bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.UriSource = new Uri(filenameFixed, UriKind.Absolute);
+            bitmap.EndInit();
+
+            Image image = new Image()
+            {
+                Source = bitmap,
+                Stretch = System.Windows.Media.Stretch.Fill,
+                Width = 66,
+                Height = 66,
+                Margin = new Thickness(6),
+                Opacity = .66,
+            };
+
+            lstImages.Items.Add(image);
+        }
+
+        private static Color ConvertToGray_Average(Color color)
+        {
+            return GetGray(color.A, ConvertToGray_Average_Double(color));
+        }
+        private static double ConvertToGray_Average_Double(Color color)
+        {
+            return (color.R + color.G + color.B) / 3d;
+        }
+
+        private static Color ConvertToGray_Desaturate(Color color)
+        {
+            return GetGray(color.A, ConvertToGray_Desaturate_Double(color));
+        }
+        private static double ConvertToGray_Desaturate_Double(Color color)
+        {
+            return (Math1D.Max(color.R, color.G, color.B) + Math1D.Min(color.R, color.G, color.B)) / 2d;
+        }
+
+        private static Color ConvertToGray_BT601(Color color)
+        {
+            return GetGray(color.A, ConvertToGray_BT601_Double(color));
+        }
+        private static double ConvertToGray_BT601_Double(Color color)
+        {
+            return color.R * 0.299 + color.G * 0.587 + color.B * 0.114;
+        }
+
+        private static Color ConvertToGray_BT709(Color color)
+        {
+            return GetGray(color.A, ConvertToGray_BT709_Double(color));
+        }
+        private static double ConvertToGray_BT709_Double(Color color)
+        {
+            return color.R * 0.2126 + color.G * 0.7152 + color.B * 0.0722;
+        }
+
+        private static Color GetGray(byte alpha, double rgb)
+        {
+            byte cast = Convert.ToByte(rgb);
+            return Color.FromArgb(alpha, cast, cast, cast);
+        }
+
+        /// <summary>
+        /// Converts the color array into a bitmap that can be set as an Image.Source
+        /// </summary>
+        /// <remarks>
+        /// Got this here:
+        /// http://www.i-programmer.info/programming/wpf-workings/527-writeablebitmap.html
+        /// </remarks>
+        public static BitmapSource GetBitmap(Color[] colors, int width, int height)
+        {
+            if (colors.Length != width * height)
+            {
+                throw new ArgumentException(string.Format("The array isn't the same as width*height.  ArrayLength={0}, Width={1}, Height={2}", colors.Length, width, height));
+            }
+
+            WriteableBitmap retVal = new WriteableBitmap(width, height, 96, 96, PixelFormats.Pbgra32, null);      // may want Bgra32 if performance is an issue
+
+            int pixelWidth = retVal.Format.BitsPerPixel / 8;
+            int stride = retVal.PixelWidth * pixelWidth;      // this is the length of one row of pixels
+
+            byte[] pixels = new byte[retVal.PixelHeight * stride];
+
+            for (int rowCntr = 0; rowCntr < height; rowCntr++)
+            {
+                int rowOffset = rowCntr * stride;
+                int yOffset = rowCntr * width;
+
+                for (int columnCntr = 0; columnCntr < width; columnCntr++)
+                {
+                    int offset = rowOffset + (columnCntr * pixelWidth);
+
+                    //_colors[columnCntr + yOffset] = Color.FromArgb(pixels[offset + 3], pixels[offset + 2], pixels[offset + 1], pixels[offset + 0]);
+
+                    Color color = colors[columnCntr + yOffset];
+
+                    pixels[offset + 3] = color.A;
+                    pixels[offset + 2] = color.R;
+                    pixels[offset + 1] = color.G;
+                    pixels[offset + 0] = color.B;
+                }
+            }
+
+            retVal.WritePixels(new Int32Rect(0, 0, retVal.PixelWidth, retVal.PixelHeight), pixels, stride, 0);
+
+            return retVal;
+        }
+
+        //http://www.tannerhelland.com/3643/grayscale-image-algorithm-vb6/
+        //private static double GetGray_double(Color color)
+        //{
+        //    //BT.709
+        //    //Gray = (Red * 0.2126 + Green * 0.7152 + Blue * 0.0722)
+        //    //BT.601
+        //    //Gray = (Red * 0.299 + Green * 0.587 + Blue * 0.114)
+
+        //    return color.R * 0.299 + color.G * 0.587 + color.B * 0.114;
+        //}
+        //private static byte GetGray_byte(Color color)
+        //{
+        //    return Convert.ToByte(GetGray_double(color));
+        //}
+        //private static Color GetGray_color(Color color)
+        //{
+        //    byte gray = GetGray_byte(color);
+
+        //    return Color.FromArgb(color.A, gray, gray, gray);
+        //}
+
+        ///// <summary>
+        ///// This takes the average of two decent methods (I figure, why not?)
+        ///// </summary>
+        //private static byte GetGray(Color color)
+        //{
+        //    double desaturated = (Math3D.Max(color.R, color.G, color.B) + Math3D.Min(color.R, color.G, color.B)) / 2d;
+        //    double humanEye = GetGray_double(color);
+
+        //    return Convert.ToByte((desaturated + humanEye) / 2d);
+        //}
+
+        #endregion
+    }
+
+    #region class: ColorManipulationsOptions
+
+    /// <summary>
+    /// This gets serialized to file
+    /// </summary>
+    public class ColorManipulationsOptions
+    {
+        public string[] ImageFolders_Gray { get; set; }
+    }
+
+    #endregion
+}

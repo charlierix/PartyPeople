@@ -71,6 +71,12 @@
                 </ListBox>
             </StackPanel>
 
+            <StackPanel>
+                <Label Content="Color" Style="{StaticResource subHeaderLabel}"/>
+                <ListBox>
+                    <ListBoxItem Content="Color Manipulations" MouseUp="ColorManipulations_MouseUp"/>
+                </ListBox>
+            </StackPanel>
 
         </WrapPanel>
 

@@ -39,6 +39,11 @@ namespace Game.Tester
             new Game.Bepu.Testers.BepuTester().Show();
         }
 
+        private void ColorManipulations_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.ColorTools.ColorManipulationsWindow().Show();
+        }
+
         #endregion
     }
 }

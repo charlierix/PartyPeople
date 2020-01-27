@@ -1,0 +1,123 @@
+﻿<Window x:Class="Game.Bepu.Testers.ColorTools.ColorManipulationsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Game.Bepu.Testers.ColorTools"
+        mc:Ignorable="d"
+        Title="ColorManipulationsWindow" ResizeMode="CanResizeWithGrip" Width="1000" Height="900" Loaded="Window_Loaded" Closed="Window_Closed">
+    <Window.Resources>
+        <Style x:Key="bigImage" TargetType="Image">
+            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+        </Style>
+    </Window.Resources>
+    
+    <Grid>
+        <!-- color manipulation (playground for developing color functions) -->
+        <TabControl>
+            <TabItem Header="Grayscale Viewer">
+                <!-- grayscale viewer -->
+                <!-- C:\!Dev\!Personal\GrayscaleCompare -->
+                <!-- pick a folder full of images (remember that folder across instances) -->
+                <!-- choose a gray algorithm (average | desturated | BT.601 | BT.709) -->
+                <!-- show the full color image next to the gray image -->
+
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="1*"/>
+                        <RowDefinition Height="auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Big Images -->
+                    <Image Grid.Column="0" Grid.Row="0" Name="imageColor" Style="{StaticResource bigImage}"/>
+                    <Image Grid.Column="2" Grid.Row="0" Name="imageGray" Style="{StaticResource bigImage}"/>
+
+                    <Grid Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Browse Button -->
+                        <StackPanel Grid.Column="0" VerticalAlignment="Bottom">
+                            <Button Content="Add Folder..." Click="AddFolder_Click"/>
+                            <Button Content="Clear" Margin="0,4,0,0" Click="ClearImages_Click"/>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Grid.Column="0" Grid.Row="2" Text="# images" Height="16" Margin="0,0,4,1"/>
+                                <TextBlock Grid.Column="2" Grid.Row="2" Name="lblNumImages" Text="0" Height="17" FontWeight="Bold"/>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                        <!-- Image List -->
+                        <ListBox Grid.Column="2" Name="lstImages" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" MaxHeight="280" SelectionChanged="lstImages_SelectionChanged">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                        </ListBox>
+
+                        <!-- Radio Buttons -->
+                        <StackPanel Grid.Column="4" VerticalAlignment="Bottom" RadioButton.Checked="RadioGray_Checked" RadioButton.Unchecked="RadioGray_Checked">
+                            <StackPanel.Resources>
+                                <Style TargetType="RadioButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+                                    <Setter Property="Margin" Value="2"/>
+                                </Style>
+                            </StackPanel.Resources>
+                            
+                            <RadioButton Content="Average" Name="radAverage"/>
+                            <RadioButton Content="Desaturated" Name="radDesaturate"/>
+                            <RadioButton IsChecked="True" Content="BT.601" Name="rad601"/>
+                            <RadioButton Content="BT.709" Name="rad709"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+
+            </TabItem>
+        </TabControl>
+
+
+
+
+
+
+
+
+
+
+        <!-- get settings of S and V for each H that matches the gray output of a selected color -->
+        <!-- need an input box for the hex values of a color -->
+        <!--    show that color in a square -->
+        <!-- need options for grayscale algorithm -->
+        <!--    show the gray version -->
+
+        <!-- calculate for each hue.  try to come up with an efficient way.  this would be a good place to see if ml.net has a generator -->
+
+        <!-- show a 3D bezier of the chosen S and V for each H -->
+        <!--    show as a white line -->
+        <!--    show as a bunch of colored dots -->
+        <!--    if there are a range of values for each H, show as a cloud of colored dots -->
+
+
+
+
+        <!-- get evenly distributed random colors HSV cone -->
+        <!--    create new, the only input being count -->
+        <!--    add new one at a time.  each previous color is a static point in that cone -->
+
+
+
+
+    </Grid>
+</Window>

@@ -64,7 +64,7 @@
                     <!-- grab (radius) -->
                     <!-- toggle static/dynamic -->
                     <!-- convert to attractor/repulsor/neutral -->
-                    <!-- melt touching bodies into a blob | shatter large body -->
+                    <!-- melt touching bodies into a blob (sintering) | shatter large body -->
 
                 </StackPanel>
             </ScrollViewer>
