@@ -619,7 +619,7 @@ namespace Game.Bepu.Testers
                 var cells = Math3D.GetCells_Cube(1, count, .1, Math3D.GetRandomVector_Spherical(PLACEMENTRADIUS).ToPoint());
 
                 //UtilityWPF.ColorFromHex("6CB03C")
-                ColorHSV color = new ColorHSV(rand.NextDouble(0, 270), rand.NextDouble(60, 70), rand.NextDouble(67, 72));       // keep it out of the pinks
+                ColorHSV color = new ColorHSV(rand.NextDouble(0, 240), rand.NextDouble(60, 70), rand.NextDouble(67, 72));       // keep it out of the pinks
 
                 Material material = Debug3DWindow.GetMaterial(true, color.ToRGB());
                 Model3DGroup modelGroup = new Model3DGroup();

@@ -1,6 +1,7 @@
 ﻿using Game.Core;
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
+using Game.Math_WPF.WPF.Controls3D;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,7 +13,9 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Media3D;
 using System.Windows.Shapes;
 
 namespace Game.Bepu.Testers.ColorTools
@@ -25,6 +28,10 @@ namespace Game.Bepu.Testers.ColorTools
 
         private List<string> _grayFolders = new List<string>();
         private List<Tuple<Guid, BitmapSource>> _grayCache = new List<Tuple<Guid, BitmapSource>>();
+
+        private Color _sourceColor = Colors.LimeGreen;
+
+        private readonly DropShadowEffect _errorEffect;
 
         #endregion
 
@@ -40,6 +47,15 @@ namespace Game.Bepu.Testers.ColorTools
             radDesaturate.Tag = Guid.NewGuid();
             rad601.Tag = Guid.NewGuid();
             rad709.Tag = Guid.NewGuid();
+
+            _errorEffect = new DropShadowEffect()
+            {
+                Color = UtilityWPF.ColorFromHex("C02020"),
+                Direction = 0,
+                ShadowDepth = 0,
+                BlurRadius = 8,
+                Opacity = .8,
+            };
         }
 
         #endregion
@@ -50,6 +66,8 @@ namespace Game.Bepu.Testers.ColorTools
         {
             try
             {
+                #region grayscale viewer
+
                 var options = UtilityCore.ReadOptions<ColorManipulationsOptions>(FILE);
 
                 if (options?.ImageFolders_Gray?.Length > 0)
@@ -65,10 +83,14 @@ namespace Game.Bepu.Testers.ColorTools
                     // Select the first image (will fire the changed event)
                     if (lstImages.Items.Count > 0)
                     {
-                        lstImages.SelectedIndex = 0;
+                        lstImages.SelectedIndex = StaticRandom.Next(lstImages.Items.Count);
                         lstImages.Focus();      // need to do this to highlight the selected item
                     }
                 }
+
+                #endregion
+
+                RefreshSampleRect();
             }
             catch (Exception ex)
             {
@@ -285,6 +307,271 @@ namespace Game.Bepu.Testers.ColorTools
         }
 
         #endregion
+        #region Event Listeners - matching grays
+
+        private void RandSourceColor_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                txtSourceColor.Text = UtilityWPF.GetRandomColor(0, 255).ToHex(false, false);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void txtSourceColor_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                RefreshSampleRect();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        //TODO: When saturation starts out pretty high, simple distance between the hue line and the sheet fails in the reds.  It tends to pick values that are too bright.
+        //Play around with choosing other points on that sheet to get a better fit.  Maybe the computer can prompt the user with A/B tests, train up a little NN
+        //
+        //Try something with dot product?  Or an angle up or down?  It mainly seems to be reds that get too bright, so angle down for red.  But if the source color is
+        //red, it may need to angle up the other hues?
+        //
+        //So the NN would have as inputs SourceH, S, V, RequestH.  The output would be angle.  That angle would then be used to pick a point on the sheet.  Training
+        //would be prompting the user with A/B questions
+        //
+        //Instead of pseudo random A/B prompting, pick a random hue and present the user with a window:  gray background, source color sample, slider bar controlling
+        //output color.  Do this lots of times with lots of random source colors and corresponding grays, logging all the results
+        private void Attempt1_Click(object sender, RoutedEventArgs e)
+        {
+            const string MONO_BACK = "F5F5ED";
+            const string MONO_FORE = "343635";
+
+            try
+            {
+                #region calculate
+
+                Color colorFore = UtilityWPF.ColorFromHex(MONO_FORE);
+
+                ColorHSV sourceColor = _sourceColor.ToHSV();
+
+                // Get a spread of other hues
+                var aabb = Tuple.Create(new VectorND(0d), new VectorND(359.9d));
+                var staticHue = new[] { new VectorND(sourceColor.H) };
+
+                var hues = MathND.GetRandomVectors_Cube_EventDist(96, aabb, existingStaticPoints: staticHue, stopIterationCount: 100).
+                    Concat(staticHue).
+                    Select(o => o[0]).
+                    OrderBy(o => o).
+                    ToArray();
+
+                Color gray = sourceColor.ToRGB().ToGray();
+
+                // Get the S and V values that make the same gray
+                var results_sheet = hues.
+                    AsParallel().
+                    Select(o => new
+                    {
+                        h = o,
+                        matches = FindSettingForGray_BruteForce(o, gray.R, 0),
+                    }).
+                    Where(o => o.matches.Length > 0).
+                    ToArray();
+
+                // Get the stripe of S and V from those results that are the closest to the original S and V
+                var results_line = results_sheet.
+                    Select(o => new
+                    {
+                        o.h,
+                        closest = o.matches.
+                            Select(p => new
+                            {
+                                p,
+                                dist = (new Point(sourceColor.S, sourceColor.V) - new Point(p.s, p.v)).Length,
+                            }).
+                            OrderBy(p => p.dist).
+                            ToArray(),
+                    }).
+                    Select(o => new
+                    {
+                        o.h,
+                        matches = o.closest.
+                            Where(p => p.dist.IsNearValue(o.closest[0].dist)).
+                            Select(p => p.p).
+                            ToArray(),
+                    });
+
+                #endregion
+
+                #region create windows
+
+                Rect screen = UtilityWPF.GetCurrentScreen(PointToScreen(new Point()));
+                Size windowSize = new Size()
+                {
+                    Width = screen.Width * .75,
+                    Height = screen.Height * .75,
+                };
+
+
+                Debug3DWindow window_line = new Debug3DWindow()
+                {
+                    Background = new SolidColorBrush(gray),
+                    Width = windowSize.Width,
+                    Height = windowSize.Height,
+                };
+
+                Debug3DWindow window_sheet = new Debug3DWindow()
+                {
+                    Background = new SolidColorBrush(gray),
+                    Width = windowSize.Width,
+                    Height = windowSize.Height,
+                };
+
+                Debug3DWindow window_mono_line = new Debug3DWindow()
+                {
+                    Background = UtilityWPF.BrushFromHex(MONO_BACK),
+                    Width = windowSize.Width,
+                    Height = windowSize.Height,
+                };
+
+                Debug3DWindow window_mono_sheet = new Debug3DWindow()
+                {
+                    Background = UtilityWPF.BrushFromHex(MONO_BACK),
+                    Width = windowSize.Width,
+                    Height = windowSize.Height,
+                };
+
+                var sizes = Debug3DWindow.GetDrawSizes(360);
+                sizes.line *= .1;
+
+                #endregion
+
+                #region draw axiis
+
+                Color opposite = UtilityWPF.OppositeColor(gray);
+
+                var axisLines = Polytopes.GetCubeLines(new Point3D(0, 0, 0), new Point3D(360, 100, 100));
+
+                window_line.AddLines(axisLines, sizes.line, opposite);
+                window_sheet.AddLines(axisLines, sizes.line, opposite);
+                window_mono_line.AddLines(axisLines, sizes.line, colorFore);
+                window_mono_sheet.AddLines(axisLines, sizes.line, colorFore);
+
+                double labelOffest = 7;
+                double labelSize = 15;
+
+                Point3D pointS = new Point3D(-labelOffest, 50, -labelOffest);
+                Point3D pointV = new Point3D(-labelOffest, -labelOffest, 50);
+                Vector3D normal = new Vector3D(-1, 0, 0);
+
+                window_line.AddText3D("S", pointS, normal, labelSize, opposite, false);
+                window_sheet.AddText3D("S", pointS, normal, labelSize, opposite, false);
+                window_mono_line.AddText3D("S", pointS, normal, labelSize, colorFore, false);
+                window_mono_sheet.AddText3D("S", pointS, normal, labelSize, colorFore, false);
+
+                window_line.AddText3D("V", pointV, normal, labelSize, opposite, false);
+                window_sheet.AddText3D("V", pointV, normal, labelSize, opposite, false);
+                window_mono_line.AddText3D("V", pointV, normal, labelSize, colorFore, false);
+                window_mono_sheet.AddText3D("V", pointV, normal, labelSize, colorFore, false);
+
+                #endregion
+
+                #region reference line
+
+                if (chkShowReferenceLine.IsChecked.Value)
+                {
+                    double refLineThickness = sizes.dot * .75;
+
+                    for (int cntr = 0; cntr < hues.Length - 1; cntr++)
+                    {
+                        Point3D from = new Point3D(hues[cntr], sourceColor.S, sourceColor.V);
+                        Point3D to = new Point3D(hues[cntr + 1], sourceColor.S, sourceColor.V);
+                        Color fromC = new ColorHSV(hues[cntr], sourceColor.S, sourceColor.V).ToRGB();
+                        Color toC = new ColorHSV(hues[cntr + 1], sourceColor.S, sourceColor.V).ToRGB();
+
+                        window_line.AddLine(from, to, refLineThickness, fromC, toC);
+                        window_sheet.AddLine(from, to, refLineThickness, fromC, toC);
+                    }
+
+                    Point3D fromAll = new Point3D(hues[0], sourceColor.S, sourceColor.V);
+                    Point3D toAll = new Point3D(hues[hues.Length - 1], sourceColor.S, sourceColor.V);
+                    refLineThickness = sizes.line * 2;
+
+                    window_mono_line.AddLine(fromAll, toAll, refLineThickness, colorFore);
+                    window_mono_sheet.AddLine(fromAll, toAll, refLineThickness, colorFore);
+                }
+
+                #endregion
+
+                #region draw color dots
+
+                foreach (var r in results_line)
+                {
+                    foreach (var m in r.matches)
+                    {
+                        window_line.AddDot(new Point3D(r.h, m.s, m.v), sizes.dot, m.color, false);
+                        window_mono_line.AddDot(new Point3D(r.h, m.s, m.v), sizes.dot / 2, colorFore, true);
+                    }
+                }
+
+                foreach (var r in results_sheet)
+                {
+                    foreach (var m in r.matches)
+                    {
+                        window_sheet.AddDot(new Point3D(r.h, m.s, m.v), sizes.dot, m.color, false);
+                        window_mono_sheet.AddDot(new Point3D(r.h, m.s, m.v), sizes.dot / 2, colorFore, true);
+                    }
+                }
+
+                #endregion
+
+                #region show range
+
+                for (int cntr = 0; cntr <= 1; cntr++)
+                {
+                    var many = results_sheet.SelectMany(o => o.matches);
+
+                    double minS = many.Min(o => o.s);
+                    double maxS = many.Max(o => o.s);
+
+                    double minV = many.Min(o => o.v);
+                    double maxV = many.Max(o => o.v);
+
+                    string textS = $"S = {minS.ToStringSignificantDigits(1)} : {maxS.ToStringSignificantDigits(1)}";
+                    string textV = $"V = {minV.ToStringSignificantDigits(1)} : {maxV.ToStringSignificantDigits(1)}";
+
+                    window_sheet.AddText(textS);
+                    window_mono_sheet.AddText(textS);
+
+                    window_sheet.AddText(textV);
+                    window_mono_sheet.AddText(textV);
+                }
+
+                #endregion
+
+                #region show
+
+                if (chkShowMonoSheet.IsChecked.Value)
+                    window_mono_sheet.Show();
+
+                if (chkShowMonoLine.IsChecked.Value)
+                    window_mono_line.Show();
+
+                if (chkShowColorSheet.IsChecked.Value)
+                    window_sheet.Show();
+
+                window_line.Show();
+
+                #endregion
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        #endregion
 
         #region Private Methods - grayscale
 
@@ -463,6 +750,64 @@ namespace Game.Bepu.Testers.ColorTools
 
         //    return Convert.ToByte((desaturated + humanEye) / 2d);
         //}
+
+        #endregion
+        #region Private Methods - matching grays
+
+        private void RefreshSampleRect()
+        {
+            try
+            {
+                _sourceColor = UtilityWPF.ColorFromHex(txtSourceColor.Text);
+            }
+            catch (Exception)
+            {
+                txtSourceColor.Effect = _errorEffect;
+                return;
+            }
+
+            txtSourceColor.Effect = null;
+
+            sourceColorSample.Fill = new SolidColorBrush(_sourceColor);
+
+            ColorHSV hsv = _sourceColor.ToHSV();
+
+            lblSourceColorHSV.Text = string.Format("H={0} | S={1} | V={2}", hsv.H.ToInt_Round(), hsv.S.ToInt_Round(), hsv.V.ToInt_Round());
+        }
+
+        private static (double s, double v, Color color)[] FindSettingForGray_BruteForce(double hue, byte gray, double epsilon = 2)
+        {
+            return AllGridPoints(0, 100, 0, 100).
+                AsParallel().
+                Select(o =>
+                {
+                    Color c = new ColorHSV(hue, o.Item1, o.Item2).ToRGB();
+                    byte g = c.ToGray().R;
+
+                    return new
+                    {
+                        s = o.Item1,
+                        v = o.Item2,
+                        color = c,
+                        distance = Math.Abs(gray - g),
+                    };
+                }).
+                Where(o => o.distance <= epsilon).
+                OrderBy(o => o.distance).
+                Select(o => ((double)o.s, (double)o.v, o.color)).
+                ToArray();
+        }
+
+        private static IEnumerable<(int, int)> AllGridPoints(int from1, int to1, int from2, int to2)
+        {
+            for (int one = from1; one <= to1; one++)
+            {
+                for (int two = from2; two <= to2; two++)
+                {
+                    yield return (one, two);
+                }
+            }
+        }
 
         #endregion
     }

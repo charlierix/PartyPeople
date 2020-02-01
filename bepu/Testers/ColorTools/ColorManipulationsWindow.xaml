@@ -13,17 +13,11 @@
             <Setter Property="VerticalAlignment" Value="Stretch"/>
         </Style>
     </Window.Resources>
-    
-    <Grid>
+
+    <Grid Margin="8">
         <!-- color manipulation (playground for developing color functions) -->
         <TabControl>
             <TabItem Header="Grayscale Viewer">
-                <!-- grayscale viewer -->
-                <!-- C:\!Dev\!Personal\GrayscaleCompare -->
-                <!-- pick a folder full of images (remember that folder across instances) -->
-                <!-- choose a gray algorithm (average | desturated | BT.601 | BT.709) -->
-                <!-- show the full color image next to the gray image -->
-
                 <Grid Margin="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*"/>
@@ -58,7 +52,7 @@
                                 <TextBlock Grid.Column="2" Grid.Row="2" Name="lblNumImages" Text="0" Height="17" FontWeight="Bold"/>
                             </StackPanel>
                         </StackPanel>
-                        
+
                         <!-- Image List -->
                         <ListBox Grid.Column="2" Name="lstImages" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" MaxHeight="280" SelectionChanged="lstImages_SelectionChanged">
                             <ListBox.ItemsPanel>
@@ -75,7 +69,7 @@
                                     <Setter Property="Margin" Value="2"/>
                                 </Style>
                             </StackPanel.Resources>
-                            
+
                             <RadioButton Content="Average" Name="radAverage"/>
                             <RadioButton Content="Desaturated" Name="radDesaturate"/>
                             <RadioButton IsChecked="True" Content="BT.601" Name="rad601"/>
@@ -83,40 +77,62 @@
                         </StackPanel>
                     </Grid>
                 </Grid>
+            </TabItem>
 
+            <TabItem Header="Matching Grays">
+                <!-- get settings of S and V for each H that matches the gray output of a selected color -->
+                <!-- need an input box for the hex values of a color -->
+                <!--    show that color in a square -->
+                <!-- need options for grayscale algorithm -->
+                <!--    show the gray version -->
+
+                <!-- calculate for each hue.  try to come up with an efficient way.  this would be a good place to see if ml.net has a generator -->
+
+                <!-- show a 3D bezier of the chosen S and V for each H -->
+                <!--    show as a white line -->
+                <!--    show as a bunch of colored dots -->
+                <!--    if there are a range of values for each H, show as a cloud of colored dots -->
+
+                <Grid Margin="8">
+                    <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <Label Content="Source Color"/>
+
+                        <Border BorderBrush="#80404040" BorderThickness="1" CornerRadius="4" Width="100" Height="100">
+                            <Rectangle x:Name="sourceColorSample"/>
+                        </Border>
+
+                        <TextBlock x:Name="lblSourceColorHSV" Text="HSV" Foreground="#888" Margin="0,2,0,0"/>
+
+                        <Grid Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox Grid.Column="0" x:Name="txtSourceColor" Text="61D152" Padding="3,1" TextChanged="txtSourceColor_TextChanged"/>
+                            <Button Grid.Column="1" Content="rand" Margin="4,0,0,0" Click="RandSourceColor_Click"/>
+                        </Grid>
+
+                        <CheckBox IsChecked="True" Name="chkShowReferenceLine" Content="show reference line" Margin="0, 4, 0, 0"/>
+                        <CheckBox x:Name="chkShowMonoSheet" Content="show mono sheet"/>
+                        <CheckBox x:Name="chkShowMonoLine" Content="show mono line"/>
+                        <CheckBox x:Name="chkShowColorSheet" Content="show color sheet"/>
+                        <Button Content="attempt 1" Margin="0,2,0,0" Click="Attempt1_Click"/>
+                    </StackPanel>
+
+
+
+
+
+
+                </Grid>
             </TabItem>
         </TabControl>
-
-
-
-
-
-
-
-
-
-
-        <!-- get settings of S and V for each H that matches the gray output of a selected color -->
-        <!-- need an input box for the hex values of a color -->
-        <!--    show that color in a square -->
-        <!-- need options for grayscale algorithm -->
-        <!--    show the gray version -->
-
-        <!-- calculate for each hue.  try to come up with an efficient way.  this would be a good place to see if ml.net has a generator -->
-
-        <!-- show a 3D bezier of the chosen S and V for each H -->
-        <!--    show as a white line -->
-        <!--    show as a bunch of colored dots -->
-        <!--    if there are a range of values for each H, show as a cloud of colored dots -->
-
-
 
 
         <!-- get evenly distributed random colors HSV cone -->
         <!--    create new, the only input being count -->
         <!--    add new one at a time.  each previous color is a static point in that cone -->
-
-
 
 
     </Grid>
