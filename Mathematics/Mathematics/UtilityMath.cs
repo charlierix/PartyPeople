@@ -102,6 +102,14 @@ namespace Game.Math_WPF.Mathematics
                 return max;
             return value;
         }
+        public static int Clamp(int value, int min, int max)
+        {
+            if (value < min)
+                return min;
+            else if (value > max)
+                return max;
+            return value;
+        }
 
         /// <summary>
         /// This makes sure that min is less than max.  If they are passed in backward, they get swapped

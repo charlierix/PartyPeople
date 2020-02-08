@@ -2837,7 +2837,7 @@ namespace Game.Math_WPF.Mathematics
             }
         }
 
-        public static Tuple<Point, Point> GetAABB(IEnumerable<Point> points)
+        public static (Point min, Point max) GetAABB(IEnumerable<Point> points)
         {
             bool foundOne = false;
             double minX = double.MaxValue;
@@ -2874,12 +2874,12 @@ namespace Game.Math_WPF.Mathematics
             {
                 // There were no points passed in
                 //TODO: May want an exception
-                return Tuple.Create(new Point(0, 0), new Point(0, 0));
+                return (new Point(0, 0), new Point(0, 0));
             }
 
-            return Tuple.Create(new Point(minX, minY), new Point(maxX, maxY));
+            return (new Point(minX, minY), new Point(maxX, maxY));
         }
-        public static Tuple<Vector, Vector> GetAABB(IEnumerable<Vector> points)
+        public static (Vector min, Vector max) GetAABB(IEnumerable<Vector> points)
         {
             //NOTE: Copied for speed
 
@@ -2918,10 +2918,10 @@ namespace Game.Math_WPF.Mathematics
             {
                 // There were no points passed in
                 //TODO: May want an exception
-                return Tuple.Create(new Vector(0, 0), new Vector(0, 0));
+                return (new Vector(0, 0), new Vector(0, 0));
             }
 
-            return Tuple.Create(new Vector(minX, minY), new Vector(maxX, maxY));
+            return (new Vector(minX, minY), new Vector(maxX, maxY));
         }
         public static Rect GetAABB(IEnumerable<Rect> rectangles)
         {

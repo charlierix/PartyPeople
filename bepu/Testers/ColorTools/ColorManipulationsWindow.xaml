@@ -118,13 +118,42 @@
                         <CheckBox x:Name="chkShowMonoLine" Content="show mono line"/>
                         <CheckBox x:Name="chkShowColorSheet" Content="show color sheet"/>
                         <Button Content="attempt 1" Margin="0,2,0,0" Click="Attempt1_Click"/>
+
+                        <CheckBox x:Name="chkShowOccurrenceGraph" Content="show occurrence graph" Margin="0,16,0,0"/>
+                        <CheckBox x:Name="chkShowAllGrays" Content="show all grays"/>
+                        <Slider x:Name="sliderHue" Minimum="0" Maximum="360" Value="180"/>
+                        <Button Content="attempt optimize" Click="AttemptOptimize_Click"/>
                     </StackPanel>
+                </Grid>
+            </TabItem>
 
+            <TabItem Header="Misc">
+                <Grid Margin="8">
+                    <!-- TODO: Move this overlay color section into its own color picker window -->
+                    <!-- TODO: Give an option for laying multiple colors onto each other, an opacity slider for each -->
+                    <!-- TODO: Let them choose more than two colors.  Lay each color on the vertex of a regular polygon, let the user pick a point inside the polygon that is the LERP -->
+                    <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" TextBox.TextChanged="alphablend_TextChanged">
+                        <Grid>
+                            <Label Content="from"/>
+                            <Rectangle x:Name="alphablendFromSample" HorizontalAlignment="Right" Width="12" Height="12"/>
+                        </Grid>
+                        <TextBox x:Name="alphablendFrom"/>
 
+                        <Grid>
+                            <Label Content="to"/>
+                            <Rectangle x:Name="alphablendToSample" HorizontalAlignment="Right" Width="12" Height="12"/>
+                        </Grid>
+                        <TextBox x:Name="alphablendTo"/>
 
+                        <StackPanel Orientation="Horizontal">
+                            <Label Content="opacity" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                            <Label Name="opacityValue" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Slider x:Name="opacitySlider" Minimum="0" Maximum="1" Value=".5" ValueChanged="opacitySlider_ValueChanged"/>
 
-
-
+                        <Rectangle x:Name="outputSample" Width="100" Height="100" Margin="0,4,0,0"/>
+                        <TextBox x:Name="outputSampleHex" IsReadOnly="True" Margin="0,4,0,0"/>
+                    </StackPanel>
                 </Grid>
             </TabItem>
         </TabControl>

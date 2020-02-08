@@ -123,6 +123,15 @@ namespace Game.Math_WPF.Mathematics
                 return test >= this.Stop && test <= this.Start;
             }
         }
+
+        public override string ToString()
+        {
+            string by = Math.Abs(Increment) == 1 ?
+                "" :
+                $" by {Increment}";
+
+            return string.Format("{0}: {1} to {2}{3}", Axis, Start, Stop, by);
+        }
     }
 
     #endregion
@@ -209,6 +218,15 @@ namespace Game.Math_WPF.Mathematics
                 yield return retVal;
                 retVal += this.Increment;
             }
+        }
+
+        public override string ToString()
+        {
+            string by = Math.Abs(Increment).IsNearValue(1) ?
+                "" :
+                $" by {Increment.ToStringSignificantDigits(2)}";
+
+            return string.Format("{0}: {1} to {2}{3}", Axis, Start.ToStringSignificantDigits(2), Stop.ToStringSignificantDigits(2), by);
         }
     }
 

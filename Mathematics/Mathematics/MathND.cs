@@ -220,14 +220,14 @@ namespace Game.Math_WPF.Mathematics
 
             #endregion
 
-            public static VectorND[] GetCube(int returnCount, Tuple<VectorND, VectorND> aabb, double stopRadiusPercent, int stopIterationCount, double[] movableRepulseMultipliers, VectorND[] existingStaticPoints, double[] staticRepulseMultipliers)
+            public static VectorND[] GetCube(int returnCount, (VectorND min, VectorND max) aabb, double stopRadiusPercent, int stopIterationCount, double[] movableRepulseMultipliers, VectorND[] existingStaticPoints, double[] staticRepulseMultipliers)
             {
                 // Start with randomly placed dots
                 Dot[] dots = GetDots_Cube(returnCount, existingStaticPoints, aabb, movableRepulseMultipliers, staticRepulseMultipliers);
 
                 return GetCube_Finish(dots, aabb, stopRadiusPercent, stopIterationCount);
             }
-            public static VectorND[] GetCube(VectorND[] movable, Tuple<VectorND, VectorND> aabb, double stopRadiusPercent, int stopIterationCount, double[] movableRepulseMultipliers, VectorND[] existingStaticPoints, double[] staticRepulseMultipliers)
+            public static VectorND[] GetCube(VectorND[] movable, (VectorND min, VectorND max) aabb, double stopRadiusPercent, int stopIterationCount, double[] movableRepulseMultipliers, VectorND[] existingStaticPoints, double[] staticRepulseMultipliers)
             {
                 Dot[] dots = GetDots_Cube(movable, existingStaticPoints, movableRepulseMultipliers, staticRepulseMultipliers);
 
@@ -247,7 +247,7 @@ namespace Game.Math_WPF.Mathematics
             /// </remarks>
             /// <param name="movable">These are the points (keeping the name movable, because the other overload also has static points)</param>
             /// <param name="aabb">The dimensions of the cube</param>
-            public static VectorND[] GetCube(VectorND[] movable, Tuple<int, int>[] links, Tuple<VectorND, VectorND> aabb, double stopRadiusPercent, int stopIterationCount, double linkedMult, double unlinkedMult)
+            public static VectorND[] GetCube(VectorND[] movable, Tuple<int, int>[] links, (VectorND min, VectorND max) aabb, double stopRadiusPercent, int stopIterationCount, double linkedMult, double unlinkedMult)
             {
                 Dot[] dots = GetDots_Cube(movable, null, null, null);
 
@@ -309,7 +309,7 @@ namespace Game.Math_WPF.Mathematics
 
             #region Private Methods - linked cube
 
-            private static VectorND[] GetCube_Finish(Dot[] dots, Tuple<int, int>[] linked, Tuple<int, int>[] unlinked, Tuple<VectorND, VectorND> aabb, double stopRadiusPercent, int stopIterationCount, double linkedMult, double unlinkedMult)
+            private static VectorND[] GetCube_Finish(Dot[] dots, Tuple<int, int>[] linked, Tuple<int, int>[] unlinked, (VectorND min, VectorND max) aabb, double stopRadiusPercent, int stopIterationCount, double linkedMult, double unlinkedMult)
             {
                 const double MOVEPERCENT = .1;
 
@@ -337,7 +337,7 @@ namespace Game.Math_WPF.Mathematics
                     ToArray();
             }
 
-            private static double MoveStep(IList<Dot> dots, Tuple<int, int>[] linked, Tuple<int, int>[] unlinked, double percent, Tuple<VectorND, VectorND> aabb, double? minDistance, double linkedMult, double unlinkedMult)
+            private static double MoveStep(IList<Dot> dots, Tuple<int, int>[] linked, Tuple<int, int>[] unlinked, double percent, (VectorND min, VectorND max) aabb, double? minDistance, double linkedMult, double unlinkedMult)
             {
                 ShortPair[] linkedLengths = GetLengths(dots, linked);
                 ShortPair[] unlinkedLengths = GetLengths(dots, unlinked);
@@ -568,7 +568,7 @@ namespace Game.Math_WPF.Mathematics
             #endregion
             #region Private Methods - standard cube
 
-            private static VectorND[] GetCube_Finish(Dot[] dots, Tuple<VectorND, VectorND> aabb, double stopRadiusPercent, int stopIterationCount)
+            private static VectorND[] GetCube_Finish(Dot[] dots, (VectorND min, VectorND max) aabb, double stopRadiusPercent, int stopIterationCount)
             {
                 const double MOVEPERCENT = .1;
 
@@ -596,7 +596,7 @@ namespace Game.Math_WPF.Mathematics
                     ToArray();
             }
 
-            private static double MoveStep(IList<Dot> dots, double percent, Tuple<VectorND, VectorND> aabb, double? minDistance)
+            private static double MoveStep(IList<Dot> dots, double percent, (VectorND min, VectorND max) aabb, double? minDistance)
             {
                 // Find shortest pair lengths
                 ShortPair[] shortPairs = GetShortestPair(dots);
@@ -748,7 +748,7 @@ namespace Game.Math_WPF.Mathematics
             #endregion
             #region Private Methods
 
-            private static Dot[] GetDots_Cube(int movableCount, VectorND[] staticPoints, Tuple<VectorND, VectorND> aabb, double[] movableRepulseMultipliers, double[] staticRepulseMultipliers)
+            private static Dot[] GetDots_Cube(int movableCount, VectorND[] staticPoints, (VectorND min, VectorND max) aabb, double[] movableRepulseMultipliers, double[] staticRepulseMultipliers)
             {
                 // Seed the movable ones with random locations (that's the best that can be done right now)
                 VectorND[] movable = Enumerable.Range(0, movableCount).
@@ -813,7 +813,7 @@ namespace Game.Math_WPF.Mathematics
                     ToArray();
             }
 
-            private static double MovePair(ref bool isFirst, ShortPair pair, double percent, double distToMoveMax, double avg, IList<Dot> dots, Tuple<VectorND, VectorND> aabb, bool isAway)
+            private static double MovePair(ref bool isFirst, ShortPair pair, double percent, double distToMoveMax, double avg, IList<Dot> dots, (VectorND min, VectorND max) aabb, bool isAway)
             {
                 // Figure out how far they should move
                 double actualPercent, distToMoveRatio;
@@ -882,14 +882,14 @@ namespace Game.Math_WPF.Mathematics
                 return moveDist;
             }
 
-            private static void CapToCube(IEnumerable<Dot> dots, Tuple<VectorND, VectorND> aabb)
+            private static void CapToCube(IEnumerable<Dot> dots, (VectorND min, VectorND max) aabb)
             {
                 foreach (Dot dot in dots)
                 {
                     CapToCube(dot, aabb);
                 }
             }
-            private static void CapToCube(Dot dot, Tuple<VectorND, VectorND> aabb)
+            private static void CapToCube(Dot dot, (VectorND min, VectorND max) aabb)
             {
                 if (dot.IsStatic)
                 {
@@ -923,7 +923,7 @@ namespace Game.Math_WPF.Mathematics
             /// <remarks>
             /// I didn't experiment too much with these values, but they seem pretty good
             /// </remarks>
-            private static double? GetMinDistance(Dot[] dots, double radius, Tuple<VectorND, VectorND> aabb)
+            private static double? GetMinDistance(Dot[] dots, double radius, (VectorND min, VectorND max) aabb)
             {
                 int dimensions = aabb.Item1.Size;
 
@@ -968,7 +968,7 @@ namespace Game.Math_WPF.Mathematics
 
         #endregion
 
-        #region Simple
+        #region simple
 
         /// <summary>
         /// Get a random vector between boundry lower and boundry upper
@@ -1055,9 +1055,9 @@ namespace Game.Math_WPF.Mathematics
 
         #endregion
 
-        #region Random
+        #region random
 
-        public static VectorND GetRandomVector_Cube(Tuple<VectorND, VectorND> aabb)
+        public static VectorND GetRandomVector_Cube((VectorND min, VectorND max) aabb)
         {
             return GetRandomVector(aabb.Item1, aabb.Item2);
         }
@@ -1075,15 +1075,15 @@ namespace Game.Math_WPF.Mathematics
             return new VectorND(retVal);
         }
 
-        public static VectorND[] GetRandomVectors_Cube_EventDist(int returnCount, Tuple<VectorND, VectorND> aabb, double[] movableRepulseMultipliers = null, VectorND[] existingStaticPoints = null, double[] staticRepulseMultipliers = null, double stopRadiusPercent = .004, int stopIterationCount = 1000)
+        public static VectorND[] GetRandomVectors_Cube_EventDist(int returnCount, (VectorND min, VectorND max) aabb, double[] movableRepulseMultipliers = null, VectorND[] existingStaticPoints = null, double[] staticRepulseMultipliers = null, double stopRadiusPercent = .004, int stopIterationCount = 1000)
         {
             return EvenDistribution.GetCube(returnCount, aabb, stopRadiusPercent, stopIterationCount, movableRepulseMultipliers, existingStaticPoints, staticRepulseMultipliers);
         }
-        public static VectorND[] GetRandomVectors_Cube_EventDist(VectorND[] movable, Tuple<VectorND, VectorND> aabb, double[] movableRepulseMultipliers = null, VectorND[] existingStaticPoints = null, double[] staticRepulseMultipliers = null, double stopRadiusPercent = .004, int stopIterationCount = 1000)
+        public static VectorND[] GetRandomVectors_Cube_EventDist(VectorND[] movable, (VectorND min, VectorND max) aabb, double[] movableRepulseMultipliers = null, VectorND[] existingStaticPoints = null, double[] staticRepulseMultipliers = null, double stopRadiusPercent = .004, int stopIterationCount = 1000)
         {
             return EvenDistribution.GetCube(movable, aabb, stopRadiusPercent, stopIterationCount, movableRepulseMultipliers, existingStaticPoints, staticRepulseMultipliers);
         }
-        public static VectorND[] GetRandomVectors_Cube_EventDist(VectorND[] movable, Tuple<int, int>[] links, Tuple<VectorND, VectorND> aabb, double stopRadiusPercent = .004, int stopIterationCount = 1000, double linkedMult = .2, double unlinkedMult = .4)
+        public static VectorND[] GetRandomVectors_Cube_EventDist(VectorND[] movable, Tuple<int, int>[] links, (VectorND min, VectorND max) aabb, double stopRadiusPercent = .004, int stopIterationCount = 1000, double linkedMult = .2, double unlinkedMult = .4)
         {
             return EvenDistribution.GetCube(movable, links, aabb, stopRadiusPercent, stopIterationCount, linkedMult, unlinkedMult);
         }
@@ -1193,9 +1193,9 @@ namespace Game.Math_WPF.Mathematics
 
         #endregion
 
-        #region Misc
+        #region misc
 
-        public static Tuple<VectorND, VectorND> GetAABB(IEnumerable<VectorND> points)
+        public static (VectorND min, VectorND max) GetAABB(IEnumerable<VectorND> points)
         {
             VectorND first = points.FirstOrDefault();
             if (first == null)
@@ -1229,21 +1229,21 @@ namespace Game.Math_WPF.Mathematics
                 }
             }
 
-            return Tuple.Create(new VectorND(min), new VectorND(max));
+            return (new VectorND(min), new VectorND(max));
         }
 
         /// <summary>
         /// This changes the size of aabb by percent
         /// </summary>
         /// <param name="percent">If less than 1, this will reduce the size.  If greater than 1, this will increase the size</param>   
-        public static Tuple<VectorND, VectorND> ResizeAABB(Tuple<VectorND, VectorND> aabb, double percent)
+        public static (VectorND min, VectorND max) ResizeAABB((VectorND min, VectorND max) aabb, double percent)
         {
-            VectorND center = GetCenter(new[] { aabb.Item1, aabb.Item2 });
+            VectorND center = GetCenter(new[] { aabb.min, aabb.max });
 
-            VectorND dirMin = (aabb.Item1 - center) * percent;
-            VectorND dirMax = (aabb.Item2 - center) * percent;
+            VectorND dirMin = (aabb.min - center) * percent;
+            VectorND dirMax = (aabb.max - center) * percent;
 
-            return Tuple.Create(center + dirMin, center + dirMax);
+            return (center + dirMin, center + dirMax);
         }
 
         /// <summary>
@@ -1331,10 +1331,10 @@ namespace Game.Math_WPF.Mathematics
             return BallOfSprings.ApplyBallOfSprings(positions, desiredDistances, numIterations);
         }
 
-        public static bool IsInside(Tuple<VectorND, VectorND> aabb, VectorND testPoint)
+        public static bool IsInside((VectorND min, VectorND max) aabb, VectorND testPoint)
         {
-            double[] min = aabb.Item1.VectorArray;
-            double[] max = aabb.Item2.VectorArray;
+            double[] min = aabb.min.VectorArray;
+            double[] max = aabb.max.VectorArray;
             double[] test = testPoint.VectorArray;
 
             for (int cntr = 0; cntr < test.Length; cntr++)
@@ -1394,18 +1394,18 @@ namespace Game.Math_WPF.Mathematics
         /// <summary>
         /// This returns the "radius" of a cube
         /// </summary>
-        public static double GetRadius(Tuple<VectorND, VectorND> aabb)
+        public static double GetRadius((VectorND min, VectorND max) aabb)
         {
             // Diameter of the circumscribed sphere
-            double circumscribedDiam = (aabb.Item1 - aabb.Item2).Length;
+            double circumscribedDiam = (aabb.min - aabb.max).Length;
 
             // Diameter of inscribed sphere
             double inscribedDiam = 0;
-            for (int cntr = 0; cntr < aabb.Item1.Size; cntr++)
+            for (int cntr = 0; cntr < aabb.min.Size; cntr++)
             {
-                inscribedDiam += aabb.Item2[cntr] - aabb.Item1[cntr];
+                inscribedDiam += aabb.max[cntr] - aabb.min[cntr];
             }
-            inscribedDiam /= aabb.Item1.Size;
+            inscribedDiam /= aabb.min.Size;
 
             // Return the average of the two
             //return (circumscribedDiam + inscribedDiam) / 4d;        // avg=sum/2, radius=diam/2, so divide by 4

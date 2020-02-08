@@ -1902,7 +1902,7 @@ namespace Game.Math_WPF.WPF
                 return new[] { staticColor };
             }
 
-            Tuple<VectorND, VectorND> aabb = Tuple.Create(new double[] { minRed, minGreen, minBlue }.ToVectorND(), new double[] { maxRed, maxGreen, maxBlue }.ToVectorND());
+            var aabb = (new double[] { minRed, minGreen, minBlue }.ToVectorND(), new double[] { maxRed, maxGreen, maxBlue }.ToVectorND());
 
             VectorND[] existingStatic = new[] { new double[] { staticColor.R, staticColor.G, staticColor.B }.ToVectorND() };
 

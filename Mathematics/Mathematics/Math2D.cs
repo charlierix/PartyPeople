@@ -1630,6 +1630,55 @@ namespace Game.Math_WPF.Mathematics
         public const double NEARZERO = UtilityMath.NEARZERO;
 
         #endregion
+
+        #region misc
+
+        public static (VectorInt min, VectorInt max) GetAABB(IEnumerable<VectorInt> points)
+        {
+            //NOTE: Copied for speed
+
+            bool foundOne = false;
+            int minX = int.MaxValue;
+            int minY = int.MaxValue;
+            int maxX = int.MinValue;
+            int maxY = int.MinValue;
+
+            foreach (VectorInt point in points)
+            {
+                foundOne = true;        // it's too expensive to look at points.Count()
+
+                if (point.X < minX)
+                {
+                    minX = point.X;
+                }
+
+                if (point.Y < minY)
+                {
+                    minY = point.Y;
+                }
+
+                if (point.X > maxX)
+                {
+                    maxX = point.X;
+                }
+
+                if (point.Y > maxY)
+                {
+                    maxY = point.Y;
+                }
+            }
+
+            if (!foundOne)
+            {
+                // There were no points passed in
+                //TODO: May want an exception
+                return (new VectorInt(0, 0), new VectorInt(0, 0));
+            }
+
+            return (new VectorInt(minX, minY), new VectorInt(maxX, maxY));
+        }
+
+        #endregion
     }
 
     #region enum: EdgeType

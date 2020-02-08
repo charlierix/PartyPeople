@@ -33,6 +33,8 @@ namespace Game.Bepu.Testers.ColorTools
 
         private readonly DropShadowEffect _errorEffect;
 
+        private bool _initialized = false;
+
         #endregion
 
         #region Constructor
@@ -56,6 +58,8 @@ namespace Game.Bepu.Testers.ColorTools
                 BlurRadius = 8,
                 Opacity = .8,
             };
+
+            _initialized = true;
         }
 
         #endregion
@@ -357,16 +361,16 @@ namespace Game.Bepu.Testers.ColorTools
                 ColorHSV sourceColor = _sourceColor.ToHSV();
 
                 // Get a spread of other hues
-                var aabb = Tuple.Create(new VectorND(0d), new VectorND(359.9d));
+                var aabb = (new VectorND(0d), new VectorND(359.9d));
                 var staticHue = new[] { new VectorND(sourceColor.H) };
 
-                var hues = MathND.GetRandomVectors_Cube_EventDist(96, aabb, existingStaticPoints: staticHue, stopIterationCount: 100).
+                var hues = MathND.GetRandomVectors_Cube_EventDist(96, aabb, existingStaticPoints: staticHue, stopIterationCount: 200).
                     Concat(staticHue).
                     Select(o => o[0]).
                     OrderBy(o => o).
                     ToArray();
 
-                Color gray = sourceColor.ToRGB().ToGray();
+                Color gray = _sourceColor.ToGray();
 
                 // Get the S and V values that make the same gray
                 var results_sheet = hues.
@@ -487,8 +491,8 @@ namespace Game.Bepu.Testers.ColorTools
                     {
                         Point3D from = new Point3D(hues[cntr], sourceColor.S, sourceColor.V);
                         Point3D to = new Point3D(hues[cntr + 1], sourceColor.S, sourceColor.V);
-                        Color fromC = new ColorHSV(hues[cntr], sourceColor.S, sourceColor.V).ToRGB();
-                        Color toC = new ColorHSV(hues[cntr + 1], sourceColor.S, sourceColor.V).ToRGB();
+                        Color fromC = UtilityWPF.HSVtoRGB(hues[cntr], sourceColor.S, sourceColor.V);
+                        Color toC = UtilityWPF.HSVtoRGB(hues[cntr + 1], sourceColor.S, sourceColor.V);
 
                         window_line.AddLine(from, to, refLineThickness, fromC, toC);
                         window_sheet.AddLine(from, to, refLineThickness, fromC, toC);
@@ -564,6 +568,173 @@ namespace Game.Bepu.Testers.ColorTools
                 window_line.Show();
 
                 #endregion
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void AttemptOptimize_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ColorHSV sourceColor = _sourceColor.ToHSV();
+                byte gray = _sourceColor.ToGray().R;
+
+                double requestHue = sliderHue.Value;
+
+                #region draw brute graph
+
+                var brute = FindSettingForGray_BruteForce(requestHue, gray, 0);
+
+                var window = new Debug3DWindow();
+
+                var sizes = Debug3DWindow.GetDrawSizes(100);
+
+                window.AddAxisLines(100, sizes.line);
+
+                window.AddDot(new Point3D(sourceColor.V, sourceColor.S, 0), sizes.dot * 4, UtilityWPF.HSVtoRGB(requestHue, sourceColor.S, sourceColor.V), false);
+
+                window.AddDots(brute.Select(o => new Point3D(o.v, o.s, 0)), sizes.dot, Colors.Black);
+
+                window.AddText(string.Format("from: H={0} | S={1} | V={2}", sourceColor.H.ToInt_Round(), sourceColor.S.ToInt_Round(), sourceColor.V.ToInt_Round()));
+                window.AddText($"to: H={requestHue.ToInt_Round()}");
+
+                window.AddText("Value", color: Debug3DWindow.AXISCOLOR_X);
+                window.AddText("Saturation", color: Debug3DWindow.AXISCOLOR_Y);
+
+                window.Show();
+
+                #endregion
+
+                if (chkShowAllGrays.IsChecked.Value || chkShowOccurrenceGraph.IsChecked.Value)
+                {
+                    #region calculate all
+
+                    var test = AllGridPoints(0, 100, 0, 100).
+                        AsParallel().
+                        Select(o =>
+                        {
+                            Color c = UtilityWPF.HSVtoRGB(requestHue, o.Item1, o.Item2);
+                            byte g = c.ToGray().R;
+
+                            return new
+                            {
+                                s = o.Item1,
+                                v = o.Item2,
+                                color = c,
+                                distance = Math.Abs(gray - g),
+                                //colorkey = c.ToHex(false, false),
+                                gray = g,
+                            };
+                        }).
+                        ToArray();
+
+                    var grouped = test.
+                        //ToLookup(o => o.colorkey).
+                        ToLookup(o => o.gray).
+                        //OrderByDescending(o => o.Count()).
+                        ToArray();
+
+                    #endregion
+
+                    #region show all
+
+                    if (chkShowAllGrays.IsChecked.Value)
+                    {
+                        Debug3DWindow windowAll = new Debug3DWindow()
+                        {
+                            Background = new SolidColorBrush(Color.FromRgb(gray, gray, gray)),
+                        };
+
+                        sizes = Debug3DWindow.GetDrawSizes(100);
+
+                        windowAll.AddAxisLines(120, sizes.line);
+
+                        foreach (var group in grouped)
+                        {
+                            windowAll.AddDots(group.Select(o => new Point3D(o.v, o.s, 0)), sizes.dot, Color.FromRgb(group.Key, group.Key, group.Key), false);
+
+                            if (group.Key == gray)
+                            {
+                                var lowestV = group.OrderBy(o => o.v).First();
+                                var highestV = group.OrderByDescending(o => o.v).First();
+
+                                windowAll.AddDot(new Point3D(lowestV.v, lowestV.s, 0), sizes.dot * 1.5, Colors.Red);
+                                windowAll.AddDot(new Point3D(highestV.v, highestV.s, 0), sizes.dot * 1.5, Colors.Red);
+                            }
+                        }
+
+                        windowAll.AddDot(new Point3D(sourceColor.V, sourceColor.S, 0), sizes.dot * 1.5, UtilityWPF.HSVtoRGB(requestHue, sourceColor.S, sourceColor.V), false);
+
+                        windowAll.AddText("Value", color: Debug3DWindow.AXISCOLOR_X);
+                        windowAll.AddText("Saturation", color: Debug3DWindow.AXISCOLOR_Y);
+
+                        windowAll.Show();
+                    }
+
+                    #endregion
+
+                    #region occurrence graph
+
+                    if (chkShowOccurrenceGraph.IsChecked.Value)
+                    {
+                        var byGray = grouped.
+                            OrderBy(o => o.Key).
+                            ToArray();
+
+                        var grayCounts = Enumerable.Range(0, 256).
+                            Select(o =>
+                            {
+                                byte key = (byte)o;
+                                int count = byGray.FirstOrDefault(o => o.Key == key)?.Count() ?? 0;
+                                return (double)count;
+                            }).
+                            ToArray();
+
+                        Debug3DWindow windowCounts = new Debug3DWindow();
+
+                        windowCounts.AddGraph(Debug3DWindow.GetGraph(grayCounts), new Point3D(), 100);
+
+                        windowCounts.Show();
+                    }
+
+                    #endregion
+                }
+
+                var match = FindSettingForGray_Search_Analyze(requestHue, gray, 0, sourceColor, brute);
+
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        #endregion
+        #region Event Listeners - misc
+
+        private void alphablend_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                if (_initialized)
+                    RefreshOpacitySample();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void opacitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                if (_initialized)
+                    RefreshOpacitySample();
             }
             catch (Exception ex)
             {
@@ -775,13 +946,13 @@ namespace Game.Bepu.Testers.ColorTools
             lblSourceColorHSV.Text = string.Format("H={0} | S={1} | V={2}", hsv.H.ToInt_Round(), hsv.S.ToInt_Round(), hsv.V.ToInt_Round());
         }
 
-        private static (double s, double v, Color color)[] FindSettingForGray_BruteForce(double hue, byte gray, double epsilon = 2)
+        private static (double s, double v, Color color)[] FindSettingForGray_BruteForce(double hue, byte gray, double epsilon = 1)
         {
             return AllGridPoints(0, 100, 0, 100).
                 AsParallel().
                 Select(o =>
                 {
-                    Color c = new ColorHSV(hue, o.Item1, o.Item2).ToRGB();
+                    Color c = UtilityWPF.HSVtoRGB(hue, o.Item1, o.Item2);
                     byte g = c.ToGray().R;
 
                     return new
@@ -798,6 +969,285 @@ namespace Game.Bepu.Testers.ColorTools
                 ToArray();
         }
 
+        //TODO: Break this into two functions internally, get rect, solve rect (solve rect is the same as brute force, just with a rectangle passed in)
+        private static (double s, double v, Color color)? FindSettingForGray_Search_Analyze(double hue, byte gray, double epsilon, ColorHSV sourceColor, (double s, double v, Color color)[] matches)
+        {
+            byte sourceGray = UtilityWPF.HSVtoRGB(hue, sourceColor.S, sourceColor.V).ToGray().R;
+
+            if (sourceGray == gray)
+            {
+                throw new ApplicationException("it was passed in");
+            }
+
+            Point3D sourcePos = new Point3D(sourceColor.V, sourceColor.S, 0);
+
+            #region init window
+
+            Debug3DWindow window = new Debug3DWindow()
+            {
+                Background = new SolidColorBrush(Color.FromRgb(gray, gray, gray)),
+            };
+
+            var sizes = Debug3DWindow.GetDrawSizes(100);
+
+            window.AddAxisLines(100, sizes.line);
+
+            window.AddDots(matches.Select(o => (new Point3D(o.v, o.s, 0), sizes.dot, o.color, false, false)));
+
+            window.AddDot(sourcePos, sizes.dot * 2, UtilityWPF.HSVtoRGB(hue, sourceColor.S, sourceColor.V), false);
+
+            window.AddText("Value", color: Debug3DWindow.AXISCOLOR_X);
+            window.AddText("Saturation", color: Debug3DWindow.AXISCOLOR_Y);
+
+            #endregion
+
+            // Send out feelers
+            // start with 4, all the way up down left right
+
+            byte up = UtilityWPF.HSVtoRGB(hue, 100, sourceColor.V).ToGray().R;
+            byte down = UtilityWPF.HSVtoRGB(hue, 0, sourceColor.V).ToGray().R;
+            byte left = UtilityWPF.HSVtoRGB(hue, sourceColor.S, 0).ToGray().R;
+            byte right = UtilityWPF.HSVtoRGB(hue, sourceColor.S, 100).ToGray().R;
+
+            bool isUp = !IsSameSide(gray, sourceGray, up);
+            bool isDown = !IsSameSide(gray, sourceGray, down);
+            bool isLeft = !IsSameSide(gray, sourceGray, left);
+            bool isRight = !IsSameSide(gray, sourceGray, right);
+
+            Color isTrue = Colors.DarkSeaGreen;
+            Color isFalse = Colors.Tomato;
+
+            window.AddLine(new Point3D(sourceColor.V, 100, 0), sourcePos, sizes.line, isUp ? isTrue : isFalse);
+            window.AddLine(new Point3D(sourceColor.V, 0, 0), sourcePos, sizes.line, isDown ? isTrue : isFalse);
+            window.AddLine(new Point3D(0, sourceColor.S, 0), sourcePos, sizes.line, isLeft ? isTrue : isFalse);
+            window.AddLine(new Point3D(100, sourceColor.S, 0), sourcePos, sizes.line, isRight ? isTrue : isFalse);
+
+            if ((isUp && isDown) || (isLeft && isRight) || (!isUp && !isDown && !isLeft && !isRight))
+            {
+                // Should never happen, just brute force the whole square
+                throw new ApplicationException("brute force the whole square");
+            }
+
+
+            // Walk along the yes lines until there is a match, or it's crossed over, then stop at that line
+            // Those represent the corners of the box to scan.  If there are two lines, the request point is the other corner
+            // If there is only one line, then scan everything inside the match distance
+
+            // If it's cheap enough, use a bressenham arc.  Otherwise maybe just staight lines.  If the cost of testing those
+            // at each loop point is too much, just do a box
+
+            // After all points inside that region are found, return the closest one
+
+
+            if ((isUp || isDown) && (isLeft || isRight))
+            {
+                // Two edges to walk
+                AxisFor horz = isLeft ?
+                    new AxisFor(Axis.X, sourceColor.V.ToInt_Round(), 0) :
+                    new AxisFor(Axis.X, sourceColor.V.ToInt_Round(), 100);
+
+                AxisFor vert = isDown ?
+                    new AxisFor(Axis.Y, sourceColor.S.ToInt_Round(), 0) :
+                    new AxisFor(Axis.Y, sourceColor.S.ToInt_Round(), 100);
+
+                // Alternate back and forth until one axis finds a match or changes threshold
+                //horz.
+
+                var corner = Find_TwoAxiis(horz, vert, hue, sourceGray, gray);
+
+                window.AddDot(new Point3D(corner.X, corner.Y, 0), sizes.dot * 1.5, Colors.White);
+
+
+                //RectInt retVal2 = new RectInt();
+
+
+
+            }
+            else
+            {
+                // Only one edge to walk
+
+                // use 3 axisfors.  The main one and two that start at the center line and go out
+
+                // walk the main one util there's a match or threshold change.  Then set up the two sides with that distance
+
+                AxisFor main =
+                    isLeft ? new AxisFor(Axis.X, sourceColor.V.ToInt_Round(), 0) :
+                    isRight ? new AxisFor(Axis.X, sourceColor.V.ToInt_Round(), 100) :
+                    isDown ? new AxisFor(Axis.Y, sourceColor.S.ToInt_Round(), 0) :
+                    isUp ? new AxisFor(Axis.Y, sourceColor.S.ToInt_Round(), 100) :
+                    throw new ApplicationException("Should have exactly one direction to go");
+
+                int end = Find_OneAxis(main, hue, sourceColor.V, sourceColor.S, sourceGray, gray);
+
+                int dotX = sourceColor.V.ToInt_Round();
+                int dotY = sourceColor.S.ToInt_Round();
+                main.Set2DIndex(ref dotX, ref dotY, end);
+                window.AddDot(new Point3D(dotX, dotY, 0), sizes.dot * 1.5, Colors.White);
+
+                // Now create an axis perpendicular to this
+
+
+                RectInt retVal1 = GetBox_OneAxis(main, end, sourceColor.V, sourceColor.S);
+
+
+                window.AddDot(new Point3D(retVal1.Left, retVal1.Top, 0), sizes.dot * 1.5, Colors.White);
+                window.AddDot(new Point3D(retVal1.Right, retVal1.Bottom, 0), sizes.dot * 1.5, Colors.White);
+
+            }
+
+
+
+            //TODO: The found rectangle should be increased in size slightly to help with slight drift (do that when getting the axiis)
+
+
+
+            //ALMOST
+            // keep track of which feelers straddle the curve.  Chop their length in half and see if they still straddle the curve, 1/4 else 3/4
+            // this should be good enough, solve all points in that box and return the best match
+
+
+            window.Show();
+
+
+            return null;
+        }
+
+        private static VectorInt Find_TwoAxiis(AxisFor horz, AxisFor vert, double hue, byte sourceGray, byte gray)
+        {
+            VectorInt retVal = new VectorInt(horz.Start, vert.Start);
+
+            var enumHz = horz.Iterate().GetEnumerator();
+            var enumVt = vert.Iterate().GetEnumerator();
+
+            enumHz.MoveNext();      // the first time through is Start, so prime them to do the item after start
+            enumVt.MoveNext();
+
+            bool stoppedH = false;
+            bool stoppedV = false;
+
+            // Walk one step at a time along the sides of the square until one of the edges finds the curve
+            while (true)
+            {
+                bool foundH = false;
+                if (!stoppedH && enumHz.MoveNext())
+                {
+                    retVal.X = enumHz.Current;
+                    foundH = !IsSameSide(gray, sourceGray, hue, vert.Start, retVal.X);
+                }
+                else
+                {
+                    stoppedH = true;
+                }
+
+                bool foundV = false;
+                if (!stoppedV && enumVt.MoveNext())
+                {
+                    retVal.Y = enumVt.Current;
+                    foundV = !IsSameSide(gray, sourceGray, hue, retVal.Y, horz.Start);
+                }
+                else
+                {
+                    stoppedV = true;
+                }
+
+                if (foundH || foundV)
+                {
+                    break;
+                }
+
+                if (stoppedH && stoppedV)       // this should never happen
+                {
+                    break;
+                }
+            }
+
+            return new VectorInt(UtilityMath.Clamp(retVal.X, 0, 100), UtilityMath.Clamp(retVal.Y, 0, 100));
+        }
+        private static int Find_OneAxis(AxisFor axis, double hue, double val, double sat, byte sourceGray, byte gray)
+        {
+            int x = val.ToInt_Round();
+            int y = sat.ToInt_Round();
+
+            foreach (int item in axis.Iterate())
+            {
+                axis.Set2DIndex(ref x, ref y, item);
+
+                if (!IsSameSide(gray, sourceGray, hue, y, x))
+                {
+                    return item;
+                }
+            }
+
+            // The curve wasn't found.  This should never happen
+            //return axis.Stop;
+            throw new ApplicationException("Didn't find curve");
+        }
+
+        //TODO: Since the curve only ever goes one way, only half of the box would be needed.  Do a similar dual feeler approach to see what direction to go (but pull back toward the start point a couple ticks to make sure math drift doesn't skew the result)
+        private static RectInt GetBox_OneAxis(AxisFor axis, int axisStop, double val, double sat)
+        {
+            int fromX = val.ToInt_Round();
+            int fromY = sat.ToInt_Round();
+
+            VectorInt[] corners = null;
+
+            switch (axis.Axis)
+            {
+                case Axis.X:
+                    int distX = Math.Abs(fromX - axisStop);
+
+                    corners = new[]
+                    {
+                        new VectorInt(fromX, fromY - distX),
+                        new VectorInt(fromX, fromY + distX),
+                        new VectorInt(axisStop, fromY - distX),
+                        new VectorInt(axisStop, fromY + distX),
+                    };
+                    break;
+
+                case Axis.Y:
+                    int distY = Math.Abs(fromY - axisStop);
+
+                    corners = new[]
+                    {
+                        new VectorInt(fromX - distY, fromY),
+                        new VectorInt(fromX + distY, fromY),
+                        new VectorInt(fromX - distY, axisStop),
+                        new VectorInt(fromX + distY, axisStop),
+                    };
+                    break;
+
+                case Axis.Z:
+                    throw new ApplicationException("Didn't expect Z axis");
+
+                default:
+                    throw new ApplicationException($"Unknown Axis: {axis.Axis}");
+            }
+
+            var aabb = Math2D.GetAABB(corners);
+
+            aabb =
+            (
+                new VectorInt(UtilityMath.Clamp(aabb.min.X, 0, 100), UtilityMath.Clamp(aabb.min.Y, 0, 100)),
+                new VectorInt(UtilityMath.Clamp(aabb.max.X, 0, 100), UtilityMath.Clamp(aabb.max.Y, 0, 100))
+            );
+
+            return new RectInt(aabb.min.X, aabb.min.Y, aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y);
+        }
+
+        private static bool IsSameSide(byte target, byte current, double h, double s, double v)
+        {
+            byte test = UtilityWPF.HSVtoRGB(h, s, v).ToGray().R;
+
+            return IsSameSide(target, current, test);
+        }
+        private static bool IsSameSide(byte target, byte current, byte test)
+        {
+            return (current >= target && test >= target) ||
+                (current <= target && test <= target);
+        }
+
         private static IEnumerable<(int, int)> AllGridPoints(int from1, int to1, int from2, int to2)
         {
             for (int one = from1; one <= to1; one++)
@@ -806,6 +1256,56 @@ namespace Game.Bepu.Testers.ColorTools
                 {
                     yield return (one, two);
                 }
+            }
+        }
+
+        #endregion
+        #region Private Methods - misc
+
+        private void RefreshOpacitySample()
+        {
+            opacityValue.Content = opacitySlider.Value.ToStringSignificantDigits(2);
+
+            bool hadError = false;
+
+            Color from;
+            try
+            {
+                from = UtilityWPF.ColorFromHex(alphablendFrom.Text);
+                alphablendFromSample.Fill = new SolidColorBrush(from);
+                alphablendFrom.Effect = null;
+            }
+            catch (Exception)
+            {
+                alphablendFrom.Effect = _errorEffect;
+                alphablendFromSample.Fill = Brushes.Red;
+                hadError = true;
+            }
+
+            Color to;
+            try
+            {
+                to = UtilityWPF.ColorFromHex(alphablendTo.Text);
+                alphablendToSample.Fill = new SolidColorBrush(to);
+                alphablendTo.Effect = null;
+            }
+            catch (Exception)
+            {
+                alphablendTo.Effect = _errorEffect;
+                alphablendToSample.Fill = Brushes.Red;
+                hadError = true;
+            }
+
+            if (hadError)
+            {
+                outputSample.Fill = Brushes.Red;
+                outputSampleHex.Text = "";
+            }
+            else
+            {
+                Color blend = UtilityWPF.AlphaBlend(to, from, opacitySlider.Value);
+                outputSample.Fill = new SolidColorBrush(blend);
+                outputSampleHex.Text = blend.ToHex(from.A < 255 || to.A < 255, false);
             }
         }
 

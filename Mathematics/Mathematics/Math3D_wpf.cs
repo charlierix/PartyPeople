@@ -5410,7 +5410,7 @@ namespace Game.Math_WPF.Mathematics
 
         #region misc
 
-        public static Tuple<Point3D, Point3D> GetAABB(ITriangle_wpf triangle)
+        public static (Point3D min, Point3D max) GetAABB(ITriangle_wpf triangle)
         {
             return GetAABB(new Point3D[] { triangle.Point0, triangle.Point1, triangle.Point2 });
         }
@@ -5418,7 +5418,7 @@ namespace Game.Math_WPF.Mathematics
         {
             return GetAABB_Rect(new Point3D[] { triangle.Point0, triangle.Point1, triangle.Point2 });
         }
-        public static Tuple<Point3D, Point3D> GetAABB(IEnumerable<ITriangle_wpf> triangles)
+        public static (Point3D min, Point3D max) GetAABB(IEnumerable<ITriangle_wpf> triangles)
         {
             return GetAABB(triangles.SelectMany(o => new[] { o.Point0, o.Point1, o.Point2 }));
         }
@@ -5426,7 +5426,7 @@ namespace Game.Math_WPF.Mathematics
         {
             return GetAABB_Rect(triangles.SelectMany(o => new[] { o.Point0, o.Point1, o.Point2 }));
         }
-        public static Tuple<Point3D, Point3D> GetAABB(IEnumerable<Edge3D_wpf> edges, double rayLength)
+        public static (Point3D min, Point3D max) GetAABB(IEnumerable<Edge3D_wpf> edges, double rayLength)
         {
             return GetAABB(edges.SelectMany(o => new[] { o.Point0, o.GetPoint1Ext(rayLength) }));
         }
@@ -5434,7 +5434,7 @@ namespace Game.Math_WPF.Mathematics
         {
             return GetAABB_Rect(edges.SelectMany(o => new[] { o.Point0, o.GetPoint1Ext(rayLength) }));
         }
-        public static Tuple<Point3D, Point3D> GetAABB(IEnumerable<Point3D> points)
+        public static (Point3D min, Point3D max) GetAABB(IEnumerable<Point3D> points)
         {
             bool foundOne = false;
             double minX = double.MaxValue;
@@ -5483,17 +5483,17 @@ namespace Game.Math_WPF.Mathematics
             {
                 // There were no points passed in
                 //TODO: May want an exception
-                return Tuple.Create(new Point3D(0, 0, 0), new Point3D(0, 0, 0));
+                return (new Point3D(0, 0, 0), new Point3D(0, 0, 0));
             }
 
-            return Tuple.Create(new Point3D(minX, minY, minZ), new Point3D(maxX, maxY, maxZ));
+            return (new Point3D(minX, minY, minZ), new Point3D(maxX, maxY, maxZ));
         }
         public static Rect3D GetAABB_Rect(IEnumerable<Point3D> points)
         {
             var aabb = GetAABB(points);
             return new Rect3D(aabb.Item1, (aabb.Item2 - aabb.Item1).ToSize());
         }
-        public static Tuple<Point3D, Point3D> GetAABB(IEnumerable<Vector3D> points)
+        public static (Point3D min, Point3D max) GetAABB(IEnumerable<Vector3D> points)
         {
             return GetAABB(points.Select(o => o.ToPoint()));
         }
