@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Mathematics\Math_WPF.csproj" />
+    <ProjectReference Include="..\..\Math_WPF\Math_WPF.csproj" />
   </ItemGroup>
 
   <ItemGroup>
