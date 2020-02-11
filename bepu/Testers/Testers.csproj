@@ -8,6 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="ColorTools\ColorManipulationsWindow.xaml.cs~RF118ad6c9.TMP" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Mathematics\Math_WPF.csproj" />
   </ItemGroup>
 

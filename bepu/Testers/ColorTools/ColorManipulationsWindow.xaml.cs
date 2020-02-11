@@ -575,7 +575,7 @@ namespace Game.Bepu.Testers.ColorTools
             }
         }
 
-        private void AttemptOptimize_Click(object sender, RoutedEventArgs e)
+        private void AttemptOptimize1_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -707,6 +707,78 @@ namespace Game.Bepu.Testers.ColorTools
 
 
 
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void AttemptOptimize2_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ColorHSV sourceColor = _sourceColor.ToHSV();
+                byte gray = _sourceColor.ToGray().R;
+
+                double requestHue = sliderHue.Value;
+
+
+                //TODO: also return the values along the axiis, so they don't need to be recalculated - but just the matching gray
+                //values - or at least just the positions of potential matches
+                //
+                //also reduce the returned rectangle by those edges so there's no recalculating
+
+
+                // Get the rectangle to search in
+                var rect = FindSettingForGray_Search_Rect(requestHue, gray, sourceColor);
+
+
+
+                // Get the closest match from within that rectangle
+                var best = FindSettingForGray_Rectangle(requestHue, gray, sourceColor, rect);
+
+
+
+
+                #region draw
+
+                var brute = FindSettingForGray_BruteForce(requestHue, gray, 0);
+
+                var window = new Debug3DWindow()
+                {
+                    Background = new SolidColorBrush(Color.FromRgb(gray, gray, gray)),
+                };
+
+                var sizes = Debug3DWindow.GetDrawSizes(100);
+
+                window.AddAxisLines(100, sizes.line);
+
+                window.AddDot(new Point3D(sourceColor.V, sourceColor.S, 0), sizes.dot * 2, UtilityWPF.HSVtoRGB(requestHue, sourceColor.S, sourceColor.V), false);
+
+                if (best != null)
+                {
+                    window.AddDot(new Point3D(best.Value.v, best.Value.s, 0), sizes.dot * 2, best.Value.color, false);
+                }
+
+                window.AddDots(brute.Select(o => new Point3D(o.v, o.s, 0)), sizes.dot, Colors.Black);
+
+                window.AddDot(new Point3D(rect.Left, rect.Top, 0), sizes.dot * 1.5, Colors.White);
+                window.AddDot(new Point3D(rect.Right, rect.Bottom, 0), sizes.dot * 1.5, Colors.White);
+
+                window.AddLine(new Point3D(rect.Left, rect.Top, 0), new Point3D(rect.Right, rect.Top, 0), sizes.line * .5, Colors.White);
+                window.AddLine(new Point3D(rect.Right, rect.Top, 0), new Point3D(rect.Right, rect.Bottom, 0), sizes.line * .5, Colors.White);
+                window.AddLine(new Point3D(rect.Right, rect.Bottom, 0), new Point3D(rect.Left, rect.Bottom, 0), sizes.line * .5, Colors.White);
+                window.AddLine(new Point3D(rect.Left, rect.Bottom, 0), new Point3D(rect.Left, rect.Top, 0), sizes.line * .5, Colors.White);
+
+                window.AddText(string.Format("from: H={0} | S={1} | V={2}", sourceColor.H.ToInt_Round(), sourceColor.S.ToInt_Round(), sourceColor.V.ToInt_Round()));
+                window.AddText($"to: H={requestHue.ToInt_Round()}");
+
+                window.AddText("Value", color: Debug3DWindow.AXISCOLOR_X);
+                window.AddText("Saturation", color: Debug3DWindow.AXISCOLOR_Y);
+
+                window.Show();
+
+                #endregion
             }
             catch (Exception ex)
             {
@@ -952,13 +1024,13 @@ namespace Game.Bepu.Testers.ColorTools
                 AsParallel().
                 Select(o =>
                 {
-                    Color c = UtilityWPF.HSVtoRGB(hue, o.Item1, o.Item2);
+                    Color c = UtilityWPF.HSVtoRGB(hue, o.s, o.v);
                     byte g = c.ToGray().R;
 
                     return new
                     {
-                        s = o.Item1,
-                        v = o.Item2,
+                        o.s,
+                        o.v,
                         color = c,
                         distance = Math.Abs(gray - g),
                     };
@@ -1248,16 +1320,282 @@ namespace Game.Bepu.Testers.ColorTools
                 (current <= target && test <= target);
         }
 
-        private static IEnumerable<(int, int)> AllGridPoints(int from1, int to1, int from2, int to2)
+        private static IEnumerable<(int s, int v)> AllGridPoints(int fromS, int toS, int fromV, int toV)
         {
-            for (int one = from1; one <= to1; one++)
+            for (int s = fromS; s <= toS; s++)
             {
-                for (int two = from2; two <= to2; two++)
+                for (int v = fromV; v <= toV; v++)
                 {
-                    yield return (one, two);
+                    yield return (s, v);
                 }
             }
         }
+
+        #endregion
+        #region Private Methods - matching grays 2
+
+        private static RectInt FindSettingForGray_Search_Rect(double hue, byte gray, ColorHSV sourceColor)
+        {
+            byte sourceGray = UtilityWPF.HSVtoRGB(hue, sourceColor.S, sourceColor.V).ToGray().R;
+
+            int sourceV = sourceColor.V.ToInt_Round();
+            int sourceS = sourceColor.S.ToInt_Round();
+
+            if (sourceGray == gray)
+            {
+                return new RectInt(sourceV, sourceS, 1, 1);
+            }
+
+            // Send out feelers.  All the way up down left right and see which directions crossed over the boundry
+            bool isUp = !IsSameSide(gray, sourceGray, hue, 100, sourceColor.V);
+            bool isDown = !IsSameSide(gray, sourceGray, hue, 0, sourceColor.V);
+            bool isLeft = !IsSameSide(gray, sourceGray, hue, sourceColor.S, 0);
+            bool isRight = !IsSameSide(gray, sourceGray, hue, sourceColor.S, 100);
+
+            if ((isUp && isDown) || (isLeft && isRight) || (!isUp && !isDown && !isLeft && !isRight))
+            {
+                // Should never happen, just brute force the whole square
+                return new RectInt(0, 0, 100, 100);
+            }
+
+            // Walk along the yes lines until there is a match, or it's crossed over, then stop at that line
+
+            if ((isUp || isDown) && (isLeft || isRight))
+            {
+                // Two edges to walk
+                AxisFor horz = isLeft ?
+                    new AxisFor(Axis.X, sourceColor.V.ToInt_Round(), 0) :
+                    new AxisFor(Axis.X, sourceColor.V.ToInt_Round(), 100);
+
+                AxisFor vert = isDown ?
+                    new AxisFor(Axis.Y, sourceColor.S.ToInt_Round(), 0) :
+                    new AxisFor(Axis.Y, sourceColor.S.ToInt_Round(), 100);
+
+                VectorInt corner = Find_TwoAxiis_2(horz, vert, hue, sourceGray, gray);
+
+                var aabb = Math2D.GetAABB(new[] { corner, new VectorInt(sourceV, sourceS) });
+
+                return new RectInt(aabb.min.X, aabb.min.Y, aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y);
+            }
+            else
+            {
+                // Only one edge to walk.  Walk the main one until there's a match or threshold change
+                AxisFor main =
+                    isLeft ? new AxisFor(Axis.X, sourceColor.V.ToInt_Round(), 0) :
+                    isRight ? new AxisFor(Axis.X, sourceColor.V.ToInt_Round(), 100) :
+                    isDown ? new AxisFor(Axis.Y, sourceColor.S.ToInt_Round(), 0) :
+                    isUp ? new AxisFor(Axis.Y, sourceColor.S.ToInt_Round(), 100) :
+                    throw new ApplicationException("Should have exactly one direction to go");
+
+                int end = Find_OneAxis_2(main, hue, sourceColor.V, sourceColor.S, sourceGray, gray);
+
+                // Now create an axis perpendicular to this
+                return GetBox_OneAxis_2(main, end, hue, sourceColor.V, sourceColor.S, sourceGray, gray);
+            }
+        }
+
+        private static VectorInt Find_TwoAxiis_2(AxisFor horz, AxisFor vert, double hue, byte sourceGray, byte gray, int extra = 2)
+        {
+            VectorInt retVal = new VectorInt(horz.Start, vert.Start);
+
+            var enumHz = horz.Iterate().GetEnumerator();
+            var enumVt = vert.Iterate().GetEnumerator();
+
+            enumHz.MoveNext();      // the first time through is Start, so prime them to do the item after start
+            enumVt.MoveNext();
+
+            bool stoppedH = false;
+            bool stoppedV = false;
+
+            // Walk one step at a time along the sides of the square until one of the edges finds the curve
+            while (true)
+            {
+                bool foundH = false;
+                if (!stoppedH && enumHz.MoveNext())
+                {
+                    retVal.X = enumHz.Current;
+                    foundH = !IsSameSide(gray, sourceGray, hue, vert.Start, retVal.X);
+                }
+                else
+                {
+                    stoppedH = true;
+                }
+
+                bool foundV = false;
+                if (!stoppedV && enumVt.MoveNext())
+                {
+                    retVal.Y = enumVt.Current;
+                    foundV = !IsSameSide(gray, sourceGray, hue, retVal.Y, horz.Start);
+                }
+                else
+                {
+                    stoppedV = true;
+                }
+
+                if (foundH || foundV)
+                {
+                    break;
+                }
+
+                if (stoppedH && stoppedV)       // this should never happen
+                {
+                    break;
+                }
+            }
+
+            return new VectorInt(UtilityMath.Clamp(retVal.X + (horz.Increment * extra), 0, 100), UtilityMath.Clamp(retVal.Y + (vert.Increment * extra), 0, 100));
+        }
+        private static int Find_OneAxis_2(AxisFor axis, double hue, double val, double sat, byte sourceGray, byte gray, int extra = 2)
+        {
+            int x = val.ToInt_Round();
+            int y = sat.ToInt_Round();
+
+            foreach (int item in axis.Iterate())
+            {
+                axis.Set2DIndex(ref x, ref y, item);
+
+                if (!IsSameSide(gray, sourceGray, hue, y, x))
+                {
+                    return item + (axis.Increment * extra);
+                }
+            }
+
+            // The curve wasn't found.  This should never happen
+            //return axis.Stop;
+            throw new ApplicationException("Didn't find curve");
+        }
+
+        private static RectInt GetBox_OneAxis_2(AxisFor axis, int axisStop, double hue, double val, double sat, byte sourceGray, byte gray)
+        {
+            int fromX = val.ToInt_Round();
+            int fromY = sat.ToInt_Round();
+
+            int direction = GetBox_OneAxis_Direction(axis, axisStop, hue, fromX, fromY, sourceGray, gray);
+
+            var corners = new List<VectorInt>();
+
+            corners.Add(new VectorInt(fromX, fromY));
+
+            switch (axis.Axis)
+            {
+                case Axis.X:
+                    int distX = Math.Abs(fromX - axisStop);
+
+                    if (direction <= 0)
+                    {
+                        corners.Add(new VectorInt(fromX, fromY - distX));
+                        corners.Add(new VectorInt(axisStop, fromY - distX));
+                    }
+
+                    if (direction >= 0)
+                    {
+                        corners.Add(new VectorInt(fromX, fromY + distX));
+                        corners.Add(new VectorInt(axisStop, fromY + distX));
+                    }
+                    break;
+
+                case Axis.Y:
+                    int distY = Math.Abs(fromY - axisStop);
+
+                    if (direction <= 0)
+                    {
+                        corners.Add(new VectorInt(fromX - distY, fromY));
+                        corners.Add(new VectorInt(fromX - distY, axisStop));
+                    }
+
+                    if (direction >= 0)
+                    {
+                        corners.Add(new VectorInt(fromX + distY, fromY));
+                        corners.Add(new VectorInt(fromX + distY, axisStop));
+                    }
+
+                    break;
+
+                case Axis.Z:
+                    throw new ApplicationException("Didn't expect Z axis");
+
+                default:
+                    throw new ApplicationException($"Unknown Axis: {axis.Axis}");
+            }
+
+            var aabb = Math2D.GetAABB(corners);
+
+            aabb =
+            (
+                new VectorInt(UtilityMath.Clamp(aabb.min.X, 0, 100), UtilityMath.Clamp(aabb.min.Y, 0, 100)),
+                new VectorInt(UtilityMath.Clamp(aabb.max.X, 0, 100), UtilityMath.Clamp(aabb.max.Y, 0, 100))
+            );
+
+            return new RectInt(aabb.min.X, aabb.min.Y, aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y);
+        }
+        private static int GetBox_OneAxis_Direction(AxisFor axis, int axisStop, double hue, int fromX, int fromY, byte sourceGray, byte gray)
+        {
+            // After this, fromX and fromY will be toX and toY.  It's difficult to name these meaningfully
+            axis.Set2DIndex(ref fromX, ref fromY, axisStop);
+
+            // Get posistions of feelers
+            AxisFor perpAxis = new AxisFor(axis.Axis == Axis.X ? Axis.Y : Axis.X, 66, 88);      // the ints don't matter, just using this for Set2DIndex
+
+            int negX = fromX;
+            int negY = fromY;
+            perpAxis.Set2DIndex(ref negX, ref negY, 0);
+
+            int posX = fromX;
+            int posY = fromY;
+            perpAxis.Set2DIndex(ref posX, ref posY, 100);
+
+            // Handle cases where fromX,fromY is sitting on the edge of the square
+            if (negX == fromX && negY == fromY)
+            {
+                return 1;
+            }
+            else if (posX == fromX && posY == fromY)
+            {
+                return -1;
+            }
+
+            // See which crossed over
+            bool isNeg = !IsSameSide(gray, sourceGray, hue, negY, negX);
+            bool isPos = !IsSameSide(gray, sourceGray, hue, posY, posX);
+
+            if (isNeg && !isPos)
+            {
+                return -1;      // The curve is in box within the negative side
+            }
+            else if (isPos && !isNeg)
+            {
+                return 1;
+            }
+            else
+            {
+                return 0;       // undetermined, search both sides
+            }
+        }
+
+        private static (double s, double v, Color color)? FindSettingForGray_Rectangle(double hue, byte gray, ColorHSV sourceColor, RectInt rectangle)
+        {
+            return AllGridPoints(rectangle.Top, rectangle.Bottom, rectangle.Left, rectangle.Right).     // x is value, y is saturation
+                AsParallel().
+                Select(o =>
+                {
+                    Color c = UtilityWPF.HSVtoRGB(hue, o.s, o.v);
+                    byte g = c.ToGray().R;
+
+                    return new
+                    {
+                        o.s,
+                        o.v,
+                        color = c,
+                        grayDistance = Math.Abs(gray - g),      // wrong distance.  Go by distance from request point
+                        pointDistance = Math2D.LengthSquared(o.v, o.s, sourceColor.V, sourceColor.S),
+                    };
+                }).
+                OrderBy(o => o.grayDistance).
+                ThenBy(o => o.pointDistance).
+                Select(o => ((double)o.s, (double)o.v, o.color)).
+                First();
+        }
+
 
         #endregion
         #region Private Methods - misc

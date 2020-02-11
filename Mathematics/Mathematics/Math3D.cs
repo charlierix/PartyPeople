@@ -49,6 +49,33 @@ namespace Game.Math_WPF.Mathematics
 
         #endregion
 
+        #region misc
+
+        public static float LengthSquared(float x1, float y1, float z1, float x2, float y2, float z2)
+        {
+            float temp = x2 - x1;
+            float retVal = temp * temp;
+
+            temp = y2 - y1;
+            retVal += temp * temp;
+
+            temp = z2 - z1;
+            return retVal + (temp * temp);
+        }
+        public static double LengthSquared(double x1, double y1, double z1, double x2, double y2, double z2)
+        {
+            double temp = x2 - x1;
+            double retVal = temp * temp;
+
+            temp = y2 - y1;
+            retVal += temp * temp;
+
+            temp = z2 - z1;
+            return retVal + (temp * temp);
+        }
+
+        #endregion
+
         #region Private Methods
 
         /// <summary>

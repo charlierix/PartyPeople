@@ -1678,6 +1678,23 @@ namespace Game.Math_WPF.Mathematics
             return (new VectorInt(minX, minY), new VectorInt(maxX, maxY));
         }
 
+        public static float LengthSquared(float x1, float y1, float x2, float y2)
+        {
+            float temp = x2 - x1;
+            float retVal = temp * temp;
+
+            temp = y2 - y1;
+            return retVal + (temp * temp);
+        }
+        public static double LengthSquared(double x1, double y1, double x2, double y2)
+        {
+            double temp = x2 - x1;
+            double retVal = temp * temp;
+
+            temp = y2 - y1;
+            return retVal + (temp * temp);
+        }
+
         #endregion
     }
 

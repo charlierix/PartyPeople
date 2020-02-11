@@ -122,7 +122,8 @@
                         <CheckBox x:Name="chkShowOccurrenceGraph" Content="show occurrence graph" Margin="0,16,0,0"/>
                         <CheckBox x:Name="chkShowAllGrays" Content="show all grays"/>
                         <Slider x:Name="sliderHue" Minimum="0" Maximum="360" Value="180"/>
-                        <Button Content="attempt optimize" Click="AttemptOptimize_Click"/>
+                        <Button Content="attempt optimize 1" Click="AttemptOptimize1_Click"/>
+                        <Button Content="attempt optimize 2" Click="AttemptOptimize2_Click"/>
                     </StackPanel>
                 </Grid>
             </TabItem>
