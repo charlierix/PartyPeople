@@ -786,6 +786,74 @@ namespace Game.Bepu.Testers.ColorTools
             }
         }
 
+        private void CompareBeziers_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Point3D[] fine = EquivalentColor.GetDebugSamples(_sourceColor.ToHSV(), 360);
+
+                var sizes = Debug3DWindow.GetDrawSizes(360);
+                sizes.line *= .2;
+
+
+                //foreach (int count in new[] { 6, 12, 24, 45, 90 })
+                //foreach (int count in new[] { 45, 90, 180 })
+                foreach (int count in new[] { 90 })
+                {
+                    Point3D[] samples = EquivalentColor.GetDebugSamples(_sourceColor.ToHSV(), count);
+
+                    //foreach (double along in Enumerable.Range(0, 12).Select(o => UtilityMath.GetScaledValue(.03, .25, 0, 11, o)))
+                    //foreach (double along in new[] { 0d })
+                    foreach (double along in Enumerable.Range(0, 12).Select(o => UtilityMath.GetScaledValue(.06, .18, 0, 11, o)))
+                    {
+                        Debug3DWindow window = new Debug3DWindow()
+                        {
+                            Title = $"{count} | {along.ToStringSignificantDigits(3)}",
+                        };
+
+                        window.AddLines(fine, sizes.line, Colors.White);
+
+                        window.AddLines(BezierUtil.GetPoints(1000, BezierUtil.GetBezierSegments(samples, along)), sizes.line, Colors.Black);
+
+                        window.Show();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void MatchingGrayFinal_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                EquivalentColor test = new EquivalentColor(_sourceColor.ToHSV());
+
+                Debug3DWindow window = new Debug3DWindow()
+                {
+                    Background = Brushes.Black,
+                };
+
+                var sizes = Debug3DWindow.GetDrawSizes(360);
+                sizes.line *= .33;
+
+                for (int hue = 0; hue <= 360; hue++)
+                {
+                    ColorHSV approx = test.GetEquivalent(hue);
+                    ColorHSV actual = EquivalentColor.GetEquivalent(_sourceColor.ToHSV(), hue);
+
+                    window.AddLine(new Point3D(approx.V, approx.S, hue), new Point3D(actual.V, actual.S, hue), sizes.line, approx.ToRGB(), actual.ToRGB());
+                }
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
         #region Event Listeners - misc
 

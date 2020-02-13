@@ -1999,6 +1999,12 @@ namespace Game.Math_WPF.WPF
             }
         }
 
+        public static ColorHSV GetEquivalentColor(ColorHSV colorToMatch, double requestHue)
+        {
+            // Putting a link in UtilityWPF to make it easier to find
+            return EquivalentColor.GetEquivalent(colorToMatch, requestHue);
+        }
+
         /// <summary>
         /// This is just a wrapper to the color converter (why can't they have a method off the color class with all
         /// the others?)
@@ -2377,6 +2383,27 @@ namespace Game.Math_WPF.WPF
             double max = Math.Max(hue1, hue2);
 
             return Math.Abs(min + 360 - max);
+        }
+
+        public static double GetHueCapped(double hue)
+        {
+            double retVal = hue;
+
+            while (true)
+            {
+                if (retVal < 0)
+                {
+                    retVal += 360;
+                }
+                else if (retVal >= 360)
+                {
+                    retVal -= 360;
+                }
+                else
+                {
+                    return retVal;
+                }
+            }
         }
 
         #endregion
@@ -6329,27 +6356,6 @@ namespace Game.Math_WPF.WPF
             }
 
             return new[] { Convert.ToByte(a), Convert.ToByte(r), Convert.ToByte(g), Convert.ToByte(b) };
-        }
-
-        private static double GetHueCapped(double hue)
-        {
-            double retVal = hue;
-
-            while (true)
-            {
-                if (retVal < 0)
-                {
-                    retVal += 360;
-                }
-                else if (retVal >= 360)
-                {
-                    retVal -= 360;
-                }
-                else
-                {
-                    return retVal;
-                }
-            }
         }
 
         private static byte GetByteCapped(double value)
