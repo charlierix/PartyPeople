@@ -22,9 +22,4 @@
     <ProjectReference Include="..\Math_WPF\Math_WPF.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Accord.Collections\Base\" />
-    <Folder Include="Accord.MachineLearning.Clustering\" />
-  </ItemGroup>
-
 </Project>
