@@ -2106,4 +2106,126 @@ namespace Game.Math_WPF.Mathematics
     }
 
     #endregion
+    #region struct: VectorND_Sparse
+
+    /// <summary>
+    /// This represents a vector that is all zeros except the specified indices
+    /// </summary>
+    /// <remarks>
+    /// If math needs to be done against these vectors, see MathML in the ML classlib.  Those functions work against ML.Net's VBuffer
+    /// which is float and can be either sparse or dense
+    /// </remarks>
+    public struct VectorND_Sparse : IEnumerable<double>
+    {
+        public VectorND_Sparse(int[] indices, double[] values, int totalSize)
+        {
+            Validate(indices, values, totalSize, false);
+
+            Indices = indices;
+            Values = values;
+            TotalSize = totalSize;
+        }
+
+        #region IEnumerable Members
+
+        //NOTE: These iterate on a copy so the lock doesn't stay open
+
+        public IEnumerator<double> GetEnumerator()
+        {
+            //NOTE: Taking a risk that the arrays won't be modified while copying them
+            int[] indices = Indices?.ToArray();
+            double[] values = Values?.ToArray();
+            int totalSize = TotalSize;
+
+            Validate(indices, values, totalSize, true);
+
+            // Need to sort by index
+            var sorted = indices.
+                Select((o, i) => new
+                {
+                    index = o,
+                    value = values[i],
+                }).
+                OrderBy(o => o.index);
+
+            int index = 0;
+
+            foreach (var item in sorted)
+            {
+                while (index < item.index)
+                {
+                    yield return 0d;
+                    index++;
+                }
+
+                yield return item.value;
+                index++;
+            }
+
+            while (index < TotalSize)
+            {
+                yield return 0d;
+                index++;
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
+
+        public int[] Indices { get; set; }
+        public double[] Values { get; set; }
+        public int TotalSize { get; set; }
+
+        public VectorND ToDense()
+        {
+            return new VectorND(this.ToArray());
+        }
+
+        public override string ToString()
+        {
+            return $"size: {TotalSize} | explicit values: {Indices?.Length.ToString() ?? "<null>"}";
+        }
+
+        private static void Validate(int[] indices, double[] values, int totalSize, bool isInvalidOperation)
+        {
+            if (indices == null)
+            {
+                if (isInvalidOperation)
+                    throw new InvalidOperationException("Indices can't be null");
+                else
+                    throw new ArgumentNullException(nameof(indices));
+            }
+            else if (values == null)
+            {
+                if (isInvalidOperation)
+                    throw new InvalidOperationException("Values can't be null");
+                else
+                    throw new ArgumentNullException(nameof(values));
+            }
+            else if (indices.Length != values.Length)
+            {
+                string message = $"The arrays must be the same size.  indices: {indices.Length}  values: {values.Length}";
+
+                if (isInvalidOperation)
+                    throw new InvalidOperationException(message);
+                else
+                    throw new ArgumentException(message);
+            }
+            else if (indices.Length > totalSize)
+            {
+                string message = $"TotalSize can't be less than the number of explicit items.  items: {indices.Length}  totalSize: {totalSize}";
+
+                if (isInvalidOperation)
+                    throw new InvalidOperationException(message);
+                else
+                    throw new ArgumentException(message);
+            }
+        }
+    }
+
+    #endregion
 }
