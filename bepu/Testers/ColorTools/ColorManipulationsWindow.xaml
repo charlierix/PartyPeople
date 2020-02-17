@@ -125,10 +125,11 @@
                         <Button Content="attempt optimize 1" Click="AttemptOptimize1_Click"/>
                         <Button Content="attempt optimize 2" Click="AttemptOptimize2_Click"/>
 
-                        <Button Content="compare beziers" Margin="0,16,0,0" Click="CompareBeziers_Click"/>
-                        <Button Content="final???" Click="MatchingGrayFinal_Click"/>
+                        <Button Content="final???" Margin="0,16,0,0" Click="MatchingGrayFinal_Click"/>
 
                         <Button Content="cache by request" Margin="0,16,0,0" Click="CacheByRequest_Click"/>
+                        <Button Content="cache by request 2" Click="CacheByRequest2_Click"/>
+
                     </StackPanel>
                 </Grid>
             </TabItem>

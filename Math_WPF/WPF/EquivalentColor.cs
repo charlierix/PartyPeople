@@ -5,12 +5,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
 namespace Game.Math_WPF.WPF
 {
-    //TODO: Don't cache a bezier.  As requests for hues come in, calculate at that point.  If there are close enough nearby points, replace that section with a bezier
     /// <summary>
     /// If you keep saturation and value constant, then choose colors for different hues, they will appear lighter
     /// and darker (yellows/greens get bright, blues/purples get dark)
@@ -23,6 +23,115 @@ namespace Game.Math_WPF.WPF
     /// </remarks>
     public class EquivalentColor
     {
+        #region class: RawResult
+
+        private class RawResult
+        {
+            public RawResult(int hue, Point result)
+            {
+                Hue = hue;
+                Result = result;
+            }
+
+            public int Hue { get; }
+            public Point Result { get; }
+
+            public override string ToString()
+            {
+                return $"H={Hue}, S={Result.Y.ToStringSignificantDigits(1)}, V={Result.X.ToStringSignificantDigits(1)}";
+            }
+        }
+
+        #endregion
+        #region class: Interval
+
+        private class Interval
+        {
+            public Interval(IEnumerable<RawResult> raw)
+            {
+                // Make sure they are sorted
+                Raw = raw.
+                    OrderBy(o => o.Hue).
+                    ToArray();
+
+                From = Raw[0].Hue;
+                To = Raw[^1].Hue;
+
+                //TODO: Build a tree for faster lookups (need to reference accord.net)
+                //But only when Raw.Length > threshold
+                //
+                //On second thought, see if the tree can be added to.  When creating a new interval from existing intervals
+                //and raws, pass in the current trees and decide whether to add to one or start over
+
+
+            }
+
+            public int From { get; }
+            public int To { get; }
+
+            public RawResult[] Raw { get; }
+
+            //private VPTree<double, RawResult> _rawTree;
+
+            public bool Contains(double hue)
+            {
+                return hue >= From && hue <= To;
+            }
+
+            public ColorHSV GetColor(double hue)
+            {
+                if (!Contains(hue))
+                {
+                    throw new ArgumentOutOfRangeException($"The hue passed in is outside this interval: hue={hue} from={From} to={To}");
+                }
+
+                //NOTE: This first draft is very unoptimized, it's just written to get all thoughts working
+                //TODO: Get this from a tree
+
+                RawResult exact = Raw.FirstOrDefault(o => hue.IsNearValue(o.Hue));
+                if (exact != null)
+                {
+                    return ToHSV(hue, exact.Result);
+                }
+
+                var distances = Raw.
+                    Select(o => new
+                    {
+                        o.Hue,
+                        o.Result,
+                        dist = Math.Abs(o.Hue - hue),
+                    }).
+                    OrderBy(o => o.dist).
+                    ToArray();
+
+                var left = distances.
+                    Where(o => o.Hue < hue).
+                    FirstOrDefault();
+
+                var right = distances.
+                    Where(o => o.Hue > hue).
+                    FirstOrDefault();
+
+                if (left == null || right == null)
+                {
+                    throw new ApplicationException("The hue is in range, but didn't find left and right");
+                }
+
+                double percent = (double)(hue - left.Hue) / (double)(right.Hue - left.Hue);
+
+                Point lerp = Math2D.LERP(left.Result, right.Result, percent);
+
+                return ToHSV(hue, lerp);
+            }
+
+            public override string ToString()
+            {
+                return $"{From} - {To} | count={Raw.Length}";
+            }
+        }
+
+        #endregion
+
         #region Declaration Section
 
         //NOTE: When mapping between HSV and XYZ: (this was the convention used by ColorManipulationsWindow while writing these functions)
@@ -30,60 +139,58 @@ namespace Game.Math_WPF.WPF
         // Y = S
         // Z = H
 
+        private readonly object _lock = new object();
+
         private readonly ColorHSV _sourceColor;
 
-        private readonly BezierSegment3D_wpf[] _bezier;
+        private readonly int _maxDistance;
+
+        private readonly List<RawResult> _rawResults = new List<RawResult>();
+        private readonly List<Interval> _intervals = new List<Interval>();
 
         #endregion
 
         /// <summary>
         /// This creates an instance that will return colors that are close to the match color
         /// </summary>
-        public EquivalentColor(ColorHSV colorToMatch)
+        public EquivalentColor(ColorHSV colorToMatch, int maxDistance = 5)
         {
-            // factors of 360: 1, 2, 3, 4, 5, 6, 8, 9, 10, 12, 15, 18, 20, 24, 30, 36, 40, 45, 60, 72, 90, 120, 180, 360
-            const int COUNT = 90;
-
             _sourceColor = colorToMatch;
+            _maxDistance = maxDistance;
 
-            // Get a spread of other hues
-            var samples = Enumerable.Range(0, COUNT + 1).
-                Select(o => o * (360 / COUNT)).
-                AsParallel().
-                Select(o => GetEquivalent(_sourceColor, o)).
-                OrderBy(o => o.H).      // parallel may have scrambled the order
-                ToArray();
-
-            Point3D[] samplePoints = samples.
-                Select(o => new Point3D(o.V, o.S, o.H)).
-                ToArray();
-
-            _bezier = BezierUtil.GetBezierSegments(samplePoints, .125);
+            // Immediately calculate the value for hue=0 and store at 0 and 360.  That way the endpoints will always be there, which
+            // simplify logic (I ran a test of lots of random colors and 0 and 360 results are identical)
+            ColorHSV result0 = GetEquivalent(_sourceColor, 0);
+            _rawResults.Add(new RawResult(0, new Point(result0.V, result0.S)));
+            _rawResults.Add(new RawResult(360, new Point(result0.V, result0.S)));       //NOTE: UtilityWPF.GetHueCapped will return 0 when 360 is requested.  So this entry will be an upper bound, but will still be an end cap of an interval
         }
+
+        /// <summary>
+        /// This is the instance version.  It caches results of previous calls, interpolates the answer if the requested hue
+        /// is between two other requests and is close enough to them
+        /// </summary>
         public ColorHSV GetEquivalent(double requestHue)
         {
-            double hueCapped = UtilityWPF.GetHueCapped(requestHue);
-            double percent = hueCapped / 360d;
+            int hueCapped = UtilityMath.Clamp(UtilityWPF.GetHueCapped(requestHue).ToInt_Round(), 0, 360);
 
-            Point3D point = BezierUtil.GetPoint(percent, _bezier);
+            lock (_lock)
+            {
+                // See if a previously cached interval instance can answer this
+                var interval = _intervals.FirstOrDefault(o => o.Contains(hueCapped));
+                if (interval != null)
+                {
+                    return interval.GetColor(hueCapped);
+                }
 
-            return new ColorHSV(hueCapped, point.Y, point.X);
-        }
+                // Make a new one
+                ColorHSV newColor = GetEquivalent(_sourceColor, hueCapped);
+                RawResult newEntry = new RawResult(hueCapped, new Point(newColor.V, newColor.S));
 
-        public static Point3D[] GetDebugSamples(ColorHSV colorToMatch, int count)
-        {
-            var samples = Enumerable.Range(0, count + 1).
-                Select(o => o * (360 / count)).
-                AsParallel().
-                Select(o => GetEquivalent(colorToMatch, o)).
-                OrderBy(o => o.H).      // parallel may have scrambled the order
-                ToArray();
+                // Store this new entry
+                StoreNewEntry(newEntry);
 
-            Point3D[] samplePoints = samples.
-                Select(o => new Point3D(o.V, o.S, o.H)).
-                ToArray();
-
-            return samplePoints;
+                return newColor;
+            }
         }
 
         /// <summary>
@@ -91,26 +198,80 @@ namespace Game.Math_WPF.WPF
         /// </summary>
         public static ColorHSV GetEquivalent(ColorHSV colorToMatch, double requestHue)
         {
+            int hueCapped = UtilityMath.Clamp(UtilityWPF.GetHueCapped(requestHue).ToInt_Round(), 0, 360);
+
             byte gray = colorToMatch.ToRGB().ToGray().R;
 
             // Get the rectangle to search in
-            var rect = GetSearchRect(requestHue, gray, colorToMatch);
+            var rect = GetSearchRect(hueCapped, gray, colorToMatch);
 
             // Get the closest match from within that rectangle
-            var best = SearchForBest(requestHue, gray, colorToMatch, rect);
+            var best = SearchForBest(hueCapped, gray, colorToMatch, rect);
 
             if (best == null)
             {
                 // This should never happen.  But if it does, just return something instead of throwing an exception
-                return new ColorHSV(requestHue, colorToMatch.S, colorToMatch.V);
+                return new ColorHSV(hueCapped, colorToMatch.S, colorToMatch.V);
             }
             else
             {
-                return new ColorHSV(requestHue, best.Value.s, best.Value.v);
+                return new ColorHSV(hueCapped, best.Value.s, best.Value.v);
             }
         }
 
         #region Private Methods
+
+        private void StoreNewEntry(RawResult newEntry)
+        {
+            // Find neighbors
+            var nearRaw = _rawResults.
+                Select((o, i) => new
+                {
+                    index = i,
+                    raw = o,
+                    dist = Math.Abs(newEntry.Hue - o.Hue),
+                }).
+                Where(o => o.dist <= _maxDistance).
+                OrderByDescending(o => o.index).        // descending so they can be removed without affecting index of others
+                ToArray();
+
+            var nearInterval = _intervals.
+                Select((o, i) => new
+                {
+                    index = i,
+                    interval = o,
+                    dist = Math.Min(Math.Abs(newEntry.Hue - o.From), Math.Abs(newEntry.Hue - o.To)),
+                }).
+                Where(o => o.dist <= _maxDistance).
+                OrderByDescending(o => o.index).
+                ToArray();
+
+            if (nearRaw.Length == 0 && nearInterval.Length == 0)
+            {
+                // There are no others close enough, store this as a loose point
+                _rawResults.Add(newEntry);
+            }
+            else
+            {
+                // There are neighbors.  Remove them from the lists and build an interval out of them
+                var allNearRaw = new List<RawResult>();
+                allNearRaw.Add(newEntry);
+
+                foreach (var raw in nearRaw)
+                {
+                    _rawResults.RemoveAt(raw.index);        // they are sorted descending so removing won't change the index
+                    allNearRaw.Add(raw.raw);
+                }
+
+                foreach (var interval2 in nearInterval)
+                {
+                    _intervals.RemoveAt(interval2.index);
+                    allNearRaw.AddRange(interval2.interval.Raw);
+                }
+
+                _intervals.Add(new Interval(allNearRaw));
+            }
+        }
 
         private static RectInt GetSearchRect(double hue, byte gray, ColorHSV sourceColor)
         {
@@ -391,6 +552,11 @@ namespace Game.Math_WPF.WPF
                     yield return (s, v);
                 }
             }
+        }
+
+        private static ColorHSV ToHSV(double hue, Point point)
+        {
+            return new ColorHSV(hue, point.Y, point.X);
         }
 
         #endregion

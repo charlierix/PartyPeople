@@ -22,6 +22,239 @@ namespace Game.Bepu.Testers.ColorTools
 {
     public partial class ColorManipulationsWindow : Window
     {
+        #region class: TheCache
+
+        private class TheCache
+        {
+            #region class: RawResult
+
+            public class RawResult
+            {
+                public RawResult(int hue, Point result)
+                {
+                    Hue = hue;
+                    Result = result;
+                }
+
+                public int Hue { get; }
+                public Point Result { get; }
+
+                public override string ToString()
+                {
+                    return $"H={Hue}, S={Result.Y.ToStringSignificantDigits(1)}, V={Result.X.ToStringSignificantDigits(1)}";
+                }
+            }
+
+            #endregion
+            #region class: Interval
+
+            private class Interval
+            {
+                public Interval(IEnumerable<RawResult> raw)
+                {
+                    // Make sure they are sorted
+                    Raw = raw.
+                        OrderBy(o => o.Hue).
+                        ToArray();
+
+                    From = Raw[0].Hue;
+                    To = Raw[^1].Hue;
+
+                    //TODO: Build a tree for faster lookups (need to reference accord.net)
+                    //But only when Raw.Length > threshold
+                    //
+                    //On second thought, see if the tree can be added to.  When creating a new interval from existing intervals
+                    //and raws, pass in the current trees and decide whether to add to one or start over
+
+
+                }
+
+                public int From { get; }
+                public int To { get; }
+
+                public RawResult[] Raw { get; }
+
+                //private VPTree<double, RawResult> _rawTree;
+
+                public bool Contains(double hue)
+                {
+                    return hue >= From && hue <= To;
+                }
+
+                public ColorHSV GetColor(double hue)
+                {
+                    if (!Contains(hue))
+                    {
+                        throw new ArgumentOutOfRangeException($"The hue passed in is outside this interval: hue={hue} from={From} to={To}");
+                    }
+
+                    //NOTE: This first draft is very unoptimized, it's just written to get all thoughts working
+                    //TODO: Get this from a tree
+
+                    RawResult exact = Raw.FirstOrDefault(o => hue.IsNearValue(o.Hue));
+                    if (exact != null)
+                    {
+                        return ToHSV(hue, exact.Result);
+                    }
+
+                    var distances = Raw.
+                        Select(o => new
+                        {
+                            o.Hue,
+                            o.Result,
+                            dist = Math.Abs(o.Hue - hue),
+                        }).
+                        OrderBy(o => o.dist).
+                        ToArray();
+
+                    var left = distances.
+                        Where(o => o.Hue < hue).
+                        FirstOrDefault();
+
+                    var right = distances.
+                        Where(o => o.Hue > hue).
+                        FirstOrDefault();
+
+                    if (left == null || right == null)
+                    {
+                        throw new ApplicationException("The hue is in range, but didn't find left and right");
+                    }
+
+                    double percent = (double)(hue - left.Hue) / (double)(right.Hue - left.Hue);
+
+                    Point lerp = Math2D.LERP(left.Result, right.Result, percent);
+
+                    return ToHSV(hue, lerp);
+                }
+
+                public override string ToString()
+                {
+                    return $"{From} - {To} | count={Raw.Length}";
+                }
+            }
+
+            #endregion
+
+            #region Declaration Section
+
+            private readonly ColorHSV _sourceColor;
+
+            private readonly int _maxDistance;
+
+            private readonly List<RawResult> _rawResults = new List<RawResult>();
+            private readonly List<Interval> _intervals = new List<Interval>();
+
+            #endregion
+
+            #region Constructor
+
+            public TheCache(ColorHSV sourceColor, int maxDistance = 5)
+            {
+                _sourceColor = sourceColor;
+
+                All = Enumerable.Range(0, 361).
+                    Select(o =>
+                    {
+                        Point point = Math3D.GetRandomVector_Circular(5).ToPoint2D();
+
+                        point.X = UtilityMath.Clamp(sourceColor.V + point.X, 0, 100);
+                        point.Y = UtilityMath.Clamp(sourceColor.S + point.Y, 0, 100);
+
+                        return new RawResult(o, point);
+                    }).
+                    ToArray();
+
+                //TODO: Immediately calculate the value for hue=0 and store at 0 and 360.  That way the endpoints will always be there, which
+                //simplify logic
+                //
+                //Make sure that 0 and 360 results are identical
+
+                _rawResults.Add(All[0]);
+                _rawResults.Add(All[^1]);
+
+                _maxDistance = maxDistance;
+            }
+
+            #endregion
+
+            public RawResult[] All { get; }
+
+            public ColorHSV GetValue(int hue)
+            {
+                var interval = _intervals.FirstOrDefault(o => o.Contains(hue));
+                if (interval != null)
+                {
+                    return interval.GetColor(hue);
+                }
+
+                // Make a new one
+                //EquivalentColor.GetEquivalent(_sourceColor, hue);
+                RawResult newEntry = All[hue];
+
+                // Find neighbors
+                var nearRaw = _rawResults.
+                    Select((o, i) => new
+                    {
+                        index = i,
+                        raw = o,
+                        dist = Math.Abs(hue - o.Hue),
+                    }).
+                    Where(o => o.dist <= _maxDistance).
+                    OrderByDescending(o => o.index).
+                    ToArray();
+
+                var nearInterval = _intervals.
+                    Select((o, i) => new
+                    {
+                        index = i,
+                        interval = o,
+                        dist = Math.Min(Math.Abs(hue - o.From), Math.Abs(hue - o.To)),
+                    }).
+                    Where(o => o.dist <= _maxDistance).
+                    OrderByDescending(o => o.index).
+                    ToArray();
+
+                if (nearRaw.Length == 0 && nearInterval.Length == 0)
+                {
+                    // There are no others close enough, store this as a loose point
+                    _rawResults.Add(newEntry);
+                }
+                else
+                {
+                    // There are neighbors.  Remove them from the lists and build an interval out of them
+                    var allNearRaw = new List<RawResult>();
+                    allNearRaw.Add(newEntry);
+
+                    foreach (var raw in nearRaw)
+                    {
+                        _rawResults.RemoveAt(raw.index);        // they are sorted descending so removing won't change the index
+                        allNearRaw.Add(raw.raw);
+                    }
+
+                    foreach (var interval2 in nearInterval)
+                    {
+                        _intervals.RemoveAt(interval2.index);
+                        allNearRaw.AddRange(interval2.interval.Raw);
+                    }
+
+                    _intervals.Add(new Interval(allNearRaw));
+                }
+
+                return ToHSV(hue, newEntry.Result);
+            }
+
+            #region Private Methods
+
+            private static ColorHSV ToHSV(double hue, Point point)
+            {
+                return new ColorHSV(hue, point.Y, point.X);
+            }
+
+            #endregion
+        }
+
+        #endregion
+
         #region Declaration Section
 
         private const string FILE = "ColorManipulations Options.xml";
@@ -786,44 +1019,6 @@ namespace Game.Bepu.Testers.ColorTools
             }
         }
 
-        private void CompareBeziers_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                Point3D[] fine = EquivalentColor.GetDebugSamples(_sourceColor.ToHSV(), 360);
-
-                var sizes = Debug3DWindow.GetDrawSizes(360);
-                sizes.line *= .2;
-
-
-                //foreach (int count in new[] { 6, 12, 24, 45, 90 })
-                //foreach (int count in new[] { 45, 90, 180 })
-                foreach (int count in new[] { 90 })
-                {
-                    Point3D[] samples = EquivalentColor.GetDebugSamples(_sourceColor.ToHSV(), count);
-
-                    //foreach (double along in Enumerable.Range(0, 12).Select(o => UtilityMath.GetScaledValue(.03, .25, 0, 11, o)))
-                    //foreach (double along in new[] { 0d })
-                    foreach (double along in Enumerable.Range(0, 12).Select(o => UtilityMath.GetScaledValue(.06, .18, 0, 11, o)))
-                    {
-                        Debug3DWindow window = new Debug3DWindow()
-                        {
-                            Title = $"{count} | {along.ToStringSignificantDigits(3)}",
-                        };
-
-                        window.AddLines(fine, sizes.line, Colors.White);
-
-                        window.AddLines(BezierUtil.GetPoints(1000, BezierUtil.GetBezierSegments(samples, along)), sizes.line, Colors.Black);
-
-                        window.Show();
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
         private void MatchingGrayFinal_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -844,6 +1039,104 @@ namespace Game.Bepu.Testers.ColorTools
                     ColorHSV actual = EquivalentColor.GetEquivalent(_sourceColor.ToHSV(), hue);
 
                     window.AddLine(new Point3D(approx.V, approx.S, hue), new Point3D(actual.V, actual.S, hue), sizes.line, approx.ToRGB(), actual.ToRGB());
+                }
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void CacheByRequest_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                #region excessive use
+
+                int[] requests = Enumerable.Range(0, 400).
+                    Select(o => StaticRandom.Next(361)).
+                    ToArray();
+
+                TheCache cache = new TheCache(_sourceColor.ToHSV());
+
+                foreach (int req in requests)
+                {
+                    ColorHSV result = cache.GetValue(req);
+                }
+
+                #endregion
+
+                cache = new TheCache(_sourceColor.ToHSV());
+
+                Debug3DWindow window = new Debug3DWindow();
+
+                var sizes = Debug3DWindow.GetDrawSizes(100);
+                sizes.line *= .2;
+
+                window.AddLines(cache.All.Select(o => new Point3D(o.Result.X, o.Result.Y, o.Hue)), sizes.line, Colors.Black);
+
+                for (int cntr = 0; cntr < 100; cntr++)
+                {
+                    ColorHSV result = cache.GetValue(StaticRandom.Next(361));
+
+                    window.AddDot(new Point3D(result.V, result.S, result.H), sizes.dot, Colors.DodgerBlue);
+                }
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void CacheByRequest2_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ColorHSV sourceColor = _sourceColor.ToHSV();
+
+                var test0 = EquivalentColor.GetEquivalent(sourceColor, 0);
+                var test360 = EquivalentColor.GetEquivalent(sourceColor, 360);
+
+                #region excessive use
+
+                int[] requests = Enumerable.Range(0, 400).
+                    Select(o => StaticRandom.Next(361)).
+                    ToArray();
+
+                var equivalent = new EquivalentColor(sourceColor);
+
+                foreach (int req in requests)
+                {
+                    ColorHSV result = equivalent.GetEquivalent(req);
+                }
+
+                #endregion
+
+                equivalent = new EquivalentColor(_sourceColor.ToHSV());
+
+                Debug3DWindow window = new Debug3DWindow();
+
+                var sizes = Debug3DWindow.GetDrawSizes(360);
+                sizes.dot *= .25;
+                sizes.line *= .2;
+
+
+                var staticPoints = Enumerable.Range(0, 360).
+                    Select(o => EquivalentColor.GetEquivalent(sourceColor, o)).
+                    Select(o => new Point3D(o.V, o.S, o.H)).
+                    ToArray();
+
+                window.AddLines(staticPoints, sizes.line, Colors.Black);
+
+
+                for (int cntr = 0; cntr < 100; cntr++)
+                {
+                    ColorHSV result = equivalent.GetEquivalent(StaticRandom.Next(361));
+
+                    window.AddDot(new Point3D(result.V, result.S, result.H), sizes.dot, Colors.DodgerBlue);
                 }
 
                 window.Show();
@@ -1713,284 +2006,6 @@ namespace Game.Bepu.Testers.ColorTools
                 outputSample.Fill = new SolidColorBrush(blend);
                 outputSampleHex.Text = blend.ToHex(from.A < 255 || to.A < 255, false);
             }
-        }
-
-        #endregion
-
-        private void CacheByRequest_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                #region excessive use
-
-                int[] requests = Enumerable.Range(0, 400).
-                    Select(o => StaticRandom.Next(361)).
-                    ToArray();
-
-                TheCache cache = new TheCache(_sourceColor.ToHSV());
-
-                foreach (int req in requests)
-                {
-                    ColorHSV result = cache.GetValue(req);
-                }
-
-                #endregion
-
-
-
-                cache = new TheCache(_sourceColor.ToHSV());
-
-                Debug3DWindow window = new Debug3DWindow();
-
-                var sizes = Debug3DWindow.GetDrawSizes(100);
-                sizes.line *= .2;
-
-                window.AddLines(cache.All.Select(o => new Point3D(o.Result.X, o.Result.Y, o.Hue)), sizes.line, Colors.Black);
-
-                for (int cntr = 0; cntr < 100; cntr++)
-                {
-                    ColorHSV result = cache.GetValue(StaticRandom.Next(361));
-
-                    window.AddDot(new Point3D(result.V, result.S, result.H), sizes.dot, Colors.DodgerBlue);
-                }
-
-                window.Show();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-        #region class: TheCache
-
-        private class TheCache
-        {
-            #region class: RawResult
-
-            public class RawResult
-            {
-                public RawResult(int hue, Point result)
-                {
-                    Hue = hue;
-                    Result = result;
-                }
-
-                public int Hue { get; }
-                public Point Result { get; }
-
-                public override string ToString()
-                {
-                    return $"H={Hue}, S={Result.Y.ToStringSignificantDigits(1)}, V={Result.X.ToStringSignificantDigits(1)}";
-                }
-            }
-
-            #endregion
-            #region class: Interval
-
-            private class Interval
-            {
-                public Interval(IEnumerable<RawResult> raw)
-                {
-                    // Make sure they are sorted
-                    Raw = raw.
-                        OrderBy(o => o.Hue).
-                        ToArray();
-
-                    From = Raw[0].Hue;
-                    To = Raw[^1].Hue;
-
-                    //TODO: Build a tree for faster lookups (need to reference accord.net)
-                    //But only when Raw.Length > threshold
-                    //
-                    //On second thought, see if the tree can be added to.  When creating a new interval from existing intervals
-                    //and raws, pass in the current trees and decide whether to add to one or start over
-
-
-                }
-
-                public int From { get; }
-                public int To { get; }
-
-                public RawResult[] Raw { get; }
-
-                //private VPTree<double, RawResult> _rawTree;
-
-                public bool Contains(double hue)
-                {
-                    return hue >= From && hue <= To;
-                }
-
-                public ColorHSV GetColor(double hue)
-                {
-                    if (!Contains(hue))
-                    {
-                        throw new ArgumentOutOfRangeException($"The hue passed in is outside this interval: hue={hue} from={From} to={To}");
-                    }
-
-                    //NOTE: This first draft is very unoptimized, it's just written to get all thoughts working
-                    //TODO: Get this from a tree
-
-                    RawResult exact = Raw.FirstOrDefault(o => hue.IsNearValue(o.Hue));
-                    if (exact != null)
-                    {
-                        return ToHSV(hue, exact.Result);
-                    }
-
-                    var distances = Raw.
-                        Select(o => new
-                        {
-                            o.Hue,
-                            o.Result,
-                            dist = Math.Abs(o.Hue - hue),
-                        }).
-                        OrderBy(o => o.dist).
-                        ToArray();
-
-                    var left = distances.
-                        Where(o => o.Hue < hue).
-                        FirstOrDefault();
-
-                    var right = distances.
-                        Where(o => o.Hue > hue).
-                        FirstOrDefault();
-
-                    if (left == null || right == null)
-                    {
-                        throw new ApplicationException("The hue is in range, but didn't find left and right");
-                    }
-
-                    double percent = (double)(hue - left.Hue) / (double)(right.Hue - left.Hue);
-
-                    Point lerp = Math2D.LERP(left.Result, right.Result, percent);
-
-                    return ToHSV(hue, lerp);
-                }
-
-                public override string ToString()
-                {
-                    return $"{From} - {To} | count={Raw.Length}";
-                }
-            }
-
-            #endregion
-
-            #region Declaration Section
-
-            private readonly ColorHSV _sourceColor;
-
-            private readonly int _maxDistance;
-
-            private readonly List<RawResult> _rawResults = new List<RawResult>();
-            private readonly List<Interval> _intervals = new List<Interval>();
-
-            #endregion
-
-            #region Constructor
-
-            public TheCache(ColorHSV sourceColor, int maxDistance = 5)
-            {
-                _sourceColor = sourceColor;
-
-                All = Enumerable.Range(0, 361).
-                    Select(o =>
-                    {
-                        Point point = Math3D.GetRandomVector_Circular(5).ToPoint2D();
-
-                        point.X = UtilityMath.Clamp(sourceColor.V + point.X, 0, 100);
-                        point.Y = UtilityMath.Clamp(sourceColor.S + point.Y, 0, 100);
-
-                        return new RawResult(o, point);
-                    }).
-                    ToArray();
-
-                //TODO: Immediately calculate the value for hue=0 and store at 0 and 360.  That way the endpoints will always be there, which
-                //simplify logic
-                //
-                //Make sure that 0 and 360 results are identical
-
-                _rawResults.Add(All[0]);
-                _rawResults.Add(All[^1]);
-
-                _maxDistance = maxDistance;
-            }
-
-            #endregion
-
-            public RawResult[] All { get; }
-
-            public ColorHSV GetValue(int hue)
-            {
-                var interval = _intervals.FirstOrDefault(o => o.Contains(hue));
-                if (interval != null)
-                {
-                    return interval.GetColor(hue);
-                }
-
-                // Make a new one
-                //EquivalentColor.GetEquivalent(_sourceColor, hue);
-                RawResult newEntry = All[hue];
-
-                // Find neighbors
-                var nearRaw = _rawResults.
-                    Select((o, i) => new
-                    {
-                        index = i,
-                        raw = o,
-                        dist = Math.Abs(hue - o.Hue),
-                    }).
-                    Where(o => o.dist <= _maxDistance).
-                    OrderByDescending(o => o.index).
-                    ToArray();
-
-                var nearInterval = _intervals.
-                    Select((o, i) => new
-                    {
-                        index = i,
-                        interval = o,
-                        dist = Math.Min(Math.Abs(hue - o.From), Math.Abs(hue - o.To)),
-                    }).
-                    Where(o => o.dist <= _maxDistance).
-                    OrderByDescending(o => o.index).
-                    ToArray();
-
-                if (nearRaw.Length == 0 && nearInterval.Length == 0)
-                {
-                    // There are no others close enough, store this as a loose point
-                    _rawResults.Add(newEntry);
-                }
-                else
-                {
-                    // There are neighbors.  Remove them from the lists and build an interval out of them
-                    var allNearRaw = new List<RawResult>();
-                    allNearRaw.Add(newEntry);
-
-                    foreach (var raw in nearRaw)
-                    {
-                        _rawResults.RemoveAt(raw.index);        // they are sorted descending so removing won't change the index
-                        allNearRaw.Add(raw.raw);
-                    }
-
-                    foreach (var interval2 in nearInterval)
-                    {
-                        _intervals.RemoveAt(interval2.index);
-                        allNearRaw.AddRange(interval2.interval.Raw);
-                    }
-
-                    _intervals.Add(new Interval(allNearRaw));
-                }
-
-                return ToHSV(hue, newEntry.Result);
-            }
-
-            #region Private Methods
-
-            private static ColorHSV ToHSV(double hue, Point point)
-            {
-                return new ColorHSV(hue, point.Y, point.X);
-            }
-
-            #endregion
         }
 
         #endregion
