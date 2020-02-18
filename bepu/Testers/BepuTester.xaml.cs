@@ -454,6 +454,9 @@ namespace Game.Bepu.Testers
 
         const double PLACEMENTRADIUS = 30;
 
+        //private readonly EquivalentColor _color = new EquivalentColor(UtilityWPF.ColorFromHex("609C35").ToHSV());
+        private readonly EquivalentColor _color = new EquivalentColor(new ColorHSV(StaticRandom.NextDouble(0, 240), StaticRandom.NextDouble(60, 70), StaticRandom.NextDouble(67, 72)));
+
         private TrackBallRoam _trackball = null;
 
         private BufferPool _bufferPool = null;
@@ -619,7 +622,8 @@ namespace Game.Bepu.Testers
                 var cells = Math3D.GetCells_Cube(1, count, .1, Math3D.GetRandomVector_Spherical(PLACEMENTRADIUS).ToPoint());
 
                 //UtilityWPF.ColorFromHex("6CB03C")
-                ColorHSV color = new ColorHSV(rand.NextDouble(0, 240), rand.NextDouble(60, 70), rand.NextDouble(67, 72));       // keep it out of the pinks
+                //ColorHSV color = new ColorHSV(rand.NextDouble(0, 240), rand.NextDouble(60, 70), rand.NextDouble(67, 72));       // keep it out of the pinks
+                ColorHSV color = _color.GetEquivalent(rand.NextDouble(0, 240));     // keep it out of the pinks
 
                 Material material = Debug3DWindow.GetMaterial(true, color.ToRGB());
                 Model3DGroup modelGroup = new Model3DGroup();
