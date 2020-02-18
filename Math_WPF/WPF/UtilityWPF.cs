@@ -1875,6 +1875,24 @@ namespace Game.Math_WPF.WPF
 
             return Color.FromArgb(alpha, newR.ToByte(), newG.ToByte(), newB.ToByte());
         }
+        /// <summary>
+        /// This will choose a random hue, find the equivalent color for that hue, then randomly drift the saturation and value
+        /// </summary>
+        public static ColorHSV GetRandomColor(double hueFrom, double hueTo, double saturationDrift, int valueDrift, EquivalentColor basedOn)
+        {
+            Random rand = StaticRandom.GetRandomForThread();
+
+            double hue = rand.NextDouble(hueFrom, hueTo);
+
+            ColorHSV equivalent = basedOn.GetEquivalent(hue);
+
+            return new ColorHSV
+            (
+                equivalent.H,
+                UtilityMath.Clamp(rand.NextDrift(equivalent.S, saturationDrift), 0, 100),
+                UtilityMath.Clamp(rand.NextDrift(equivalent.V, valueDrift), 0, 100)
+            );
+        }
 
         //TODO: Make a version that chooses random points in an HSV cone
         /// <summary>
