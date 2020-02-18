@@ -58,12 +58,14 @@ namespace Game.Math_WPF.WPF
                 To = Raw[^1].Hue;
 
                 //TODO: Build a tree for faster lookups (need to reference accord.net)
-                //But only when Raw.Length > threshold
+                //But only when Raw.Length > some_threshold
                 //
                 //On second thought, see if the tree can be added to.  When creating a new interval from existing intervals
-                //and raws, pass in the current trees and decide whether to add to one or start over
+                //and raws, pass in the current trees and decide whether to add to one or start over (the overhead of creation
+                //is pretty high, so it's only worth it if the tree will be used quite a bit after creation)
 
-
+                //NOTE: Euclidean class's overload that takes in scalars just returns: Math.Abs(x - y);  (so no need to worry about square root)
+                //_tree = VPTree_Custom<double, RawResult>.FromData(raw.Select(o => o.Hue).ToArray(), raw.ToArray(), new Euclidean(), new Euclidean(), false);
             }
 
             public int From { get; }
@@ -71,7 +73,7 @@ namespace Game.Math_WPF.WPF
 
             public RawResult[] Raw { get; }
 
-            //private VPTree<double, RawResult> _rawTree;
+            //private VPTree<double, RawResult> _tree;
 
             public bool Contains(double hue)
             {
