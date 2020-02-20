@@ -606,6 +606,34 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void Sphere_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!int.TryParse(txtSimpleCount.Text, out int count))
+                {
+                    MessageBox.Show("Couldn't parse the count", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var getBody = new Func<(BodyInertia inertia, CollidableDescription collidable)>(() =>
+                {
+                    var sphere = new Sphere(.5f);
+                    sphere.ComputeInertia(1, out var inertia);
+                    var collidable = new CollidableDescription(_simulation.Shapes.Add(sphere), 0.1f);
+
+                    return (inertia, collidable);
+                });
+
+                var getGeometry = new Func<Geometry3D>(() => UtilityWPF.GetSphere_Ico(.5, 1, true));
+
+                AddBody(count, getBody, getGeometry);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private void Box_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -616,88 +644,19 @@ namespace Game.Bepu.Testers
                     return;
                 }
 
-                Random rand = StaticRandom.GetRandomForThread();
-
-                var cells = Math3D.GetCells_Cube(1, count, .1, Math3D.GetRandomVector_Spherical(PLACEMENTRADIUS).ToPoint());
-
-                ColorHSV color = UtilityWPF.GetRandomColor(0, 275, 7, 7, _color);       // keep it out of the pinks
-
-                Material material = Debug3DWindow.GetMaterial(true, color.ToRGB());
-                Model3DGroup modelGroup = new Model3DGroup();
-
-                foreach (var cell in cells.Take(count))
+                //TODO: Test box sizes to make sure x,y,z axiis are the same between bepu and wpf
+                var getBody = new Func<(BodyInertia inertia, CollidableDescription collidable)>(() =>
                 {
-                    // See Demos.Demos PlanetDemo.Initialize
-                    //BepuPhysics.Simulation looks like the equivalent of world
-
-                    // types in BepuPhysics.Collidables seems to be the equivalent of newton's body
-
-
-                    //TODO: Test box sizes to make sure x,y,z axiis are the same between bepu and wpf
-
-
                     var box = new Box(1f, 1f, 1f);
                     box.ComputeInertia(1, out var inertia);
                     var collidable = new CollidableDescription(_simulation.Shapes.Add(box), .1f);
 
-                    var pose = new RigidPose()
-                    {
-                        Position = cell.center.ToVector3(),
-                        Orientation = BepuUtilities.Quaternion.Identity,
-                    };
-                     
-                    var initialVel = new BodyVelocity()
-                    {
-                        //Linear = Math3D.GetRandomVector_Spherical(3).ToVector3(),
-                        //Angular = Math3D.GetRandomVector_Spherical(12).ToVector3(),
-                    };
+                    return (inertia, collidable);
+                });
 
-                    int bodyHandle = _simulation.Bodies.Add(BodyDescription.CreateDynamic(pose, initialVel, inertia, collidable, new BodyActivityDescription(.01f)));
+                var getGeometry = new Func<Geometry3D>(() => UtilityWPF.GetCube_IndependentFaces(new Point3D(-.5, -.5, -.5), new Point3D(.5, .5, .5)));
 
-
-                    //TODO: Add red,green,blue lines to help tell the axiis apart - or use different colors fo the faces
-                    //Visual3D visual = Debug3DWindow.GetMesh(UtilityWPF.GetCube_IndependentFaces(new Point3D(-.5, -.5, -.5), new Point3D(.5, .5, .5)), Colors.Coral);
-
-
-                    GeometryModel3D model = new GeometryModel3D();
-                    model.Material = material;
-                    model.BackMaterial = material;
-
-                    model.Geometry = UtilityWPF.GetCube_IndependentFaces(new Point3D(-.5, -.5, -.5), new Point3D(.5, .5, .5));
-
-                    modelGroup.Children.Add(model);
-
-                    Transform3DGroup transform = new Transform3DGroup();
-
-                    QuaternionRotation3D quat = new QuaternionRotation3D();
-                    transform.Children.Add(new RotateTransform3D(quat));
-
-                    TranslateTransform3D translate = new TranslateTransform3D();
-                    transform.Children.Add(translate);
-
-                    model.Transform = transform;
-
-
-                    PhysicsBody body = new PhysicsBody()
-                    {
-                        BodyHandle = bodyHandle,
-                        Model = model,
-                        Translate = translate,
-                        Orientation = quat,
-                    };
-
-                    UpdateTransform(pose, body);
-
-                    _bodies.Add(body.BodyHandle, body);
-                }
-
-                Visual3D visual = new ModelVisual3D
-                {
-                    Content = modelGroup,
-                };
-
-                _visuals.Add(visual);
-                _viewport.Children.Add(visual);
+                AddBody(count, getBody, getGeometry);
             }
             catch (Exception ex)
             {
@@ -731,6 +690,86 @@ namespace Game.Bepu.Testers
         #endregion
 
         #region Private Methods
+
+        private void AddBody(int cellCount, Func<(BodyInertia inertia, CollidableDescription collidable)> getBody, Func<Geometry3D> getGeometry)
+        {
+            Random rand = StaticRandom.GetRandomForThread();
+
+            var cells = Math3D.GetCells_Cube(1, cellCount, .1, Math3D.GetRandomVector_Spherical(PLACEMENTRADIUS).ToPoint());
+
+            ColorHSV color = UtilityWPF.GetRandomColor(0, 275, 7, 7, _color);       // keep it out of the pinks
+
+            Material material = Debug3DWindow.GetMaterial(true, color.ToRGB());
+            Model3DGroup modelGroup = new Model3DGroup();
+
+            foreach (var cell in cells.Take(cellCount))
+            {
+                // See Demos.Demos PlanetDemo.Initialize
+                //BepuPhysics.Simulation looks like the equivalent of world
+
+                // types in BepuPhysics.Collidables seems to be the equivalent of newton's body
+
+                var physicsBody = getBody();
+
+                var pose = new RigidPose()
+                {
+                    Position = cell.center.ToVector3(),
+                    Orientation = BepuUtilities.Quaternion.Identity,
+                };
+
+                var initialVel = new BodyVelocity()
+                {
+                    //Linear = Math3D.GetRandomVector_Spherical(3).ToVector3(),
+                    //Angular = Math3D.GetRandomVector_Spherical(12).ToVector3(),
+                };
+
+                int bodyHandle = _simulation.Bodies.Add(BodyDescription.CreateDynamic(pose, initialVel, physicsBody.inertia, physicsBody.collidable, new BodyActivityDescription(.01f)));
+
+
+                //TODO: Add red,green,blue lines to help tell the axiis apart - or use different colors fo the faces
+                //Visual3D visual = Debug3DWindow.GetMesh(UtilityWPF.GetCube_IndependentFaces(new Point3D(-.5, -.5, -.5), new Point3D(.5, .5, .5)), Colors.Coral);
+
+
+                GeometryModel3D model = new GeometryModel3D();
+                model.Material = material;
+                model.BackMaterial = material;
+
+                model.Geometry = getGeometry();
+
+                modelGroup.Children.Add(model);
+
+                Transform3DGroup transform = new Transform3DGroup();
+
+                QuaternionRotation3D quat = new QuaternionRotation3D();
+                transform.Children.Add(new RotateTransform3D(quat));
+
+                TranslateTransform3D translate = new TranslateTransform3D();
+                transform.Children.Add(translate);
+
+                model.Transform = transform;
+
+
+                PhysicsBody body = new PhysicsBody()
+                {
+                    BodyHandle = bodyHandle,
+                    Model = model,
+                    Translate = translate,
+                    Orientation = quat,
+                };
+
+                UpdateTransform(pose, body);
+
+                _bodies.Add(body.BodyHandle, body);
+            }
+
+            Visual3D visual = new ModelVisual3D
+            {
+                Content = modelGroup,
+            };
+
+            _visuals.Add(visual);
+            _viewport.Children.Add(visual);
+        }
 
         private static void UpdateTransform(in RigidPose pose, PhysicsBody graphic)
         {

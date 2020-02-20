@@ -48,7 +48,7 @@
                             <!--<CheckBox Content="random velocity"/>-->
                             <!--<CheckBox Content="random spin"/>-->
 
-                            <Button Content="Sphere" Margin="0,8,0,0"/>
+                            <Button Content="Sphere" Margin="0,8,0,0" Click="Sphere_Click"/>
                             <Button Content="Box" Margin="0,2,0,0" Click="Box_Click"/>
 
                         </StackPanel>
