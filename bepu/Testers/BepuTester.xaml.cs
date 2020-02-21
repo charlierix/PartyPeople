@@ -31,6 +31,33 @@ namespace Game.Bepu.Testers
 {
     public partial class BepuTester : Window
     {
+        #region class: SetVelocityArgs
+
+        private class SetVelocityArgs
+        {
+            public bool RandomEach { get; set; }
+            public bool RandomSame { get; set; }
+            public bool Center { get; set; }
+            public bool X { get; set; }
+            public bool Y { get; set; }
+            public bool Z { get; set; }
+
+            public bool IsPositive { get; set; }
+
+            public bool Translate { get; set; }
+            public bool Rotate { get; set; }
+
+            public float Speed_Translate { get; set; }
+            public float Speed_Rotate { get; set; }
+
+            public float Speed_Translate_Final => IsPositive ? Speed_Translate : -Speed_Translate;
+            public float Speed_Rotate_Final => IsPositive ? Speed_Rotate : -Speed_Rotate;
+
+            public bool Overwrite { get; set; }
+        }
+
+        #endregion
+
         #region class: SimpleThreadDispatcher
 
         // Copied from Demos
@@ -473,6 +500,8 @@ namespace Game.Bepu.Testers
         private SimpleThreadDispatcher _threadDispatcher = null;
         private DispatcherTimer _timer = null;
 
+        private bool _initialized = false;
+
         #endregion
 
         #region Constructor
@@ -505,6 +534,8 @@ namespace Game.Bepu.Testers
             _timer.Interval = TimeSpan.FromMilliseconds(50);
             _timer.Tick += Timer_Tick;
             _timer.Start();
+
+            _initialized = true;
         }
 
         #endregion
@@ -584,21 +615,6 @@ namespace Game.Bepu.Testers
 
 
 
-
-
-                #region attempt - my instances
-
-                //Bodies bodies = _simulation.Bodies;
-
-
-                //foreach (var body in _bodies)
-                //{
-                    //var simBody = _simulation.Bodies. [body.BodyHandle];
-
-
-                //}
-
-                #endregion
             }
             catch (Exception ex)
             {
@@ -664,6 +680,103 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void RadioVelocity_Checked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!_initialized)
+                {
+                    return;
+                }
+
+                if (radVel_Center.IsChecked.Value)
+                {
+                    chkVel_Positive.Content = "Away";
+                    chkVel_Positive.Visibility = Visibility.Visible;
+                }
+                else if (radVel_X.IsChecked.Value || radVel_Y.IsChecked.Value || radVel_Z.IsChecked.Value)
+                {
+                    chkVel_Positive.Content = "Positive";
+                    chkVel_Positive.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    chkVel_Positive.Visibility = Visibility.Collapsed;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void SetVelocity_Translate_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                SetVelocityArgs args = GetVelocityArgs();
+
+                args.Translate = true;
+
+                SetVelocity(args);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void SetVelocity_Rotate_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                SetVelocityArgs args = GetVelocityArgs();
+
+                args.Rotate = true;
+
+                SetVelocity(args);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void SetVelocity_TranslateRotate_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                SetVelocityArgs args = GetVelocityArgs();
+
+                args.Translate = true;
+                args.Rotate = true;
+
+                SetVelocity(args);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void SetVelocity_StopAll_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Vector3 stopped = new Vector3();
+
+                foreach (PhysicsBody bodyWrapper in _bodies.Values)
+                {
+                    BodyReference body = _simulation.Bodies.GetBodyReference(bodyWrapper.BodyHandle);
+
+                    body.Velocity.Linear = stopped;
+                    body.Velocity.Angular = stopped;
+
+                    // no need to change the awake state, because it's transitioning to stopped
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -688,6 +801,102 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+
+        private void SetVelocity(SetVelocityArgs e)
+        {
+            // Some options need to the same velocity for all.  Set these here
+            Vector3 translate = new Vector3();
+            Vector3 rotate = new Vector3();
+
+            if (e.RandomSame)
+            {
+                translate = Math3D.GetRandomVector_Spherical(e.Speed_Translate).ToVector3();
+                rotate = Math3D.GetRandomVector_Spherical(e.Speed_Rotate).ToVector3();
+            }
+            else if (e.X)
+            {
+                translate = new Vector3(e.Speed_Translate_Final, 0, 0);
+                rotate = new Vector3(e.Speed_Rotate_Final, 0, 0);
+            }
+            else if (e.Y)
+            {
+                translate = new Vector3(0, e.Speed_Translate_Final, 0);
+                rotate = new Vector3(0, e.Speed_Rotate_Final, 0);
+            }
+            else if (e.Z)
+            {
+                translate = new Vector3(0, 0, e.Speed_Translate_Final);
+                rotate = new Vector3(0, 0, e.Speed_Rotate_Final);
+            }
+
+            foreach (PhysicsBody bodyWrapper in _bodies.Values)
+            {
+                BodyReference body = _simulation.Bodies.GetBodyReference(bodyWrapper.BodyHandle);
+
+                // Other options need to change for every body
+                if (e.RandomEach)
+                {
+                    translate = Math3D.GetRandomVector_Spherical(e.Speed_Translate).ToVector3();
+                    rotate = Math3D.GetRandomVector_Spherical(e.Speed_Rotate).ToVector3();
+                }
+                else if (e.Center)
+                {
+                    translate = body.Pose.Position.ToUnit() * e.Speed_Translate_Final;
+                    rotate = Math3D.GetRandomVector_Spherical(e.Speed_Rotate).ToVector3();
+                }
+
+                // these are probably forces
+                //body.ApplyLinearImpulse(translate);       
+                //body.ApplyAngularImpulse(rotate);
+
+                //TODO: Every once in a while, an item won't be affected by the velocity.  If I were to guess, it's because the awake is staying false
+                //May need to wait until some event fires to set the velocity
+
+                if (e.Translate)
+                {
+                    if (e.Overwrite)
+                    {
+                        body.Velocity.Linear = translate;
+                    }
+                    else
+                    {
+                        body.Velocity.Linear += translate;
+                    }
+
+                }
+
+                if (e.Rotate)
+                {
+                    if(e.Overwrite)
+                    {
+                        body.Velocity.Angular = rotate;
+                    }
+                    else
+                    {
+                        body.Velocity.Angular += rotate;
+                    }
+                }
+
+                body.Awake = true;      // it won't move if this stays false
+            }
+        }
+
+        private SetVelocityArgs GetVelocityArgs()
+        {
+            return new SetVelocityArgs()
+            {
+                RandomEach = radVel_RandomEach.IsChecked.Value,
+                RandomSame = radVel_RandomSame.IsChecked.Value,
+                Center = radVel_Center.IsChecked.Value,
+                X = radVel_X.IsChecked.Value,
+                Y = radVel_Y.IsChecked.Value,
+                Z = radVel_Z.IsChecked.Value,
+                IsPositive = chkVel_Positive.IsChecked.Value,
+                Speed_Translate = (float)UtilityMath.GetScaledValue_Capped(.1d, 50d, trkVel_Speed.Minimum, trkVel_Speed.Maximum, trkVel_Speed.Value),
+                Speed_Rotate = (float)UtilityMath.GetScaledValue_Capped(.1d, 20d, trkVel_Speed.Minimum, trkVel_Speed.Maximum, trkVel_Speed.Value),
+                Overwrite = radVel_Overwrite.IsChecked.Value,
+            };
+        }
 
         #region Private Methods
 

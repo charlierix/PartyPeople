@@ -19,6 +19,22 @@
             <!--<Setter Property="ContentTemplate" Value="{StaticResource expanderContent}"/>-->
             <Setter Property="Margin" Value="2,3"/>
         </Style>
+
+        <Style x:Key="radioToggle" TargetType="RadioButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+            <Setter Property="FontSize" Value="9"/>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Margin" Value="0,2"/>
+        </Style>
+
+        <Style TargetType="RadioButton">
+            <Setter Property="Margin" Value="0,2"/>
+        </Style>
+
+        <Style TargetType="CheckBox">
+            <Setter Property="Margin" Value="0,2"/>
+        </Style>
     </Window.Resources>
 
     <Grid Background="#F1F0EB">
@@ -48,8 +64,54 @@
                             <!--<CheckBox Content="random velocity"/>-->
                             <!--<CheckBox Content="random spin"/>-->
 
-                            <Button Content="Sphere" Margin="0,8,0,0" Click="Sphere_Click"/>
-                            <Button Content="Box" Margin="0,2,0,0" Click="Box_Click"/>
+                            <Button Content="Sphere" Margin="0,8,0,2" Click="Sphere_Click"/>
+                            <Button Content="Box" Click="Box_Click"/>
+
+                        </StackPanel>
+                    </Expander>
+
+                    <Expander Visibility="Collapsed" Header="Static Plates">
+                        <StackPanel Style="{StaticResource expanderStackPanel}">
+
+                            <!-- Options to show/hide plates to help catch objects -->
+                            <!-- When combined with a constant acceleration field, you could have a falling sand scenario -->
+
+                        </StackPanel>
+                    </Expander>
+
+                    <Expander Header="Set Velocities">
+                        <StackPanel Style="{StaticResource expanderStackPanel}" RadioButton.Checked="RadioVelocity_Checked" RadioButton.Unchecked="RadioVelocity_Checked">
+
+                            <RadioButton IsChecked="True" x:Name="radVel_RandomEach" Content="Random (each)" ToolTip="Each item will go a random direction"/>
+                            <RadioButton x:Name="radVel_RandomSame" Content="Random (same)" ToolTip="A random direction will be determined, then all items will get that same velocity"/>
+                            <RadioButton x:Name="radVel_Center" Content="Toward/Away Center"/>
+                            <RadioButton x:Name="radVel_X" Content="X"/>
+                            <RadioButton x:Name="radVel_Y" Content="Y"/>
+                            <RadioButton x:Name="radVel_Z" Content="Z"/>
+                            <CheckBox Visibility="Collapsed" IsChecked="True" x:Name="chkVel_Positive" />
+
+                            <Label Content="Speed"/>
+                            <Slider Name="trkVel_Speed" Minimum="0" Maximum="100" Value="15"/>
+
+                            <Button Content="Translate" Margin="0,8,0,2" Click="SetVelocity_Translate_Click"/>
+                            <Button Content="Rotate" Click="SetVelocity_Rotate_Click"/>
+                            <Button Content="Translate/Rotate" Click="SetVelocity_TranslateRotate_Click"/>
+                            <Button Content="Stop All" Click="SetVelocity_StopAll_Click"/>
+
+                            <UniformGrid Rows="1" Margin="0,8,0,0">
+                                <RadioButton x:Name="radVel_Add" Content="Add" IsChecked="True" Style="{StaticResource radioToggle}" Margin="2"/>
+                                <RadioButton x:Name="radVel_Overwrite" Content="Overwrite" Style="{StaticResource radioToggle}" Margin="2"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Expander>
+
+                    <Expander Header="Vector Fields">
+                        <StackPanel Style="{StaticResource expanderStackPanel}">
+
+                            <!-- Do some from newt2 tester -->
+                            <!-- Use checkboxes instead of radio buttons - each one gets its own strength slider -->
+                            <!-- Give an option to draw jet streams -->
+
 
                         </StackPanel>
                     </Expander>
