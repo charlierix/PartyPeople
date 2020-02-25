@@ -57,6 +57,18 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+        #region class: VectorFieldArgs
+
+        private class VectorFieldArgs
+        {
+            public bool Inward { get; set; }
+            public bool Swirl { get; set; }
+            public bool ZPlane { get; set; }
+
+            public float Strength { get; set; }
+        }
+
+        #endregion
 
         #region class: SimpleThreadDispatcher
 
@@ -179,6 +191,9 @@ namespace Game.Bepu.Testers
         /// </remarks>
         private struct ExternalAccelCallbacks : IPoseIntegratorCallbacks
         {
+            // The values need to be stored in an object, because directly setting bools and floats as properties of this struct don't carry over (the values stay default because the struct is copied)
+            public VectorFieldArgs Field;
+
             public AngularIntegrationMode AngularIntegrationMode => AngularIntegrationMode.Nonconserving;
 
             /// <summary>
@@ -200,6 +215,21 @@ namespace Game.Bepu.Testers
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void IntegrateVelocity(int bodyIndex, in RigidPose pose, in BodyInertia localInertia, int workerIndex, ref BodyVelocity velocity)
             {
+                if (Field.Inward)
+                {
+                    velocity.Linear -= pose.Position.ToUnit() * Field.Strength;
+                }
+
+                if (Field.ZPlane)
+                {
+                    float z = pose.Position.Z.IsNearZero() ? 0f :
+                        pose.Position.Z > 0 ? 1f :
+                        -1f;
+
+                    velocity.Linear -= new Vector3(0, 0, z * Field.Strength);
+                }
+
+
                 //velocity.Linear = (velocity.Linear + _gravityDt) * linearDampingDt;
                 //velocity.Angular = velocity.Angular * angularDampingDt;
 
@@ -488,6 +518,7 @@ namespace Game.Bepu.Testers
         private BufferPool _bufferPool = null;
         private Simulation _simulation = null;
 
+        private readonly VectorFieldArgs _field;
         private ExternalAccelCallbacks _externalAccel;
         private CollisionCallbacks _collision;
 
@@ -501,6 +532,7 @@ namespace Game.Bepu.Testers
         private DispatcherTimer _timer = null;
 
         private bool _initialized = false;
+        private bool _isDisposing = false;
 
         #endregion
 
@@ -517,21 +549,25 @@ namespace Game.Bepu.Testers
             _trackball.Mappings.AddRange(TrackBallMapping.GetPrebuilt(TrackBallMapping.PrebuiltMapping.MouseComplete));
             _trackball.ShouldHitTestOnOrbit = false;
 
+            //TODO: Figure out the game loop.  Should there be a game main tread that's separate from the gui main thread?
+            //
+            // for the first draft, run it from a timer that's managed by this window
+            _threadDispatcher = new SimpleThreadDispatcher(Environment.ProcessorCount);     // this might need to be created before the simulation.  The ExternalAccelCallbacks functions weren't getting called (but that might just be because the bodies weren't awake)
+
+            _field = new VectorFieldArgs();
+
             // Physics Simulation
             _collision = new CollisionCallbacks();
-            _externalAccel = new ExternalAccelCallbacks();
+            _externalAccel = new ExternalAccelCallbacks()
+            {
+                Field = _field,
+            };
             _bufferPool = new BufferPool();
             _simulation = Simulation.Create(_bufferPool, _collision, _externalAccel);
 
 
-            //TODO: Figure out the game loop.  Should there be a game main tread that's separate from the gui main thread?
-            //
-            // for the first draft, run it from a timer that's managed by this window
-
-            _threadDispatcher = new SimpleThreadDispatcher(Environment.ProcessorCount);
-
             _timer = new DispatcherTimer();
-            _timer.Interval = TimeSpan.FromMilliseconds(50);
+            _timer.Interval = TimeSpan.FromMilliseconds(10);
             _timer.Tick += Timer_Tick;
             _timer.Start();
 
@@ -542,10 +578,32 @@ namespace Game.Bepu.Testers
 
         #region Event Listeners
 
+        private void Window_Closed(object sender, EventArgs e)
+        {
+            try
+            {
+                _isDisposing = true;
+                _timer.Stop();
+
+                _simulation.Dispose();
+                _bufferPool.Clear();
+                _threadDispatcher.Dispose();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void Timer_Tick(object sender, EventArgs e)
         {
             try
             {
+                if(_isDisposing)
+                {
+                    return;
+                }
+
                 #region simulation tick
 
                 //In the demos, we use one time step per frame. We don't bother modifying the physics time step duration for different monitors so different refresh rates
@@ -777,6 +835,39 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void RadioField_Checked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!_initialized)
+                {
+                    return;
+                }
+
+                UpdateFieldProps();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void trkField_Strength_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                if (!_initialized)
+                {
+                    return;
+                }
+
+                UpdateFieldProps();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -801,6 +892,89 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+
+        #region Private Methods
+
+        private void AddBody(int cellCount, Func<(BodyInertia inertia, CollidableDescription collidable)> getBody, Func<Geometry3D> getGeometry)
+        {
+            Random rand = StaticRandom.GetRandomForThread();
+
+            var cells = Math3D.GetCells_Cube(1, cellCount, .1, Math3D.GetRandomVector_Spherical(PLACEMENTRADIUS).ToPoint());
+
+            ColorHSV color = UtilityWPF.GetRandomColor(0, 275, 7, 7, _color);       // keep it out of the pinks
+
+            Material material = Debug3DWindow.GetMaterial(true, color.ToRGB());
+            Model3DGroup modelGroup = new Model3DGroup();
+
+            foreach (var cell in cells.Take(cellCount))
+            {
+                // See Demos.Demos PlanetDemo.Initialize
+                //BepuPhysics.Simulation looks like the equivalent of world
+
+                // types in BepuPhysics.Collidables seems to be the equivalent of newton's body
+
+                var physicsBody = getBody();
+
+                var pose = new RigidPose()
+                {
+                    Position = cell.center.ToVector3(),
+                    Orientation = BepuUtilities.Quaternion.Identity,
+                };
+
+                var initialVel = new BodyVelocity()
+                {
+                    //Linear = Math3D.GetRandomVector_Spherical(3).ToVector3(),
+                    //Angular = Math3D.GetRandomVector_Spherical(12).ToVector3(),
+                };
+
+                //int bodyHandle = _simulation.Bodies.Add(BodyDescription.CreateDynamic(pose, initialVel, physicsBody.inertia, physicsBody.collidable, new BodyActivityDescription(.01f)));
+                int bodyHandle = _simulation.Bodies.Add(BodyDescription.CreateDynamic(pose, initialVel, physicsBody.inertia, physicsBody.collidable, new BodyActivityDescription(-1)));     // passing -1 so it won't go to sleep
+
+
+                //TODO: Add red,green,blue lines to help tell the axiis apart - or use different colors fo the faces
+                //Visual3D visual = Debug3DWindow.GetMesh(UtilityWPF.GetCube_IndependentFaces(new Point3D(-.5, -.5, -.5), new Point3D(.5, .5, .5)), Colors.Coral);
+
+
+                GeometryModel3D model = new GeometryModel3D();
+                model.Material = material;
+                model.BackMaterial = material;
+
+                model.Geometry = getGeometry();
+
+                modelGroup.Children.Add(model);
+
+                Transform3DGroup transform = new Transform3DGroup();
+
+                QuaternionRotation3D quat = new QuaternionRotation3D();
+                transform.Children.Add(new RotateTransform3D(quat));
+
+                TranslateTransform3D translate = new TranslateTransform3D();
+                transform.Children.Add(translate);
+
+                model.Transform = transform;
+
+
+                PhysicsBody body = new PhysicsBody()
+                {
+                    BodyHandle = bodyHandle,
+                    Model = model,
+                    Translate = translate,
+                    Orientation = quat,
+                };
+
+                UpdateTransform(pose, body);
+
+                _bodies.Add(body.BodyHandle, body);
+            }
+
+            Visual3D visual = new ModelVisual3D
+            {
+                Content = modelGroup,
+            };
+
+            _visuals.Add(visual);
+            _viewport.Children.Add(visual);
+        }
 
         private void SetVelocity(SetVelocityArgs e)
         {
@@ -867,7 +1041,7 @@ namespace Game.Bepu.Testers
 
                 if (e.Rotate)
                 {
-                    if(e.Overwrite)
+                    if (e.Overwrite)
                     {
                         body.Velocity.Angular = rotate;
                     }
@@ -898,86 +1072,13 @@ namespace Game.Bepu.Testers
             };
         }
 
-        #region Private Methods
-
-        private void AddBody(int cellCount, Func<(BodyInertia inertia, CollidableDescription collidable)> getBody, Func<Geometry3D> getGeometry)
+        private void UpdateFieldProps()
         {
-            Random rand = StaticRandom.GetRandomForThread();
+            _field.Strength = (float)UtilityMath.GetScaledValue_Capped(.01d, 1d, trkField_Strength.Minimum, trkField_Strength.Maximum, trkField_Strength.Value);
 
-            var cells = Math3D.GetCells_Cube(1, cellCount, .1, Math3D.GetRandomVector_Spherical(PLACEMENTRADIUS).ToPoint());
-
-            ColorHSV color = UtilityWPF.GetRandomColor(0, 275, 7, 7, _color);       // keep it out of the pinks
-
-            Material material = Debug3DWindow.GetMaterial(true, color.ToRGB());
-            Model3DGroup modelGroup = new Model3DGroup();
-
-            foreach (var cell in cells.Take(cellCount))
-            {
-                // See Demos.Demos PlanetDemo.Initialize
-                //BepuPhysics.Simulation looks like the equivalent of world
-
-                // types in BepuPhysics.Collidables seems to be the equivalent of newton's body
-
-                var physicsBody = getBody();
-
-                var pose = new RigidPose()
-                {
-                    Position = cell.center.ToVector3(),
-                    Orientation = BepuUtilities.Quaternion.Identity,
-                };
-
-                var initialVel = new BodyVelocity()
-                {
-                    //Linear = Math3D.GetRandomVector_Spherical(3).ToVector3(),
-                    //Angular = Math3D.GetRandomVector_Spherical(12).ToVector3(),
-                };
-
-                int bodyHandle = _simulation.Bodies.Add(BodyDescription.CreateDynamic(pose, initialVel, physicsBody.inertia, physicsBody.collidable, new BodyActivityDescription(.01f)));
-
-
-                //TODO: Add red,green,blue lines to help tell the axiis apart - or use different colors fo the faces
-                //Visual3D visual = Debug3DWindow.GetMesh(UtilityWPF.GetCube_IndependentFaces(new Point3D(-.5, -.5, -.5), new Point3D(.5, .5, .5)), Colors.Coral);
-
-
-                GeometryModel3D model = new GeometryModel3D();
-                model.Material = material;
-                model.BackMaterial = material;
-
-                model.Geometry = getGeometry();
-
-                modelGroup.Children.Add(model);
-
-                Transform3DGroup transform = new Transform3DGroup();
-
-                QuaternionRotation3D quat = new QuaternionRotation3D();
-                transform.Children.Add(new RotateTransform3D(quat));
-
-                TranslateTransform3D translate = new TranslateTransform3D();
-                transform.Children.Add(translate);
-
-                model.Transform = transform;
-
-
-                PhysicsBody body = new PhysicsBody()
-                {
-                    BodyHandle = bodyHandle,
-                    Model = model,
-                    Translate = translate,
-                    Orientation = quat,
-                };
-
-                UpdateTransform(pose, body);
-
-                _bodies.Add(body.BodyHandle, body);
-            }
-
-            Visual3D visual = new ModelVisual3D
-            {
-                Content = modelGroup,
-            };
-
-            _visuals.Add(visual);
-            _viewport.Children.Add(visual);
+            _field.Inward = radField_Inward.IsChecked.Value;
+            _field.Swirl = radField_Swirl.IsChecked.Value;
+            _field.ZPlane = radField_ZPlane.IsChecked.Value;
         }
 
         private static void UpdateTransform(in RigidPose pose, PhysicsBody graphic)

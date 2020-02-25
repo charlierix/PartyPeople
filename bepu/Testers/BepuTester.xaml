@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Game.Bepu.Testers"
         mc:Ignorable="d"
-        Title="BepuTester" Width="900" Height="800">
+        Title="BepuTester" Width="900" Height="800" Closed="Window_Closed">
     <Window.Resources>
         <Style x:Key="expanderStackPanel" TargetType="StackPanel">
             <Setter Property="Margin" Value="6"/>
@@ -102,16 +102,28 @@
                                 <RadioButton x:Name="radVel_Add" Content="Add" IsChecked="True" Style="{StaticResource radioToggle}" Margin="2"/>
                                 <RadioButton x:Name="radVel_Overwrite" Content="Overwrite" Style="{StaticResource radioToggle}" Margin="2"/>
                             </UniformGrid>
+
                         </StackPanel>
                     </Expander>
 
                     <Expander Header="Vector Fields">
-                        <StackPanel Style="{StaticResource expanderStackPanel}">
+                        <StackPanel Style="{StaticResource expanderStackPanel}" RadioButton.Checked="RadioField_Checked" RadioButton.Unchecked="RadioField_Checked">
 
-                            <!-- Do some from newt2 tester -->
-                            <!-- Use checkboxes instead of radio buttons - each one gets its own strength slider -->
-                            <!-- Give an option to draw jet streams -->
+                            <RadioButton IsChecked="True" x:Name="radField_None" Content="None"/>
+                            <RadioButton x:Name="radField_Inward" Content="Inward"/>
+                            <RadioButton x:Name="radField_Swirl" Content="Swirl"/>
+                            <RadioButton x:Name="radField_ZPlane" Content="Toward Z=0 plane"/>
 
+                            <CheckBox Visibility="Collapsed" x:Name="chkField_Jetstreams" Content="Drawn Jetstreams"/>
+                            <Button Visibility="Collapsed" Content="clear streams"/>
+
+                            <Label Content="Strength"/>
+                            <Slider Name="trkField_Strength" Minimum="0" Maximum="100" Value="15" ValueChanged="trkField_Strength_ValueChanged"/>
+
+                            <UniformGrid Rows="1" Margin="0,8,0,0">
+                                <RadioButton x:Name="radField_Force" Content="Force" IsChecked="True" Style="{StaticResource radioToggle}" Margin="2"/>
+                                <RadioButton x:Name="radField_Acceleration" Content="Acceleration" Style="{StaticResource radioToggle}" Margin="2"/>
+                            </UniformGrid>
 
                         </StackPanel>
                     </Expander>
