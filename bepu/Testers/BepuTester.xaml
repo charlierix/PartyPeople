@@ -55,14 +55,10 @@
                     <Expander Header="Add Simple" IsExpanded="True">
                         <StackPanel Style="{StaticResource expanderStackPanel}">
 
-                            <TextBox x:Name="txtSimpleCount" Text="1"/>
+                            <TextBox x:Name="txtSimple_Count" Text="1"/>
 
-                            <!--<CheckBox Content="random size"/>-->
+                            <CheckBox x:Name="chkSimple_RandomSize" Content="random size" Margin="0,8,0,2"/>
                             <!--<CheckBox Content="static"/>-->
-
-                            <!-- Random velocities probably shouldn't be applied at creation.  Instead make a section to whack them -->
-                            <!--<CheckBox Content="random velocity"/>-->
-                            <!--<CheckBox Content="random spin"/>-->
 
                             <Button Content="Sphere" Margin="0,8,0,2" Click="Sphere_Click"/>
                             <Button Content="Box" Click="Box_Click"/>
@@ -109,6 +105,7 @@
                     <Expander Header="Vector Fields">
                         <StackPanel Style="{StaticResource expanderStackPanel}" RadioButton.Checked="RadioField_Checked" RadioButton.Unchecked="RadioField_Checked">
 
+                            <!-- TODO: May want checkboxes instead of radio buttons -->
                             <RadioButton IsChecked="True" x:Name="radField_None" Content="None"/>
                             <RadioButton x:Name="radField_Inward" Content="Inward"/>
                             <RadioButton x:Name="radField_Swirl" Content="Swirl"/>
@@ -121,8 +118,8 @@
                             <Slider Name="trkField_Strength" Minimum="0" Maximum="100" Value="15" ValueChanged="trkField_Strength_ValueChanged"/>
 
                             <UniformGrid Rows="1" Margin="0,8,0,0">
-                                <RadioButton x:Name="radField_Force" Content="Force" IsChecked="True" Style="{StaticResource radioToggle}" Margin="2"/>
-                                <RadioButton x:Name="radField_Acceleration" Content="Acceleration" Style="{StaticResource radioToggle}" Margin="2"/>
+                                <RadioButton x:Name="radField_Force" Content="Force" Style="{StaticResource radioToggle}" Margin="2"/>
+                                <RadioButton x:Name="radField_Acceleration" Content="Acceleration" IsChecked="True" Style="{StaticResource radioToggle}" Margin="2"/>
                             </UniformGrid>
 
                         </StackPanel>

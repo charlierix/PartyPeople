@@ -61,11 +61,15 @@ namespace Game.Bepu.Testers
 
         private class VectorFieldArgs
         {
+            public bool HasField => Inward || Swirl || ZPlane;
+
             public bool Inward { get; set; }
             public bool Swirl { get; set; }
             public bool ZPlane { get; set; }
 
             public float Strength { get; set; }
+
+            public bool IsForce { get; set; }
         }
 
         #endregion
@@ -223,19 +227,22 @@ namespace Game.Bepu.Testers
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void IntegrateVelocity(int bodyIndex, in RigidPose pose, in BodyInertia localInertia, int workerIndex, ref BodyVelocity velocity)
             {
-                if (localInertia.InverseMass <= 0)      // ignore kinematics (static bodies)
+                // Ignore kinematics (static bodies)
+                if (localInertia.InverseMass <= 0 || !Field.HasField)
                 {
                     return;
                 }
 
+                Vector3 direction = new Vector3();
+
                 if (Field.Inward)
                 {
-                    velocity.Linear -= pose.Position.ToUnit() * _strengthDt;
+                    direction += pose.Position.ToUnit() * _strengthDt;
                 }
 
                 if (Field.Swirl)
                 {
-                    velocity.Linear -= Vector3.Transform(pose.Position.ToUnit() * _strengthDt, _swirlQuat.Value);
+                    direction += Vector3.Transform(pose.Position.ToUnit() * _strengthDt, _swirlQuat.Value);
                 }
 
                 if (Field.ZPlane)
@@ -244,8 +251,16 @@ namespace Game.Bepu.Testers
                         pose.Position.Z > 0 ? 1f :
                         -1f;
 
-                    velocity.Linear -= new Vector3(0, 0, z * _strengthDt);
+                    direction += new Vector3(0, 0, z * _strengthDt);
                 }
+
+                if (Field.IsForce)
+                {
+                    //f=ma, so a=f/m
+                    direction *= localInertia.InverseMass;
+                }
+
+                velocity.Linear -= direction;
 
 
                 //velocity.Linear = (velocity.Linear + _gravityDt) * linearDampingDt;
@@ -702,24 +717,31 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                if (!int.TryParse(txtSimpleCount.Text, out int count))
+                if (!int.TryParse(txtSimple_Count.Text, out int count))
                 {
                     MessageBox.Show("Couldn't parse the count", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
+                double diameter = chkSimple_RandomSize.IsChecked.Value ?
+                    StaticRandom.NextDrift(1.3, 1) :
+                    1;
+
+                float radius = (float)(diameter / 2d);
+                float mass = (float)((4d / 3d) * Math.PI * radius * radius * radius);
+
                 var getBody = new Func<(BodyInertia inertia, CollidableDescription collidable)>(() =>
                 {
-                    var sphere = new Sphere(.5f);
-                    sphere.ComputeInertia(1, out var inertia);
+                    var sphere = new Sphere(radius);
+                    sphere.ComputeInertia(mass, out var inertia);
                     var collidable = new CollidableDescription(_simulation.Shapes.Add(sphere), 0.1f);
 
                     return (inertia, collidable);
                 });
 
-                var getGeometry = new Func<Geometry3D>(() => UtilityWPF.GetSphere_Ico(.5, 1, true));
+                var getGeometry = new Func<Geometry3D>(() => UtilityWPF.GetSphere_Ico(radius, 1, true));
 
-                AddBody(count, getBody, getGeometry);
+                AddBody(count, diameter, getBody, getGeometry);
             }
             catch (Exception ex)
             {
@@ -730,25 +752,30 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                if (!int.TryParse(txtSimpleCount.Text, out int count))
+                if (!int.TryParse(txtSimple_Count.Text, out int count))
                 {
                     MessageBox.Show("Couldn't parse the count", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
+                float[] sizes = Enumerable.Range(0, 3).
+                    Select(o => chkSimple_RandomSize.IsChecked.Value ? StaticRandom.NextDrift(1.3, 1) : 1).
+                    Select(o => (float)o).
+                    ToArray();
+
                 //TODO: Test box sizes to make sure x,y,z axiis are the same between bepu and wpf
                 var getBody = new Func<(BodyInertia inertia, CollidableDescription collidable)>(() =>
                 {
-                    var box = new Box(1f, 1f, 1f);
-                    box.ComputeInertia(1, out var inertia);
+                    var box = new Box(sizes[0], sizes[1], sizes[2]);
+                    box.ComputeInertia(sizes[0] * sizes[1] * sizes[2], out var inertia);
                     var collidable = new CollidableDescription(_simulation.Shapes.Add(box), .1f);
 
                     return (inertia, collidable);
                 });
 
-                var getGeometry = new Func<Geometry3D>(() => UtilityWPF.GetCube_IndependentFaces(new Point3D(-.5, -.5, -.5), new Point3D(.5, .5, .5)));
+                var getGeometry = new Func<Geometry3D>(() => UtilityWPF.GetCube_IndependentFaces(new Point3D(-sizes[0] / 2d, -sizes[1] / 2d, -sizes[2] / 2d), new Point3D(sizes[0] / 2d, sizes[1] / 2d, sizes[2] / 2d)));
 
-                AddBody(count, getBody, getGeometry);
+                AddBody(count, sizes.Max(), getBody, getGeometry);
             }
             catch (Exception ex)
             {
@@ -913,11 +940,11 @@ namespace Game.Bepu.Testers
 
         #region Private Methods
 
-        private void AddBody(int cellCount, Func<(BodyInertia inertia, CollidableDescription collidable)> getBody, Func<Geometry3D> getGeometry)
+        private void AddBody(int cellCount, double cellSize, Func<(BodyInertia inertia, CollidableDescription collidable)> getBody, Func<Geometry3D> getGeometry)
         {
             Random rand = StaticRandom.GetRandomForThread();
 
-            var cells = Math3D.GetCells_Cube(1, cellCount, .1, Math3D.GetRandomVector_Spherical(PLACEMENTRADIUS).ToPoint());
+            var cells = Math3D.GetCells_Cube(cellSize, cellCount, cellSize * .1, Math3D.GetRandomVector_Spherical(PLACEMENTRADIUS).ToPoint());
 
             ColorHSV color = UtilityWPF.GetRandomColor(0, 275, 7, 7, _color);       // keep it out of the pinks
 
@@ -1092,7 +1119,11 @@ namespace Game.Bepu.Testers
 
         private void UpdateFieldProps()
         {
-            _field.Strength = (float)UtilityMath.GetScaledValue_Capped(.01d, 24d, trkField_Strength.Minimum, trkField_Strength.Maximum, trkField_Strength.Value);
+            var strength = radField_Force.IsChecked.Value ? (.01d, 8d) : (.01d, 24d);
+
+            _field.Strength = (float)UtilityMath.GetScaledValue_Capped(strength.Item1, strength.Item2, trkField_Strength.Minimum, trkField_Strength.Maximum, trkField_Strength.Value);
+
+            _field.IsForce = radField_Force.IsChecked.Value;
 
             _field.Inward = radField_Inward.IsChecked.Value;
             _field.Swirl = radField_Swirl.IsChecked.Value;
