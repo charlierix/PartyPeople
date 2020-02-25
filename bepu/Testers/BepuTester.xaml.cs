@@ -193,6 +193,8 @@ namespace Game.Bepu.Testers
         {
             // The values need to be stored in an object, because directly setting bools and floats as properties of this struct don't carry over (the values stay default because the struct is copied)
             public VectorFieldArgs Field;
+            private float _strengthDt;
+            private System.Numerics.Quaternion? _swirlQuat;
 
             public AngularIntegrationMode AngularIntegrationMode => AngularIntegrationMode.Nonconserving;
 
@@ -207,6 +209,12 @@ namespace Game.Bepu.Testers
             /// </remarks>
             public void PrepareForIntegration(float dt)
             {
+                _strengthDt = Field.Strength * dt;
+
+                if (_swirlQuat == null)
+                {
+                    _swirlQuat = System.Numerics.Quaternion.CreateFromAxisAngle(new Vector3(0, 0, 1), Math1D.DegreesToRadians(10f));
+                }
             }
 
             /// <summary>
@@ -215,9 +223,19 @@ namespace Game.Bepu.Testers
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void IntegrateVelocity(int bodyIndex, in RigidPose pose, in BodyInertia localInertia, int workerIndex, ref BodyVelocity velocity)
             {
+                if (localInertia.InverseMass <= 0)      // ignore kinematics (static bodies)
+                {
+                    return;
+                }
+
                 if (Field.Inward)
                 {
-                    velocity.Linear -= pose.Position.ToUnit() * Field.Strength;
+                    velocity.Linear -= pose.Position.ToUnit() * _strengthDt;
+                }
+
+                if (Field.Swirl)
+                {
+                    velocity.Linear -= Vector3.Transform(pose.Position.ToUnit() * _strengthDt, _swirlQuat.Value);
                 }
 
                 if (Field.ZPlane)
@@ -226,7 +244,7 @@ namespace Game.Bepu.Testers
                         pose.Position.Z > 0 ? 1f :
                         -1f;
 
-                    velocity.Linear -= new Vector3(0, 0, z * Field.Strength);
+                    velocity.Linear -= new Vector3(0, 0, z * _strengthDt);
                 }
 
 
@@ -599,7 +617,7 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                if(_isDisposing)
+                if (_isDisposing)
                 {
                     return;
                 }
@@ -1074,7 +1092,7 @@ namespace Game.Bepu.Testers
 
         private void UpdateFieldProps()
         {
-            _field.Strength = (float)UtilityMath.GetScaledValue_Capped(.01d, 1d, trkField_Strength.Minimum, trkField_Strength.Maximum, trkField_Strength.Value);
+            _field.Strength = (float)UtilityMath.GetScaledValue_Capped(.01d, 24d, trkField_Strength.Minimum, trkField_Strength.Maximum, trkField_Strength.Value);
 
             _field.Inward = radField_Inward.IsChecked.Value;
             _field.Swirl = radField_Swirl.IsChecked.Value;
