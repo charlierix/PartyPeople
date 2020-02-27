@@ -35,6 +35,8 @@
         <Style TargetType="CheckBox">
             <Setter Property="Margin" Value="0,2"/>
         </Style>
+
+        <BooleanToVisibilityConverter x:Key="boolToVis" />
     </Window.Resources>
 
     <Grid Background="#F1F0EB">
@@ -105,11 +107,20 @@
                     <Expander Header="Vector Fields">
                         <StackPanel Style="{StaticResource expanderStackPanel}" RadioButton.Checked="RadioField_Checked" RadioButton.Unchecked="RadioField_Checked">
 
-                            <!-- TODO: May want checkboxes instead of radio buttons -->
-                            <RadioButton IsChecked="True" x:Name="radField_None" Content="None"/>
-                            <RadioButton x:Name="radField_Inward" Content="Inward"/>
-                            <RadioButton x:Name="radField_Swirl" Content="Swirl"/>
-                            <RadioButton x:Name="radField_ZPlane" Content="Toward Z=0 plane" ToolTip="z plane! z plane!"/>
+                            <CheckBox x:Name="chkField_Inward" Content="Inward"/>
+                            <CheckBox x:Name="chkField_Swirl" Content="Swirl"/>
+                            <CheckBox x:Name="chkField_ZPlane" Content="Toward Z=0 plane" ToolTip="z plane! z plane!"/>
+                            <CheckBox IsChecked="False" x:Name="chkField_OuterShell" Content="Outer Shell"/>
+                            <Grid Visibility="{Binding Path=IsChecked, ElementName=chkField_OuterShell, Converter={StaticResource boolToVis}}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="auto"/>
+                                    <ColumnDefinition Width="2"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <TextBlock Grid.Column="0" Text="radius"/>
+                                <Slider Grid.Column="2" x:Name="trkField_OuterRadius" Minimum="20" Maximum="120" Value="60"/>
+                            </Grid>
 
                             <CheckBox Visibility="Collapsed" x:Name="chkField_Jetstreams" Content="Drawn Jetstreams"/>
                             <Button Visibility="Collapsed" Content="clear streams"/>
@@ -126,7 +137,8 @@
                     </Expander>
 
                     <!-- TODO: Add Joined Bodies -->
-                    <!-- TODO: Forces -->
+                    <!-- TODO: Body/Body Forces -->
+                    <!-- TODO: Swarm (give each body simple swarm behaviors.  option to consider color when looking for attract/oppose neighbors) -->
 
                     <!-- TODO: On left click: (see tower wrecker) -->
                     <!-- fire slug -->

@@ -61,15 +61,65 @@ namespace Game.Bepu.Testers
 
         private class VectorFieldArgs
         {
-            public bool HasField => Inward || Swirl || ZPlane;
+            public bool HasField => Inward || Swirl || ZPlane || OuterShell;
 
             public bool Inward { get; set; }
             public bool Swirl { get; set; }
             public bool ZPlane { get; set; }
 
-            public float Strength { get; set; }
+            private bool _outerShell = false;
+            public bool OuterShell
+            {
+                get
+                {
+                    return _outerShell;
+                }
+                set
+                {
+                    _outerShell = value;
+                    ShellChanged();
+                }
+            }
+
+            private float _outerShellRadius = 1;
+            public float OuterShellRadius
+            {
+                get
+                {
+                    return _outerShellRadius;
+                }
+                set
+                {
+                    _outerShellRadius = value;
+                    ShellChanged();
+                }
+            }
+
+            public double OuterShellExponent => 2d;
+            public double EquationConstant { get; private set; }
+
+            private float _strength = 0;
+            public float Strength
+            {
+                get
+                {
+                    return _strength;
+                }
+                set
+                {
+                    _strength = value;
+                    ShellChanged();
+                }
+            }
 
             public bool IsForce { get; set; }
+
+            private void ShellChanged()
+            {
+                // See Game.Newt.v2.GameItems GravityFieldSpace.BoundryField.GetForce()
+                double boundryStop = OuterShellRadius * 1.6;
+                EquationConstant = Strength / Math.Pow((boundryStop - OuterShellRadius) * .5d, OuterShellExponent);
+            }
         }
 
         #endregion
@@ -235,14 +285,19 @@ namespace Game.Bepu.Testers
 
                 Vector3 direction = new Vector3();
 
+                Vector3 positionUnit = (Field.Inward || Field.Swirl || Field.OuterShell) ?
+                    pose.Position.ToUnit() :
+                    new Vector3();
+
+
                 if (Field.Inward)
                 {
-                    direction += pose.Position.ToUnit() * _strengthDt;
+                    direction += positionUnit * _strengthDt;
                 }
 
                 if (Field.Swirl)
                 {
-                    direction += Vector3.Transform(pose.Position.ToUnit() * _strengthDt, _swirlQuat.Value);
+                    direction += Vector3.Transform(positionUnit * _strengthDt, _swirlQuat.Value);
                 }
 
                 if (Field.ZPlane)
@@ -252,6 +307,19 @@ namespace Game.Bepu.Testers
                         -1f;
 
                     direction += new Vector3(0, 0, z * _strengthDt);
+                }
+
+                if (Field.OuterShell)
+                {
+                    // See Game.Newt.v2.GameItems GravityFieldSpace.BoundryField.GetForce()
+                    float shellDistance = pose.Position.Length() - Field.OuterShellRadius;
+                    if (shellDistance > 0f)
+                    {
+                        double force = Field.EquationConstant * Math.Pow(shellDistance, Field.OuterShellExponent);
+                        force *= _strengthDt;
+
+                        direction += positionUnit * (float)force;
+                    }
                 }
 
                 if (Field.IsForce)
@@ -889,7 +957,7 @@ namespace Game.Bepu.Testers
                     return;
                 }
 
-                UpdateFieldProps();
+                UpdateVectorFieldProps();
             }
             catch (Exception ex)
             {
@@ -905,7 +973,7 @@ namespace Game.Bepu.Testers
                     return;
                 }
 
-                UpdateFieldProps();
+                UpdateVectorFieldProps();
             }
             catch (Exception ex)
             {
@@ -1117,17 +1185,20 @@ namespace Game.Bepu.Testers
             };
         }
 
-        private void UpdateFieldProps()
+        private void UpdateVectorFieldProps()
         {
-            var strength = radField_Force.IsChecked.Value ? (.01d, 8d) : (.01d, 24d);
+            var strength = radField_Force.IsChecked.Value ? (.01d, 12d) : (.01d, 24d);
 
             _field.Strength = (float)UtilityMath.GetScaledValue_Capped(strength.Item1, strength.Item2, trkField_Strength.Minimum, trkField_Strength.Maximum, trkField_Strength.Value);
 
             _field.IsForce = radField_Force.IsChecked.Value;
 
-            _field.Inward = radField_Inward.IsChecked.Value;
-            _field.Swirl = radField_Swirl.IsChecked.Value;
-            _field.ZPlane = radField_ZPlane.IsChecked.Value;
+            _field.Inward = chkField_Inward.IsChecked.Value;
+            _field.Swirl = chkField_Swirl.IsChecked.Value;
+            _field.ZPlane = chkField_ZPlane.IsChecked.Value;
+            _field.OuterShell = chkField_OuterShell.IsChecked.Value;
+
+            _field.OuterShellRadius = (float)trkField_OuterRadius.Value;
         }
 
         private static void UpdateTransform(in RigidPose pose, PhysicsBody graphic)
