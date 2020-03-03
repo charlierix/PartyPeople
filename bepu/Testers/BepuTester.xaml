@@ -117,7 +117,7 @@
                                     <ColumnDefinition Width="2"/>
                                     <ColumnDefinition Width="1*"/>
                                 </Grid.ColumnDefinitions>
-                                
+
                                 <TextBlock Grid.Column="0" Text="radius"/>
                                 <Slider Grid.Column="2" x:Name="trkField_OuterRadius" Minimum="20" Maximum="120" Value="60"/>
                             </Grid>
@@ -136,8 +136,26 @@
                         </StackPanel>
                     </Expander>
 
+                    <Expander Header="Body/Body Forces">
+                        <StackPanel Style="{StaticResource expanderStackPanel}" RadioButton.Checked="RadioBodyBody_Checked" RadioButton.Unchecked="RadioBodyBody_Checked">
+
+                            <RadioButton IsChecked="True" x:Name="radBodyBody_None" Content="None"/>
+                            <RadioButton x:Name="radBodyBody_Constant" Content="Constant" ToolTip="F = K"/>
+                            <RadioButton x:Name="radBodyBody_Spring" Content="Spring" ToolTip="F = K * Dist"/>
+                            <RadioButton x:Name="radBodyBody_Gravity" Content="Gravity" ToolTip="F = K * (M * M) / Dist^2"/>
+
+                            <Label Content="Strength"/>
+                            <Slider x:Name="trkBodyBody_Strength" Minimum="0" Maximum="100" Value="15" ValueChanged="trkBodyBody_Strength_ValueChanged"/>
+
+                            <UniformGrid Rows="1" Margin="0,8,0,0">
+                                <RadioButton IsChecked="True" x:Name="radBodyBody_Toward" Content="Toward" Style="{StaticResource radioToggle}" Margin="2"/>
+                                <RadioButton x:Name="radBodyBody_Away" Content="Away" Style="{StaticResource radioToggle}" Margin="2"/>
+                            </UniformGrid>
+
+                        </StackPanel>
+                    </Expander>
+
                     <!-- TODO: Add Joined Bodies -->
-                    <!-- TODO: Body/Body Forces -->
                     <!-- TODO: Swarm (give each body simple swarm behaviors.  option to consider color when looking for attract/oppose neighbors) -->
 
                     <!-- TODO: On left click: (see tower wrecker) -->

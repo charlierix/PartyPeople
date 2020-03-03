@@ -123,6 +123,28 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+        #region class: BodyBodyArgs
+
+        private enum BodyBodyType
+        {
+            None,
+            Constant,
+            Spring,
+            Gravity,
+        }
+
+        private class BodyBodyArgs
+        {
+            public BodyBodyType Type { get; set; }
+
+            public bool Toward { get; set; }
+
+            public float Strength { get; set; }
+
+            public Simulation Sim { get; set; }
+        }
+
+        #endregion
 
         #region class: SimpleThreadDispatcher
 
@@ -245,10 +267,24 @@ namespace Game.Bepu.Testers
         /// </remarks>
         private struct ExternalAccelCallbacks : IPoseIntegratorCallbacks
         {
+            #region Declaration Section
+
+            public SortedList<int, PhysicsBody> Bodies;
+
+            // Can't reference simulation, because simulation references this and makes a copy.  Need to have a list of bodies, or maybe a delegate to simulation?
+            //public Simulation Simulation;
+
             // The values need to be stored in an object, because directly setting bools and floats as properties of this struct don't carry over (the values stay default because the struct is copied)
             public VectorFieldArgs Field;
-            private float _strengthDt;
+            private float _fieldStrengthDt;
             private System.Numerics.Quaternion? _swirlQuat;
+
+            public BodyBodyArgs BodyBody;
+            private float _bodybodyStrengthDt;
+
+            private SortedList<int, Vector3> _bodybodyAccelerations;
+
+            #endregion
 
             public AngularIntegrationMode AngularIntegrationMode => AngularIntegrationMode.Nonconserving;
 
@@ -263,11 +299,21 @@ namespace Game.Bepu.Testers
             /// </remarks>
             public void PrepareForIntegration(float dt)
             {
-                _strengthDt = Field.Strength * dt;
+                _fieldStrengthDt = Field.Strength * dt;
 
                 if (_swirlQuat == null)
                 {
                     _swirlQuat = System.Numerics.Quaternion.CreateFromAxisAngle(new Vector3(0, 0, 1), Math1D.DegreesToRadians(10f));
+                }
+
+                _bodybodyStrengthDt = BodyBody.Strength * dt;
+
+                _bodybodyAccelerations?.Clear();
+
+                if (BodyBody.Type != BodyBodyType.None)
+                {
+                    //TODO: In a real app, something like gravity should be done in a different thread.  That way the main thread can just apply the current force felt to each body
+                    CalculateBodyBody(dt);
                 }
             }
 
@@ -278,57 +324,70 @@ namespace Game.Bepu.Testers
             public void IntegrateVelocity(int bodyIndex, in RigidPose pose, in BodyInertia localInertia, int workerIndex, ref BodyVelocity velocity)
             {
                 // Ignore kinematics (static bodies)
-                if (localInertia.InverseMass <= 0 || !Field.HasField)
+                if (localInertia.InverseMass <= 0)
                 {
                     return;
                 }
 
-                Vector3 direction = new Vector3();
-
-                Vector3 positionUnit = (Field.Inward || Field.Swirl || Field.OuterShell) ?
-                    pose.Position.ToUnit() :
-                    new Vector3();
-
-
-                if (Field.Inward)
+                if (Field.HasField)
                 {
-                    direction += positionUnit * _strengthDt;
-                }
+                    #region vector field
 
-                if (Field.Swirl)
-                {
-                    direction += Vector3.Transform(positionUnit * _strengthDt, _swirlQuat.Value);
-                }
+                    Vector3 direction = new Vector3();
 
-                if (Field.ZPlane)
-                {
-                    float z = pose.Position.Z.IsNearZero() ? 0f :
-                        pose.Position.Z > 0 ? 1f :
-                        -1f;
+                    Vector3 positionUnit = (Field.Inward || Field.Swirl || Field.OuterShell) ?
+                        pose.Position.ToUnit() :
+                        new Vector3();
 
-                    direction += new Vector3(0, 0, z * _strengthDt);
-                }
 
-                if (Field.OuterShell)
-                {
-                    // See Game.Newt.v2.GameItems GravityFieldSpace.BoundryField.GetForce()
-                    float shellDistance = pose.Position.Length() - Field.OuterShellRadius;
-                    if (shellDistance > 0f)
+                    if (Field.Inward)
                     {
-                        double force = Field.EquationConstant * Math.Pow(shellDistance, Field.OuterShellExponent);
-                        force *= _strengthDt;
-
-                        direction += positionUnit * (float)force;
+                        direction += positionUnit * _fieldStrengthDt;
                     }
+
+                    if (Field.Swirl)
+                    {
+                        direction += Vector3.Transform(positionUnit * _fieldStrengthDt, _swirlQuat.Value);
+                    }
+
+                    if (Field.ZPlane)
+                    {
+                        float z = pose.Position.Z.IsNearZero() ? 0f :
+                            pose.Position.Z > 0 ? 1f :
+                            -1f;
+
+                        direction += new Vector3(0, 0, z * _fieldStrengthDt);
+                    }
+
+                    if (Field.OuterShell)
+                    {
+                        // See Game.Newt.v2.GameItems GravityFieldSpace.BoundryField.GetForce()
+                        float shellDistance = pose.Position.Length() - Field.OuterShellRadius;
+                        if (shellDistance > 0f)
+                        {
+                            double force = Field.EquationConstant * Math.Pow(shellDistance, Field.OuterShellExponent);
+                            force *= _fieldStrengthDt;
+
+                            direction += positionUnit * (float)force;
+                        }
+                    }
+
+                    if (Field.IsForce)
+                    {
+                        //f=ma, so a=f/m
+                        direction *= localInertia.InverseMass;
+                    }
+
+                    velocity.Linear -= direction;
+
+                    #endregion
                 }
 
-                if (Field.IsForce)
+                if (BodyBody.Type != BodyBodyType.None)
                 {
-                    //f=ma, so a=f/m
-                    direction *= localInertia.InverseMass;
+                    velocity.Linear += _bodybodyAccelerations[BodyBody.Sim.Bodies.ActiveSet.IndexToHandle[bodyIndex]];       //WARNING: bodyIndex is not the same as bodyHandle.  It's the index into the active set
                 }
 
-                velocity.Linear -= direction;
 
 
                 //velocity.Linear = (velocity.Linear + _gravityDt) * linearDampingDt;
@@ -341,6 +400,64 @@ namespace Game.Bepu.Testers
                 //velocity.Linear -= _gravityDt * offset / MathF.Max(1f, distance * distance * distance);
 
             }
+
+            #region Private Methods
+
+            private void CalculateBodyBody(float dt)
+            {
+                // Init the forces list
+                var forces = Bodies.Values.
+                    Select(o => (handle: o.BodyHandle, body: o.Body, force: new Vector3(), mass: 1f / o.Body.LocalInertia.InverseMass)).
+                    ToArray();
+
+                // Calculate Forces
+                for (int outer = 0; outer < Bodies.Values.Count - 1; outer++)
+                {
+                    Vector3 positionOuter = forces[outer].body.Pose.Position;
+
+                    for (int inner = outer + 1; inner < Bodies.Values.Count; inner++)
+                    {
+                        Vector3 positionInner = forces[inner].body.Pose.Position;
+
+                        Vector3 gravityLink = positionOuter - positionInner;
+
+                        var force = BodyBody.Type switch
+                        {
+                            BodyBodyType.Constant => BodyBody.Strength,
+                            BodyBodyType.Spring => BodyBody.Strength * gravityLink.Length(),
+                            BodyBodyType.Gravity => BodyBody.Strength * (forces[outer].mass * forces[inner].mass) / gravityLink.LengthSquared(),
+                            _ => throw new ApplicationException($"Unexpected {nameof(BodyBodyType)}: {BodyBody.Type}"),
+                        };
+
+                        if (!BodyBody.Toward)
+                        {
+                            force *= -1;
+                        }
+
+                        if (!force.IsInvalid())
+                        {
+                            gravityLink = gravityLink.ToUnit() * force;
+
+                            forces[inner].force += gravityLink;
+                            forces[outer].force -= gravityLink;
+                        }
+                    }
+                }
+
+                // Store them
+                if (_bodybodyAccelerations == null)
+                {
+                    _bodybodyAccelerations = new SortedList<int, Vector3>();
+                }
+                _bodybodyAccelerations.Clear();
+
+                foreach (var force in forces)
+                {
+                    _bodybodyAccelerations.Add(force.handle, force.force * force.body.LocalInertia.InverseMass * dt);        // turn force into an acceleration
+                }
+            }
+
+            #endregion
         }
 
         #endregion
@@ -599,6 +716,7 @@ namespace Game.Bepu.Testers
             //TODO: Figure out what to do with sets of joined bodies
 
             public int BodyHandle { get; set; }
+            public BodyReference Body { get; set; }
 
             public Model3D Model { get; set; }
             public TranslateTransform3D Translate { get; set; }
@@ -620,6 +738,7 @@ namespace Game.Bepu.Testers
         private Simulation _simulation = null;
 
         private readonly VectorFieldArgs _field;
+        private readonly BodyBodyArgs _bodybody;
         private ExternalAccelCallbacks _externalAccel;
         private CollisionCallbacks _collision;
 
@@ -659,13 +778,23 @@ namespace Game.Bepu.Testers
 
             // Physics Simulation
             _collision = new CollisionCallbacks();
+            _bodybody = new BodyBodyArgs()
+            {
+                Type = BodyBodyType.None,
+                Strength = 0,
+                Toward = true,
+            };
             _externalAccel = new ExternalAccelCallbacks()
             {
+                Bodies = _bodies,
                 Field = _field,
+                BodyBody = _bodybody,
             };
             _bufferPool = new BufferPool();
             _simulation = Simulation.Create(_bufferPool, _collision, _externalAccel);
 
+            //_externalAccel.Simulation = _simulation;      // This doesn't work, because the simulation makes a copy of the struct
+            _bodybody.Sim = _simulation;
 
             _timer = new DispatcherTimer();
             _timer.Interval = TimeSpan.FromMilliseconds(10);
@@ -981,6 +1110,39 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void RadioBodyBody_Checked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!_initialized)
+                {
+                    return;
+                }
+
+                UpdateBodyBodyProps();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void trkBodyBody_Strength_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                if (!_initialized)
+                {
+                    return;
+                }
+
+                UpdateBodyBodyProps();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1070,6 +1232,7 @@ namespace Game.Bepu.Testers
                 PhysicsBody body = new PhysicsBody()
                 {
                     BodyHandle = bodyHandle,
+                    Body = _simulation.Bodies.GetBodyReference(bodyHandle),
                     Model = model,
                     Translate = translate,
                     Orientation = quat,
@@ -1199,6 +1362,19 @@ namespace Game.Bepu.Testers
             _field.OuterShell = chkField_OuterShell.IsChecked.Value;
 
             _field.OuterShellRadius = (float)trkField_OuterRadius.Value;
+        }
+
+        private void UpdateBodyBodyProps()
+        {
+            _bodybody.Strength = (float)UtilityMath.GetScaledValue_Capped(.01d, 3d, trkBodyBody_Strength.Minimum, trkBodyBody_Strength.Maximum, trkBodyBody_Strength.Value);
+
+            _bodybody.Type = radBodyBody_None.IsChecked.Value ? BodyBodyType.None :
+                radBodyBody_Constant.IsChecked.Value ? BodyBodyType.Constant :
+                radBodyBody_Spring.IsChecked.Value ? BodyBodyType.Spring :
+                radBodyBody_Gravity.IsChecked.Value ? BodyBodyType.Gravity :
+                throw new ApplicationException("Unknown Body/Body force type");
+
+            _bodybody.Toward = radBodyBody_Toward.IsChecked.Value;
         }
 
         private static void UpdateTransform(in RigidPose pose, PhysicsBody graphic)
@@ -1443,5 +1619,40 @@ namespace Game.Bepu.Testers
         //}
 
         #endregion
+
+        private static void SearchTrees()
+        {
+            //Swarm may want a map with snapshots
+
+            //Here is a comparison of VPTree, KDTree, Octree
+            //https://pdfs.semanticscholar.org/31eb/b51c67055721ad6527b6a16df75445b18494.pdf
+
+
+
+            // One type of problem is something like gravity.  There's probably a need for large distance gravity and close distance gravity
+
+
+
+
+            // It looks like it's between vptree and kdtree.  How easy is it to modify an existing tree for a while before needing to rebuild?
+
+
+
+            Accord.Collections.VPTree vptree;
+
+            // The pdf said kdtree worked best for their test case.  An article was saying this isn't good for high dimensional data
+            Accord.Collections.KDTree kdtree;
+
+
+
+            // This is hardcoded to 3D structures, not sure if it's worth reimplementing
+            //or maybe octree
+
+
+            // sptree doesn't make sense for storing points.  It stores contiguous memory pages to help query performance, or searching for files, or something like that
+            Accord.Collections.SPTree sptree;
+
+
+        }
     }
 }
