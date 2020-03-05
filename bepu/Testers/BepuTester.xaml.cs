@@ -123,6 +123,21 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+        #region class: DragArgs
+
+        private class DragArgs
+        {
+            public bool ApplyLinear { get; set; }
+            public bool ApplyAngular { get; set; }
+
+            /// <summary>
+            /// If this is .1 then it will reduce the speed by .1 every "time"
+            /// </summary>
+            public float PercentSpeed_Linear { get; set; }
+            public float PercentSpeed_Angular { get; set; }
+        }
+
+        #endregion
         #region class: BodyBodyArgs
 
         private enum BodyBodyType
@@ -279,6 +294,10 @@ namespace Game.Bepu.Testers
             private float _fieldStrengthDt;
             private System.Numerics.Quaternion? _swirlQuat;
 
+            public DragArgs Drag;
+            private float _dragLinearDt;
+            private float _dragAngularDt;
+
             public BodyBodyArgs BodyBody;
             private float _bodybodyStrengthDt;
 
@@ -305,6 +324,9 @@ namespace Game.Bepu.Testers
                 {
                     _swirlQuat = System.Numerics.Quaternion.CreateFromAxisAngle(new Vector3(0, 0, 1), Math1D.DegreesToRadians(10f));
                 }
+
+                _dragLinearDt = Drag.PercentSpeed_Linear * dt;
+                _dragAngularDt = Drag.PercentSpeed_Angular * dt;
 
                 _bodybodyStrengthDt = BodyBody.Strength * dt;
 
@@ -388,6 +410,15 @@ namespace Game.Bepu.Testers
                     velocity.Linear += _bodybodyAccelerations[BodyBody.Sim.Bodies.ActiveSet.IndexToHandle[bodyIndex]];       //WARNING: bodyIndex is not the same as bodyHandle.  It's the index into the active set
                 }
 
+                if (Drag.ApplyLinear)
+                {
+                    velocity.Linear -= velocity.Linear * _dragLinearDt;
+                }
+
+                if (Drag.ApplyAngular)
+                {
+                    velocity.Angular -= velocity.Angular * _dragAngularDt;
+                }
 
 
                 //velocity.Linear = (velocity.Linear + _gravityDt) * linearDampingDt;
@@ -738,6 +769,7 @@ namespace Game.Bepu.Testers
         private Simulation _simulation = null;
 
         private readonly VectorFieldArgs _field;
+        private readonly DragArgs _drag;
         private readonly BodyBodyArgs _bodybody;
         private ExternalAccelCallbacks _externalAccel;
         private CollisionCallbacks _collision;
@@ -775,6 +807,7 @@ namespace Game.Bepu.Testers
             _threadDispatcher = new SimpleThreadDispatcher(Environment.ProcessorCount);     // this might need to be created before the simulation.  The ExternalAccelCallbacks functions weren't getting called (but that might just be because the bodies weren't awake)
 
             _field = new VectorFieldArgs();
+            _drag = new DragArgs();
 
             // Physics Simulation
             _collision = new CollisionCallbacks();
@@ -788,6 +821,7 @@ namespace Game.Bepu.Testers
             {
                 Bodies = _bodies,
                 Field = _field,
+                Drag = _drag,
                 BodyBody = _bodybody,
             };
             _bufferPool = new BufferPool();
@@ -1110,6 +1144,39 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void chkDrag_Checked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!_initialized)
+                {
+                    return;
+                }
+
+                UpdateDragProps();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void trkDrag_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            try
+            {
+                if (!_initialized)
+                {
+                    return;
+                }
+
+                UpdateDragProps();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void RadioBodyBody_Checked(object sender, RoutedEventArgs e)
         {
             try
@@ -1330,7 +1397,6 @@ namespace Game.Bepu.Testers
                 body.Awake = true;      // it won't move if this stays false
             }
         }
-
         private SetVelocityArgs GetVelocityArgs()
         {
             return new SetVelocityArgs()
@@ -1363,7 +1429,6 @@ namespace Game.Bepu.Testers
 
             _field.OuterShellRadius = (float)trkField_OuterRadius.Value;
         }
-
         private void UpdateBodyBodyProps()
         {
             _bodybody.Strength = (float)UtilityMath.GetScaledValue_Capped(.01d, 3d, trkBodyBody_Strength.Minimum, trkBodyBody_Strength.Maximum, trkBodyBody_Strength.Value);
@@ -1375,6 +1440,16 @@ namespace Game.Bepu.Testers
                 throw new ApplicationException("Unknown Body/Body force type");
 
             _bodybody.Toward = radBodyBody_Toward.IsChecked.Value;
+        }
+        private void UpdateDragProps()
+        {
+            double MAXDRAG = .8;
+
+            _drag.ApplyLinear = chkDrag_Linear.IsChecked.Value;
+            _drag.ApplyAngular = chkDrag_Angular.IsChecked.Value;
+
+            _drag.PercentSpeed_Linear = (float)UtilityMath.GetScaledValue_Capped(0, MAXDRAG, trkDrag_Linear.Minimum, trkDrag_Linear.Maximum, trkDrag_Linear.Value);
+            _drag.PercentSpeed_Angular = (float)UtilityMath.GetScaledValue_Capped(0, MAXDRAG, trkDrag_Angular.Minimum, trkDrag_Angular.Maximum, trkDrag_Angular.Value);
         }
 
         private static void UpdateTransform(in RigidPose pose, PhysicsBody graphic)
