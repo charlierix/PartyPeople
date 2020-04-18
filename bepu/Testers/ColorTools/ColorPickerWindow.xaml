@@ -1,0 +1,105 @@
+﻿<Window x:Class="Game.Bepu.Testers.ColorTools.ColorPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Game.Bepu.Testers.ColorTools"
+        mc:Ignorable="d"
+        Title="ColorPickerWindow" Width="800" Height="700">
+    <Grid>
+
+       
+        <!-- Radio buttons for alternate colors (see websites above) -->
+        <!-- also, when the mouse gets over the background plate, show examples to the right of what each option does based on the current color -->
+        <!-- kuler has them in random order and misleading names -->
+
+        <!-- *** from kuler *** -->
+        <!-- Analogous -->
+        <!-- Monochromatic -->
+        <!-- Triad -->
+        <!-- Complementary -->
+        <!-- Compound -->
+        <!-- Shades -->
+        <!-- Custom -->
+
+        <!-- *** from color picker *** -->
+        <!--complementary  -->
+        <!-- triadic -->
+        <!-- tetradic -->
+        <!-- analogous -->
+        <!-- neutral -->
+        <!-- shades -->
+        <!-- tints -->
+        <!-- tones -->
+
+        <!-- *** my thoughts of categories *** -->
+        <!-- one: -->
+        <!-- mono, tint, etc -->
+        
+        <!-- two -->
+
+        <!-- * for these, give extra options for the shape (equilateral triangle vs more isosceles, regular polygon or stretched) -->
+        <!-- three -->
+        <!-- four -->
+        <!-- five -->
+        <!-- six -->
+
+        <!-- analogous -->
+        <!-- even distribution -->
+        <!-- color pallette -->
+        <!-- custom -->
+        
+
+        
+        
+        <!-- Big Picker graphics -->
+        <!-- kuler's wheel -->
+        <!-- traditional square and slider -->
+        <!-- microsoft's hex of hexes -->
+        <!-- hue ring with a regular polygon in the middle.  vertices touching the ring are the selected colors, everything in between is a lerp between | add two sliders to the side for saturation and value that affects the colors in the ring -->
+        <!-- hue ring with a triangle in the midddle.  select a color on the ring and the triangle shows all possible saturations and values -->
+        <!-- color gamut -->
+        <!-- 3D hsv cone with points (wouldn't be a picker, just a side graphic) -->
+        
+        
+        
+        
+        
+        <!-- Set of squares -->
+        <!-- give an option for how many -->
+        <!-- give an option for margin between samples -->
+        
+        <!-- give an option for arrangement: (, , hex, columns by type ) -->
+        <!-- row of squares-->
+        <!-- uniform grid of squares -->
+        <!-- uniform grid of hex -->
+        <!-- columns by type -->
+        <!--    Each type would be shades of a base color.  So if they pick triad, there would be 3 columns and each row would be a shade -->
+        <!--    Option for rows above as well as below.  Lets them isolate variations between saturation, value, both -->
+
+        
+        
+        <!-- Slider for background darkness -->
+        <!-- Or spawn a picker popup for the background -->
+        <!-- Or spawn pipette for the background -->
+        
+        
+        
+        
+        <!-- clone window -->
+        <!-- https://color.adobe.com/create -->
+        <!-- https://htmlcolorcodes.com/color-picker/ -->
+
+
+
+
+
+
+        <!-- ************************ other windows for this folder *********************** -->
+        <!-- color patches (similar to kuler's explore tab, but will be randomly generated sets :: allow them to see as a random grid or clustered up) -->
+        
+        
+        
+        
+    </Grid>
+</Window>

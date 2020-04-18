@@ -1,9 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <AssemblyName>Game.ML</AssemblyName>
-    <RootNamespace>Game.ML</RootNamespace>
+    <AssemblyName>Game.Math_WPF</AssemblyName>
+    <RootNamespace>Game.Math_WPF</RootNamespace>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,15 +13,16 @@
     <PackageReference Include="Accord.MachineLearning" Version="3.8.0" />
     <PackageReference Include="Accord.Math" Version="3.8.0" />
     <PackageReference Include="Accord.Statistics" Version="3.8.0" />
-    <PackageReference Include="Microsoft.ML" Version="1.4.0" />
-    <PackageReference Include="Microsoft.ML.CpuMath" Version="1.4.0" />
-    <PackageReference Include="Microsoft.ML.DataView" Version="1.4.0" />
+    <PackageReference Include="MathNet.Numerics" Version="4.9.0" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Core\Core.csproj" />
-    <ProjectReference Include="..\Math_WPF\Math_WPF.csproj" />
   </ItemGroup>
 
-</Project>
+  <ItemGroup>
+    <None Include="..\..\..\PartyPeople Attempt9 %2528.NET Core%2529\src\Mathematics\Mathematics\MIConvexHull\readme.txt" />
+  </ItemGroup>
+
+  </Project>

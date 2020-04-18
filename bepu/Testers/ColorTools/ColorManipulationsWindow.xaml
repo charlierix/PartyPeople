@@ -1,0 +1,172 @@
+﻿<Window x:Class="Game.Bepu.Testers.ColorTools.ColorManipulationsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Game.Bepu.Testers.ColorTools"
+        mc:Ignorable="d"
+        Title="ColorManipulationsWindow" ResizeMode="CanResizeWithGrip" Width="1000" Height="900" Loaded="Window_Loaded" Closed="Window_Closed">
+    <Window.Resources>
+        <Style x:Key="bigImage" TargetType="Image">
+            <Setter Property="Stretch" Value="Uniform"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="8">
+        <!-- color manipulation (playground for developing color functions) -->
+        <TabControl>
+            <TabItem Header="Grayscale Viewer">
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="1*"/>
+                        <ColumnDefinition Width="8"/>
+                        <ColumnDefinition Width="1*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="1*"/>
+                        <RowDefinition Height="auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Big Images -->
+                    <Image Grid.Column="0" Grid.Row="0" Name="imageColor" Style="{StaticResource bigImage}"/>
+                    <Image Grid.Column="2" Grid.Row="0" Name="imageGray" Style="{StaticResource bigImage}"/>
+
+                    <Grid Grid.Column="0" Grid.ColumnSpan="3" Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="8"/>
+                            <ColumnDefinition Width="auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Browse Button -->
+                        <StackPanel Grid.Column="0" VerticalAlignment="Bottom">
+                            <Button Content="Add Folder..." Click="AddFolder_Click"/>
+                            <Button Content="Clear" Margin="0,4,0,0" Click="ClearImages_Click"/>
+
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Grid.Column="0" Grid.Row="2" Text="# images" Height="16" Margin="0,0,4,1"/>
+                                <TextBlock Grid.Column="2" Grid.Row="2" Name="lblNumImages" Text="0" Height="17" FontWeight="Bold"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Image List -->
+                        <ListBox Grid.Column="2" Name="lstImages" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Auto" MaxHeight="280" SelectionChanged="lstImages_SelectionChanged">
+                            <ListBox.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel/>
+                                </ItemsPanelTemplate>
+                            </ListBox.ItemsPanel>
+                        </ListBox>
+
+                        <!-- Radio Buttons -->
+                        <StackPanel Grid.Column="4" VerticalAlignment="Bottom" RadioButton.Checked="RadioGray_Checked" RadioButton.Unchecked="RadioGray_Checked">
+                            <StackPanel.Resources>
+                                <Style TargetType="RadioButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+                                    <Setter Property="Margin" Value="2"/>
+                                </Style>
+                            </StackPanel.Resources>
+
+                            <RadioButton Content="Average" Name="radAverage"/>
+                            <RadioButton Content="Desaturated" Name="radDesaturate"/>
+                            <RadioButton IsChecked="True" Content="BT.601" Name="rad601"/>
+                            <RadioButton Content="BT.709" Name="rad709"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Matching Grays">
+                <!-- get settings of S and V for each H that matches the gray output of a selected color -->
+                <!-- need an input box for the hex values of a color -->
+                <!--    show that color in a square -->
+                <!-- need options for grayscale algorithm -->
+                <!--    show the gray version -->
+
+                <!-- calculate for each hue.  try to come up with an efficient way.  this would be a good place to see if ml.net has a generator -->
+
+                <!-- show a 3D bezier of the chosen S and V for each H -->
+                <!--    show as a white line -->
+                <!--    show as a bunch of colored dots -->
+                <!--    if there are a range of values for each H, show as a cloud of colored dots -->
+
+                <Grid Margin="8">
+                    <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
+                        <Label Content="Source Color"/>
+
+                        <Border BorderBrush="#80404040" BorderThickness="1" CornerRadius="4" Width="100" Height="100">
+                            <Rectangle x:Name="sourceColorSample"/>
+                        </Border>
+
+                        <TextBlock x:Name="lblSourceColorHSV" Text="HSV" Foreground="#888" Margin="0,2,0,0"/>
+
+                        <Grid Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox Grid.Column="0" x:Name="txtSourceColor" Text="61D152" Padding="3,1" TextChanged="txtSourceColor_TextChanged"/>
+                            <Button Grid.Column="1" Content="rand" Margin="4,0,0,0" Click="RandSourceColor_Click"/>
+                        </Grid>
+
+                        <CheckBox IsChecked="True" Name="chkShowReferenceLine" Content="show reference line" Margin="0, 4, 0, 0"/>
+                        <CheckBox x:Name="chkShowMonoSheet" Content="show mono sheet"/>
+                        <CheckBox x:Name="chkShowMonoLine" Content="show mono line"/>
+                        <CheckBox x:Name="chkShowColorSheet" Content="show color sheet"/>
+                        <Button Content="attempt 1" Margin="0,2,0,0" Click="Attempt1_Click"/>
+
+                        <CheckBox x:Name="chkShowOccurrenceGraph" Content="show occurrence graph" Margin="0,16,0,0"/>
+                        <CheckBox x:Name="chkShowAllGrays" Content="show all grays"/>
+                        <Slider x:Name="sliderHue" Minimum="0" Maximum="360" Value="180"/>
+                        <Button Content="attempt optimize 1" Click="AttemptOptimize1_Click"/>
+                        <Button Content="attempt optimize 2" Click="AttemptOptimize2_Click"/>
+
+                        <Button Content="cache by request" Margin="0,16,0,0" Click="CacheByRequest_Click"/>
+                        <Button Content="final" Click="MatchingGrayFinal_Click"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="Misc">
+                <Grid Margin="8">
+                    <!-- TODO: Move this overlay color section into its own color picker window -->
+                    <!-- TODO: Give an option for laying multiple colors onto each other, an opacity slider for each -->
+                    <!-- TODO: Let them choose more than two colors.  Lay each color on the vertex of a regular polygon, let the user pick a point inside the polygon that is the LERP -->
+                    <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" TextBox.TextChanged="alphablend_TextChanged">
+                        <Grid>
+                            <Label Content="from"/>
+                            <Rectangle x:Name="alphablendFromSample" HorizontalAlignment="Right" Width="12" Height="12"/>
+                        </Grid>
+                        <TextBox x:Name="alphablendFrom"/>
+
+                        <Grid>
+                            <Label Content="to"/>
+                            <Rectangle x:Name="alphablendToSample" HorizontalAlignment="Right" Width="12" Height="12"/>
+                        </Grid>
+                        <TextBox x:Name="alphablendTo"/>
+
+                        <StackPanel Orientation="Horizontal">
+                            <Label Content="opacity" VerticalAlignment="Center" Margin="0,4,0,0"/>
+                            <Label Name="opacityValue" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <Slider x:Name="opacitySlider" Minimum="0" Maximum="1" Value=".5" ValueChanged="opacitySlider_ValueChanged"/>
+
+                        <Rectangle x:Name="outputSample" Width="100" Height="100" Margin="0,4,0,0"/>
+                        <TextBox x:Name="outputSampleHex" IsReadOnly="True" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+
+        <!-- get evenly distributed random colors HSV cone -->
+        <!--    create new, the only input being count -->
+        <!--    add new one at a time.  each previous color is a static point in that cone -->
+
+
+    </Grid>
+</Window>

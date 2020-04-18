@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssemblyName>Game.Bepu.GameItems</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Core\Core.csproj" />
+    <ProjectReference Include="..\..\Math_WPF\Math_WPF.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="BepuPhysics">
+      <HintPath>..\..\lib\bepu\BepuPhysics.dll</HintPath>
+    </Reference>
+    <Reference Include="BepuUtilities">
+      <HintPath>..\..\lib\bepu\BepuUtilities.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>
