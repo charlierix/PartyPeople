@@ -140,12 +140,12 @@
                         <StackPanel Style="{StaticResource expanderStackPanel}" CheckBox.Checked="chkDrag_Checked" CheckBox.Unchecked="chkDrag_Checked" Slider.ValueChanged="trkDrag_ValueChanged">
                             <CheckBox x:Name="chkDrag_Linear" Content="Linear"/>
                             <Slider x:Name="trkDrag_Linear" Minimum="0" Maximum="100" Value="15"/>
-                            
+
                             <CheckBox x:Name="chkDrag_Angular" Content="Angular" Margin="0,8,0,0"/>
                             <Slider x:Name="trkDrag_Angular" Minimum="0" Maximum="100" Value="15"/>
                         </StackPanel>
                     </Expander>
-                    
+
                     <Expander Header="Body/Body Forces">
                         <StackPanel Style="{StaticResource expanderStackPanel}" RadioButton.Checked="RadioBodyBody_Checked" RadioButton.Unchecked="RadioBodyBody_Checked">
 
@@ -165,8 +165,20 @@
                         </StackPanel>
                     </Expander>
 
+                    <Expander Header="Swarm">
+                        <StackPanel Style="{StaticResource expanderStackPanel}">
+
+                            <CheckBox x:Name="chkSwarm" Content="Enable Swarm" Checked="chkSwarm_Checked" Unchecked="chkSwarm_Checked"/>
+
+                            <Label Content="Strength"/>
+                            <Slider x:Name="trkSwarm_Strength" Minimum="0" Maximum="100" Value="15" ValueChanged="trkSwarm_Strength_ValueChanged"/>
+
+                            <!-- TODO: Swarm (give each body simple swarm behaviors.  consider color when looking for attract/oppose neighbors) -->
+
+                        </StackPanel>
+                    </Expander>
+
                     <!-- TODO: Add Joined Bodies -->
-                    <!-- TODO: Swarm (give each body simple swarm behaviors.  option to consider color when looking for attract/oppose neighbors) -->
 
                     <!-- TODO: On left click: (see tower wrecker) -->
                     <!-- fire slug -->

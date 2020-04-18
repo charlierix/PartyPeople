@@ -9,6 +9,8 @@ using Game.Core;
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
+using GameItems;
+using GameItems.MapParts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -748,6 +750,7 @@ namespace Game.Bepu.Testers
 
             public int BodyHandle { get; set; }
             public BodyReference Body { get; set; }
+            public IShape Shape { get; set; }       // theoretically, you can get at the shape here: sim.Shapes[body.Collidable.Shape.Index];  But good luck making sense of that object.  It's all buffers, memory pools
 
             public Model3D Model { get; set; }
             public TranslateTransform3D Translate { get; set; }
@@ -876,7 +879,8 @@ namespace Game.Bepu.Testers
                 //fully decouple simulation and rendering rates across different threads.
                 //(In either case, you'd also want to interpolate or extrapolate simulation results during rendering for smoothness.)
                 //Note that taking steps of variable length can reduce stability. Gradual or one-off changes can work reasonably well.
-                _simulation.Timestep(1 / 60f, _threadDispatcher);
+                float dt = 1 / 60f;
+                _simulation.Timestep(dt, _threadDispatcher);
 
                 ////Here's an example of how it would look to use more frequent updates, but still with a fixed amount of time simulated per update call:
                 //const float timeToSimulate = 1 / 60f;
@@ -900,6 +904,15 @@ namespace Game.Bepu.Testers
                 //var interpolationWeight = timeAccumulator / targetTimestepDuration;
 
                 #endregion
+
+                if (_map != null)
+                {
+                    foreach (SwarmBot2a bot in _map.GetAll())
+                    {
+                        bot.Update_MainThread(dt);
+                        bot.Update_AnyThread(dt);
+                    }
+                }
 
 
                 // Set breakpoints in this method chain.  Not sure whether to foreach through everything in simulation, or to foreach through a local copy and request items
@@ -961,13 +974,13 @@ namespace Game.Bepu.Testers
                 float radius = (float)(diameter / 2d);
                 float mass = (float)((4d / 3d) * Math.PI * radius * radius * radius);
 
-                var getBody = new Func<(BodyInertia inertia, CollidableDescription collidable)>(() =>
+                var getBody = new Func<(BodyInertia inertia, CollidableDescription collidable, IShape shape)>(() =>
                 {
                     var sphere = new Sphere(radius);
                     sphere.ComputeInertia(mass, out var inertia);
                     var collidable = new CollidableDescription(_simulation.Shapes.Add(sphere), 0.1f);
 
-                    return (inertia, collidable);
+                    return (inertia, collidable, sphere);
                 });
 
                 var getGeometry = new Func<Geometry3D>(() => UtilityWPF.GetSphere_Ico(radius, 1, true));
@@ -995,13 +1008,13 @@ namespace Game.Bepu.Testers
                     ToArray();
 
                 //TODO: Test box sizes to make sure x,y,z axiis are the same between bepu and wpf
-                var getBody = new Func<(BodyInertia inertia, CollidableDescription collidable)>(() =>
+                var getBody = new Func<(BodyInertia inertia, CollidableDescription collidable, IShape shape)>(() =>
                 {
                     var box = new Box(sizes[0], sizes[1], sizes[2]);
                     box.ComputeInertia(sizes[0] * sizes[1] * sizes[2], out var inertia);
                     var collidable = new CollidableDescription(_simulation.Shapes.Add(box), .1f);
 
-                    return (inertia, collidable);
+                    return (inertia, collidable, box);
                 });
 
                 var getGeometry = new Func<Geometry3D>(() => UtilityWPF.GetCube_IndependentFaces(new Point3D(-sizes[0] / 2d, -sizes[1] / 2d, -sizes[2] / 2d), new Point3D(sizes[0] / 2d, sizes[1] / 2d, sizes[2] / 2d)));
@@ -1210,12 +1223,37 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void chkSwarm_Checked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (chkSwarm.IsChecked.Value)
+                {
+                    InitializeSwarm();
+                }
+                else
+                {
+                    ClearSwarm();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void trkSwarm_Strength_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+
+        }
+
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 // Clear says it doesn't do anything that removes wouldn't, but the SimpleThreadDispatcher crashes with a null reference
                 //_simulation.Bodies.Clear();
+
+                ClearSwarm();
 
                 foreach (var body in _bodies.Values)
                 {
@@ -1237,7 +1275,7 @@ namespace Game.Bepu.Testers
 
         #region Private Methods
 
-        private void AddBody(int cellCount, double cellSize, Func<(BodyInertia inertia, CollidableDescription collidable)> getBody, Func<Geometry3D> getGeometry)
+        private void AddBody(int cellCount, double cellSize, Func<(BodyInertia inertia, CollidableDescription collidable, IShape shape)> getBody, Func<Geometry3D> getGeometry)
         {
             Random rand = StaticRandom.GetRandomForThread();
 
@@ -1300,6 +1338,7 @@ namespace Game.Bepu.Testers
                 {
                     BodyHandle = bodyHandle,
                     Body = _simulation.Bodies.GetBodyReference(bodyHandle),
+                    Shape = physicsBody.shape,
                     Model = model,
                     Translate = translate,
                     Orientation = quat,
@@ -1695,39 +1734,39 @@ namespace Game.Bepu.Testers
 
         #endregion
 
-        private static void SearchTrees()
+        private Map _map = null;
+
+        private void InitializeSwarm()
         {
-            //Swarm may want a map with snapshots
-
-            //Here is a comparison of VPTree, KDTree, Octree
-            //https://pdfs.semanticscholar.org/31eb/b51c67055721ad6527b6a16df75445b18494.pdf
-
-
-
-            // One type of problem is something like gravity.  There's probably a need for large distance gravity and close distance gravity
+            //TODO: Have a timer on a separate thread to update the swarmbots
+            //TODO: Add a hook between _externalAccel and swarmbots so it can update the force
 
 
 
 
-            // It looks like it's between vptree and kdtree.  How easy is it to modify an existing tree for a while before needing to rebuild?
+
+            // Makre sure everything is wiped out
+            ClearSwarm();
+
+            _map = new Map();
+
+            foreach (PhysicsBody body in _bodies.Values)
+            {
+                SwarmBot2a swarmbot = new SwarmBot2a(body.BodyHandle, body.Body, body.Shape, _map);
+
+                _map.AddItem(swarmbot);
+            }
 
 
 
-            Accord.Collections.VPTree vptree;
-
-            // The pdf said kdtree worked best for their test case.  An article was saying this isn't good for high dimensional data
-            Accord.Collections.KDTree kdtree;
 
 
 
-            // This is hardcoded to 3D structures, not sure if it's worth reimplementing
-            //or maybe octree
-
-
-            // sptree doesn't make sense for storing points.  It stores contiguous memory pages to help query performance, or searching for files, or something like that
-            Accord.Collections.SPTree sptree;
-
-
+        }
+        private void ClearSwarm()
+        {
+            //TODO: Map may need a dispose
+            _map = null;
         }
     }
 }
