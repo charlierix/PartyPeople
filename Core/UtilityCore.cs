@@ -1773,6 +1773,9 @@ namespace Game.Core
         {
             string filename = GetOptionsFilename(filenameNoFolder);
 
+            string foldername = Path.GetDirectoryName(filename);
+            Directory.CreateDirectory(foldername);      // this is needed in case the filename passed in has some subfolder in front
+
             //string xamlText = XamlWriter.Save(options);		// this is the old one, it doesn't like generic lists
             string xamlText = XamlServices.Save(options);
 
