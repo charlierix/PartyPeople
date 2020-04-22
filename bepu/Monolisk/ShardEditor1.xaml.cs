@@ -1,4 +1,5 @@
-﻿using Game.Core;
+﻿using Accord.Diagnostics;
+using Game.Core;
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
@@ -29,6 +30,9 @@ namespace Game.Bepu.Monolisk
             public Model3DGroup TileGroup { get; set; }
             public Model3D[,] Tiles { get; set; }
 
+            public Model3DGroup ItemsGroup { get; set; }
+            public Model3D[,] Items { get; set; }
+
             public Visual3D Visual { get; set; }
         }
 
@@ -38,7 +42,7 @@ namespace Game.Bepu.Monolisk
 
         private const int SIZE = 48;
         private const int HALFSIZE = SIZE / 2;
-        private const double MAXCLICKDIST = 36;
+        private const double MAXCLICKDIST = 1728;        // this just ended up being annoying
         private const double TILE_Z = .05;
 
         private const string FOLDER = @"Monolisk\v1";
@@ -48,6 +52,8 @@ namespace Game.Bepu.Monolisk
         private List<Visual3D> _tempVisuals = new List<Visual3D>();
 
         private ShardVisuals _shard = null;
+
+        private bool _isDragging = false;
 
         #endregion
 
@@ -95,38 +101,67 @@ namespace Game.Bepu.Monolisk
                     return;
                 }
 
-                // Fire a ray from the mouse point
-                Point clickPoint = e.GetPosition(grdViewPort);
-                var ray = UtilityWPF.RayFromViewportPoint(_camera, _viewport, clickPoint);
-
-                // See where it intersects the plane
-                var intersect = Math3D.GetIntersection_Plane_Ray(new Triangle_wpf(new Point3D(0, 0, 0), new Point3D(1, 0, 0), new Point3D(0, 1, 0)), ray.Origin, ray.Direction);
-                if (intersect == null || (ray.Origin - intersect.Value).Length > MAXCLICKDIST)
+                VectorInt? index = GetClickedIndex(e);
+                if (index == null)
                 {
                     return;
                 }
 
-                // Convert that into a tile index
-                VectorInt index = GetTileIndex(intersect.Value.ToPoint2D());
-                if (index.X < 0 || index.X >= SIZE || index.Y < 0 || index.Y >= SIZE)
+                _isDragging = true;
+
+                if (radCement.IsChecked.Value)
+                {
+                    ApplyDrag_Tile(index.Value);
+                }
+
+                if (radStart.IsChecked.Value || radEnd.IsChecked.Value)
+                {
+                    ApplyDrag_Item(index.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void grdViewPort_MouseMove(object sender, MouseEventArgs e)
+        {
+            try
+            {
+                if (!_isDragging)
                 {
                     return;
                 }
 
-                if (_shard.Tiles[index.X, index.Y] == null)
+                VectorInt? index = GetClickedIndex(e);
+                if (index == null)
                 {
-                    _shard.Shard.Tiles[index.Y][index.X] = new ShardTile1()
-                    {
-                        GroundType = ShardGroundType1.Cement,
-                    };
-
-                    AddTileTop(index, _shard.Shard.Tiles[index.Y][index.X].GroundType, _shard.TileGroup, _shard.Tiles);
+                    return;
                 }
-                else
-                {
-                    _shard.Shard.Tiles[index.Y][index.X] = null;
 
-                    RemoveTileTop(index, _shard.TileGroup, _shard.Tiles);
+                if (radCement.IsChecked.Value)
+                {
+                    ApplyDrag_Tile(index.Value);
+                }
+
+
+                //TODO: Have a selected item
+
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void grdViewPort_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            try
+            {
+                if (_isDragging && e.ChangedButton == MouseButton.Left)
+                {
+                    _isDragging = false;
                 }
             }
             catch (Exception ex)
@@ -232,7 +267,7 @@ namespace Game.Bepu.Monolisk
                 };
 
                 bool? result = dialog.ShowDialog();
-                if(result == null || result.Value == false)
+                if (result == null || result.Value == false)
                 {
                     return;
                 }
@@ -240,7 +275,7 @@ namespace Game.Bepu.Monolisk
                 // Deserialize
                 var shard = UtilityCore.ReadOptions<ShardMap1>(dialog.FileName);
 
-                if(shard.Tiles == null || shard.Tiles.Length != SIZE)
+                if (shard.Tiles == null || shard.Tiles.Length != SIZE)
                 {
                     throw new ApplicationException("Unsupported tile size");
                 }
@@ -261,7 +296,7 @@ namespace Game.Bepu.Monolisk
 
         private void DrawGrid()
         {
-            var sizes = Debug3DWindow.GetDrawSizes(6);
+            var sizes = Debug3DWindow.GetDrawSizes(1.5);
 
             var lines = Enumerable.Range(-HALFSIZE, SIZE + 1).
                 SelectMany(o => new[]
@@ -277,13 +312,7 @@ namespace Game.Bepu.Monolisk
 
         private static ShardMap1 CreateRandomShard(int size)
         {
-            ShardMap1 retVal = new ShardMap1()
-            {
-                Background = ShardBackgroundType1.Port,
-                Tiles = Enumerable.Range(0, size).
-                    Select(o => new ShardTile1[size]).
-                    ToArray(),
-            };
+            ShardMap1 retVal = CreateEmptyShard(size);
 
             Random rand = StaticRandom.GetRandomForThread();
 
@@ -333,6 +362,8 @@ namespace Game.Bepu.Monolisk
                 Shard = shard,
                 TileGroup = new Model3DGroup(),
                 Tiles = new Model3D[shard.Tiles.Length, shard.Tiles.Length],        // it's square
+                ItemsGroup = new Model3DGroup(),
+                Items = new Model3D[shard.Tiles.Length, shard.Tiles.Length],        // it's square
             };
 
             for (int x = 0; x < shard.Tiles.Length; x++)
@@ -341,14 +372,25 @@ namespace Game.Bepu.Monolisk
                 {
                     if (shard.Tiles[y][x] != null)
                     {
-                        AddTileTop(new VectorInt(x, y), shard.Tiles[y][x].GroundType, visuals.TileGroup, visuals.Tiles);
+                        var index = new VectorInt(x, y);
+
+                        AddTileGraphic(index, shard.Tiles[y][x].GroundType, visuals.TileGroup, visuals.Tiles);
+
+                        if (shard.Tiles[y][x].Item != null)
+                        {
+                            AddItemGraphic(index, shard.Tiles[y][x].Item, visuals.ItemsGroup, visuals.Items);
+                        }
                     }
                 }
             }
 
+            Model3DGroup finalGroup = new Model3DGroup();
+            finalGroup.Children.Add(visuals.TileGroup);
+            finalGroup.Children.Add(visuals.ItemsGroup);
+
             visuals.Visual = new ModelVisual3D
             {
-                Content = visuals.TileGroup,
+                Content = finalGroup,
             };
 
             _viewport.Children.Add(visuals.Visual);
@@ -356,30 +398,151 @@ namespace Game.Bepu.Monolisk
             _shard = visuals;
         }
 
-        private static void RemoveTileTop(VectorInt index, Model3DGroup group, Model3D[,] models)
+        private VectorInt? GetClickedIndex(MouseEventArgs e)
+        {
+            // Fire a ray from the mouse point
+            Point clickPoint = e.GetPosition(grdViewPort);
+            var ray = UtilityWPF.RayFromViewportPoint(_camera, _viewport, clickPoint);
+
+            // See where it intersects the plane
+            var intersect = Math3D.GetIntersection_Plane_Ray(new Triangle_wpf(new Point3D(0, 0, 0), new Point3D(1, 0, 0), new Point3D(0, 1, 0)), ray.Origin, ray.Direction);
+            if (intersect == null || (ray.Origin - intersect.Value).Length > MAXCLICKDIST)
+            {
+                return null;
+            }
+
+            // Convert that into a tile index
+            VectorInt index = GetTileIndex(intersect.Value.ToPoint2D());
+            if (index.X < 0 || index.X >= SIZE || index.Y < 0 || index.Y >= SIZE)
+            {
+                return null;
+            }
+
+            return index;
+        }
+
+        private void ApplyDrag_Tile(VectorInt index)
+        {
+            // Try delete first, it's easiest
+            if (chkDelete.IsChecked.Value)
+            {
+                if (_shard.Tiles[index.X, index.Y] != null)
+                {
+                    if (_shard.Items[index.X, index.Y] != null)      // also need remove an item if it's sitting on the tile
+                    {
+                        RemoveItemGraphic(index, _shard.ItemsGroup, _shard.Items);
+                    }
+
+                    _shard.Shard.Tiles[index.Y][index.X] = null;
+
+                    RemoveTileGraphic(index, _shard.TileGroup, _shard.Tiles);
+                }
+
+                return;
+            }
+
+            var groundType = radCement.IsChecked.Value ? ShardGroundType1.Cement :
+                throw new ApplicationException("Unknown tile type");
+
+            if (_shard.Tiles[index.X, index.Y] == null)
+            {
+                // Create
+                _shard.Shard.Tiles[index.Y][index.X] = new ShardTile1()
+                {
+                    GroundType = groundType,
+                };
+
+                AddTileGraphic(index, _shard.Shard.Tiles[index.Y][index.X].GroundType, _shard.TileGroup, _shard.Tiles);
+            }
+            else
+            {
+                // Change type
+                if (_shard.Shard.Tiles[index.Y][index.X].GroundType != groundType)
+                {
+                    _shard.Shard.Tiles[index.Y][index.X].GroundType = groundType;
+
+                    RemoveTileGraphic(index, _shard.TileGroup, _shard.Tiles);
+                    AddTileGraphic(index, groundType, _shard.TileGroup, _shard.Tiles);
+                }
+            }
+        }
+        private void ApplyDrag_Item(VectorInt index)
+        {
+            if (chkDelete.IsChecked.Value)
+            {
+                if (_shard.Items[index.X, index.Y] != null)
+                {
+                    _shard.Shard.Tiles[index.Y][index.X].Item = null;
+
+                    RemoveItemGraphic(index, _shard.ItemsGroup, _shard.Items);
+                }
+
+                return;
+            }
+
+            var itemType = radStart.IsChecked.Value ? ShardItemType1.StartLocation :
+                radEnd.IsChecked.Value ? ShardItemType1.EndGate :
+                throw new ApplicationException("Unknown item type");
+
+            if (_shard.Items[index.X, index.Y] == null)
+            {
+                if (_shard.Tiles[index.X, index.Y] == null)
+                {
+                    // No tile to place the item on
+                    return;
+                }
+
+                // Create
+                _shard.Shard.Tiles[index.Y][index.X].Item = new ShardItem1()
+                {
+                    ItemType = itemType,
+                    Angle = ShardAngle1._0,
+                };
+
+                AddItemGraphic(index, _shard.Shard.Tiles[index.Y][index.X].Item, _shard.ItemsGroup, _shard.Items);
+            }
+            else
+            {
+                // Change type
+                if (_shard.Shard.Tiles[index.Y][index.X].Item.ItemType != itemType)
+                {
+                    _shard.Shard.Tiles[index.Y][index.X].Item.ItemType = itemType;
+
+                    RemoveItemGraphic(index, _shard.ItemsGroup, _shard.Items);
+                    AddItemGraphic(index, _shard.Shard.Tiles[index.Y][index.X].Item, _shard.ItemsGroup, _shard.Items);
+                }
+            }
+        }
+
+        private static void RemoveTileGraphic(VectorInt index, Model3DGroup group, Model3D[,] models)
+        {
+            group.Children.Remove(models[index.X, index.Y]);
+            models[index.X, index.Y] = null;
+        }
+        private static void RemoveItemGraphic(VectorInt index, Model3DGroup group, Model3D[,] models)
         {
             group.Children.Remove(models[index.X, index.Y]);
             models[index.X, index.Y] = null;
         }
 
-        private static void AddTileTop(VectorInt index, ShardGroundType1 type, Model3DGroup group, Model3D[,] models)
+        private static void AddTileGraphic(VectorInt index, ShardGroundType1 type, Model3DGroup group, Model3D[,] models)
         {
             if (models[index.X, index.Y] != null)
             {
-                RemoveTileTop(index, group, models);
+                RemoveTileGraphic(index, group, models);
             }
 
             switch (type)
             {
                 case ShardGroundType1.Cement:
-                    AddTileTop_Cement(index, group, models);
+                    AddTileGraphic_Cement(index, group, models);
                     break;
 
                 default:
                     throw new ApplicationException($"Unknown {nameof(ShardGroundType1)}: {type}");
             }
         }
-        private static void AddTileTop_Cement(VectorInt index, Model3DGroup group, Model3D[,] models)
+        private static void AddTileGraphic_Cement(VectorInt index, Model3DGroup group, Model3D[,] models)
         {
             // diffuse: 777
             // specular: 30602085, 3
@@ -427,6 +590,94 @@ namespace Game.Bepu.Monolisk
             #endregion
 
             models[index.X, index.Y] = tileGroup;
+            group.Children.Add(models[index.X, index.Y]);
+        }
+
+        private static void AddItemGraphic(VectorInt index, ShardItem1 item, Model3DGroup group, Model3D[,] models)
+        {
+            if (models[index.X, index.Y] != null)
+            {
+                RemoveItemGraphic(index, group, models);
+            }
+
+            //TODO: For start and end location, remove any other instance of that
+            //TODO: For other item types, only add if count isn't exceeded
+
+            switch (item.ItemType)
+            {
+                case ShardItemType1.StartLocation:
+                    AddItemGraphic_StartLocation(index, group, models);
+                    break;
+
+                case ShardItemType1.EndGate:
+                    AddItemGraphic_EndGate(index, group, models);
+                    break;
+
+                default:
+                    throw new ApplicationException($"Unknown {nameof(ShardItemType1)}: {item.ItemType}");
+            }
+
+
+            //TODO: Apply rotation
+
+
+        }
+        private static void AddItemGraphic_StartLocation(VectorInt index, Model3DGroup group, Model3D[,] models)
+        {
+            var pos = GetTilePos(index.X, index.Y);
+
+            MaterialGroup material = new MaterialGroup();
+            material.Children.Add(new DiffuseMaterial(UtilityWPF.BrushFromHex("555")));
+            material.Children.Add(new SpecularMaterial(UtilityWPF.BrushFromHex("40EEEEEE"), 1.5));
+
+            GeometryModel3D model = new GeometryModel3D
+            {
+                Material = material,
+                BackMaterial = material,
+                Geometry = UtilityWPF.GetCylinder_AlongX(8, .4, TILE_Z, new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), -90d))),
+                Transform = new TranslateTransform3D(pos.min.X + .5, pos.min.Y + .5, TILE_Z * 1.5),     //TODO: expose a porition of this transform so the item can be rotated
+            };
+
+            models[index.X, index.Y] = model;
+            group.Children.Add(models[index.X, index.Y]);
+        }
+        private static void AddItemGraphic_EndGate(VectorInt index, Model3DGroup group, Model3D[,] models)
+        {
+            // This is a good start, but the endcaps cover the entire face
+            //UtilityWPF.GetMultiRingedTube
+
+            // This works, but an ellipse is needed
+            //Debug3DWindow.GetCircle
+
+
+            // Also, the interior of the ring should come to an edge instead of flat.  So what is needed is a squared ring that's black,
+            // an inner ring that's a triangle (like st louis arch), and if you want to get fancy, an exterior ring
+
+
+            var pos = GetTilePos(index.X, index.Y);
+
+            MaterialGroup material = new MaterialGroup();
+            material.Children.Add(new DiffuseMaterial(UtilityWPF.BrushFromHex("4C8FF5")));
+            material.Children.Add(new SpecularMaterial(UtilityWPF.BrushFromHex("A08B49EB"), 1));
+            material.Children.Add(new EmissiveMaterial(UtilityWPF.BrushFromHex("4049B4EB")));
+
+            var rings = new List<TubeRingBase>();
+            rings.Add(new TubeRingRegularPolygon(0, false, .7, 1.2, true));
+            rings.Add(new TubeRingRegularPolygon(.1, false, .7, 1.2, true));
+
+            Transform3DGroup transform = new Transform3DGroup();
+            transform.Children.Add(new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(1, 0, 0), 90)));
+            transform.Children.Add(new TranslateTransform3D(pos.min.X + .5, pos.min.Y + .5, 1));
+
+            GeometryModel3D model = new GeometryModel3D
+            {
+                Material = material,
+                BackMaterial = material,
+
+                Geometry = UtilityWPF.GetMultiRingedTube(24, rings, true, true, transform),
+            };
+
+            models[index.X, index.Y] = model;
             group.Children.Add(models[index.X, index.Y]);
         }
 
@@ -544,7 +795,6 @@ namespace Game.Bepu.Monolisk
             //retVal.Freeze();
             return retVal;
         }
-
 
         #endregion
     }

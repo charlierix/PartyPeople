@@ -34,6 +34,7 @@ namespace Game.Bepu.Monolisk
     public class ShardItem1
     {
         public ShardItemType1 ItemType { get; set; }
+        public ShardAngle1 Angle { get; set; }
     }
 
     #endregion

@@ -18,7 +18,7 @@
         </Grid.Background>
 
         <!-- Viewport -->
-        <Border Name="grdViewPort" Background="Transparent" MouseDown="grdViewPort_MouseDown">
+        <Border Name="grdViewPort" Background="Transparent" MouseDown="grdViewPort_MouseDown" MouseMove="grdViewPort_MouseMove" MouseUp="grdViewPort_MouseUp">
             <Border.Effect>
                 <DropShadowEffect Color="#BECCB4" BlurRadius="14" Opacity=".2" Direction="0" ShadowDepth="0" />
             </Border.Effect>
@@ -51,6 +51,28 @@
             <TextBox x:Name="txtShardName" FontSize="16" Foreground="#E0FFFFFF" Background="#A0606060" BorderBrush="#48B0B0B0" BorderThickness="1" Margin="0,8,0,0"/>
             <Button Content="Save" Click="Save_Click"/>
             <Button Content="Load" Click="Load_Click"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="20">
+            <ToggleButton x:Name="chkDelete" Content="Delete" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="6,2" Margin="0,0,40,0"/>
+
+            <UniformGrid Rows="1">
+                <UniformGrid.Resources>
+                    <Style TargetType="{x:Type RadioButton}">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate>
+                                    <ToggleButton Padding="6,2" Margin="3,0" Content="{Binding Path=Content, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type RadioButton}}}" IsChecked="{Binding Path=IsChecked, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type RadioButton}}}"/>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </UniformGrid.Resources>
+
+                <RadioButton IsChecked="True" x:Name="radCement" Content="Cement"/>
+                <RadioButton x:Name="radStart" Content="Start"/>
+                <RadioButton x:Name="radEnd" Content="End"/>
+            </UniformGrid>
         </StackPanel>
     </Grid>
 </Window>

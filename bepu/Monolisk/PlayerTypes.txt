@@ -1,0 +1,201 @@
+﻿All types need to be able to jump onto a tier1 platform, but not onto a tier2 or over a wall
+
+
+------------------------------- Warrior
+Make this a quadruped.  Not thin like a horse, but stockier.  Have the hind legs shorter, like a hyena or giraffe
+
+Taller than standard
+
+Give this a strong forward charge, short bursts of speed in a forward direction
+
+Standard jump height, a bit extra forward distance.  Almost no back jump, a small amount of side jump
+
+Heavy weapons, armor, shields
+
+Weapons:
+    Various large heavy melee
+    Javelin (somewhere between a javelin and a pike)
+        When in melee, it's held like a sword.  Lots stab, not much other damage
+        When in ranged, it reverses in the hand.  When thrown, the wrist must be pointed backward (can also stab while held in this position)
+    Ball and chain
+        Has longer reach (let it be extended/retracted)
+    
+
+Specials:
+    Knock back
+
+
+
+------------------------------- Hunter
+Standard size, standard mobility
+
+Jump a little higher normal (but still not high enough to reach a tier2 ledge)
+    Bullet time is longer when at the top of a jump
+
+Weaker melee weapons, Excellent ranged weapons:
+    Bow & Arrow
+        Long range, good aim, good damage
+    Hatchet
+        Medium all around
+    Small sword
+
+
+
+------------------------------- Shadow
+Slightly shorter, high mobility
+
+Can double/triple/quad jump
+    Don't let the height keep growing, but do allow for lots of direction changing mid air
+    Backflip + bullet time
+
+Fun tricky weapons
+
+Limited stealth?
+
+
+
+
+------------------------------- Mage
+Average height, mobility
+
+Jumps are floaty.  Somewhere between an uncontrolled parabola and a jetpack
+
+Average melee or ranged
+    Pain stick
+        Sort of a light saber, does a bunch of elemental damage.  Some chain lightning/stun effects
+    Wands
+    Blast ball
+        Held in hand, so very short melee weapon.  Powerful aoe effects
+
+Specials:
+    Confusion
+    Shield
+
+
+
+
+------------------------------- Artificer
+Shorter, slower, small bursts of speed
+
+Uses a jetpack.  May want to require both hands pointed down to steer.  So very mobile while airborn to compensate for slower ground speed
+
+Specials:
+    Build things
+
+
+
+
+
+------------------------------- Elemental Spirit
+Tiny
+
+Doesn't really walk, maybe hover just above the ground
+
+Doesn't use direct weapons/armor.  All attached items are modifiers.  All damage is done with direct contact
+
+Arms out like treading water
+Arms down like a missle
+Steering is relationship between head, hand position, wrist orientation
+
+Enemies need to have auras that show where they take damage and where they give out damage
+
+Trigger button probably needs to coincide with contact to do the damage.  Otherwise, you do minimal damage, can still take damge regardless of trigger
+
+Can pass into walls a little, but get pushed out.  Maybe start taking damage if inside floors/walls too long
+
+Mess with sound when blasting into them
+
+
+
+------------------------------- Mind Controller
+Small, very weak
+
+Movement and jump based on messiah's cherub
+
+Good stealth ability
+
+Can possess enemies.  While possessing, it builds up damage that will be applied when you jump out of them
+So while possessing, you are attacking other enemies, then when you jump out
+
+Can only possess by jumping into their back
+
+(things like spider nests would be difficult to implement)
+
+
+
+
+------------------------------- Puppet Master
+Dual.  The player has god hands, and the puppet is a small golem
+
+The puppet will auto fire when close to enemies, can be melee or ranged
+
+Jumping is also performed automatically
+
+This is sort of like playing the mobile game in vr, but the player can directly affect the game
+
+Any direct manipulations would use up mana, so the golem is needed for doing most of the damage
+
+When applying a weather effect, hold both hands around an area, creating a circle, sort of like a target reticle
+
+God hand specials:
+    Create fog
+    Drop meteors
+    Drop down a wall
+    Decoys -- clip your finger with the ground, and that will be a decoy
+    Pinch enemy -- this will stun an enemy
+    Enhance golem -- keep the hands close to the golem.  It acts like a conduit transferring your energy into the real world (visual effect flows from hands to golem)
+        Heal golem
+        Damage field -- the golem has an aura that damages enemies
+        Fluid suspension -- nearby enemies are sluggish, somewhat floating
+        Grow -- the golem grows around 50% does extra damage, takes less damage, moves faster (looks enraged)
+
+
+
+
+****************************************************
+
+All of the shared weapons have a socket.  Each player type has their own types of gems that can go in those sockets
+The effects have a % chance
+
+    Warrior:
+        Drain defense
+        Weaken
+        Life Steal
+
+    Hunter:
+        Poison
+        Fear
+        Explosive
+
+    Shadow
+        Extra damage
+        Blind
+Explosive
+
+    Mage
+        Cold
+        Flame
+        Electric
+
+    Artificer
+        Stupidity/Disoriented (not a full on confuse, makes them forgetful, sometimes attack others)
+        Gaseous/Stink (makes others increase distance from them)
+
+
+
+Scythe?
+
+Magical Escrima
+    When dual yielded and the endpoints are somewhat lined up, draw an electric bezier curve between those points
+    The other end caps would leak out electricity
+    So they do direct blunt damage, but can also do indirect magic damage
+
+
+
+
+
+
+
+
+
+
