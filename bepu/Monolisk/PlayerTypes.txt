@@ -19,11 +19,17 @@ Weapons:
         When in ranged, it reverses in the hand.  When thrown, the wrist must be pointed backward (can also stab while held in this position)
     Ball and chain
         Has longer reach (let it be extended/retracted)
+    Scythe
+        Use is like an actual scythe, mowing them like wheat
+    War Scythe
+        This is more of a pole arm with a curved blade at the end
     
 
 Specials:
     Knock back
 
+
+Tiny enemies like small spiders should be no consequence.  The warrior should auto stomp them when you walk over them
 
 
 ------------------------------- Hunter
@@ -31,6 +37,9 @@ Standard size, standard mobility
 
 Jump a little higher normal (but still not high enough to reach a tier2 ledge)
     Bullet time is longer when at the top of a jump
+    Bullet time shouldn't be simple on/off at the top.  It should automatically start to activate around 80% of jump height, full bullet time at top, then fade back on the way down
+    May need some machine learning to not activate bullet time when they are just jumping up to a ledge
+
 
 Weaker melee weapons, Excellent ranged weapons:
     Bow & Arrow
@@ -104,6 +113,11 @@ Trigger button probably needs to coincide with contact to do the damage.  Otherw
 Can pass into walls a little, but get pushed out.  Maybe start taking damage if inside floors/walls too long
 
 Mess with sound when blasting into them
+
+
+Specials:
+    Yaka Arrow -- an optimal path is chosen through enemies and you follow that path.  have slight distorted whistling sounds
+    Fire Tornado -- you fly tight circles around a group of enemies and it creates a flame vortex
 
 
 
@@ -183,7 +197,6 @@ Explosive
 
 
 
-Scythe?
 
 Magical Escrima
     When dual yielded and the endpoints are somewhat lined up, draw an electric bezier curve between those points
@@ -191,6 +204,10 @@ Magical Escrima
     So they do direct blunt damage, but can also do indirect magic damage
 
 
+
+Some weapon types should be common, even though they don't make sense for some characters.  This will help demonstrate the size differences
+    A dagger would feel like a short sword for shadow, but a pocket knife for warrior
+    A halberd would be used one handed by warrior, but almost too heavy for shadow (hunter and artificer would use it like normal)
 
 
 

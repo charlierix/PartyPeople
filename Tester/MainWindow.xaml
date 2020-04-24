@@ -82,6 +82,7 @@
                 <Label Content="Monolisk" Style="{StaticResource subHeaderLabel}"/>
                 <ListBox>
                     <ListBoxItem Content="Editor 1" MouseUp="MonoliskEditor1_MouseUp"/>
+                    <ListBoxItem Content="Player 1" MouseUp="MonoliskPlayer1_MouseUp"/>
                 </ListBox>
             </StackPanel>
         </WrapPanel>

@@ -48,6 +48,10 @@ namespace Game.Tester
         {
             new Game.Bepu.Monolisk.ShardEditor1().Show();
         }
+        private void MonoliskPlayer1_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Monolisk.ShardPlayer1().Show();
+        }
 
         #endregion
     }
