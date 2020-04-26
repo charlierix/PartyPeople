@@ -22,7 +22,7 @@ namespace Game.Bepu.Monolisk
 
         #endregion
 
-        public static (Point min, Point max) GetTilePos(int x, int y)
+        public static (Point min, Point max, Point center) GetTilePos(int x, int y)
         {
             int offsetX = x - ShardRendering1.HALFSIZE;
             int offsetY = y - ShardRendering1.HALFSIZE;
@@ -30,7 +30,8 @@ namespace Game.Bepu.Monolisk
             return
             (
                 new Point(offsetX, offsetY),
-                new Point(offsetX + 1, offsetY + 1)
+                new Point(offsetX + 1, offsetY + 1),
+                new Point(offsetX + .5, offsetY + .5)
             );
         }
         public static VectorInt GetTileIndex(Point pos)
@@ -208,7 +209,7 @@ namespace Game.Bepu.Monolisk
                 Material = material,
                 BackMaterial = material,
                 Geometry = UtilityWPF.GetCylinder_AlongX(8, .4, TILE_Z, new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), -90d))),
-                Transform = new TranslateTransform3D(pos.min.X + .5, pos.min.Y + .5, TILE_Z * 1.5),     //TODO: expose a porition of this transform so the item can be rotated
+                Transform = new TranslateTransform3D(pos.center.X, pos.center.Y, TILE_Z * 1.5),     //TODO: expose a porition of this transform so the item can be rotated
             };
 
             models[index.X, index.Y] = model;
@@ -240,7 +241,7 @@ namespace Game.Bepu.Monolisk
 
             Transform3DGroup transform = new Transform3DGroup();
             transform.Children.Add(new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(1, 0, 0), 90)));
-            transform.Children.Add(new TranslateTransform3D(pos.min.X + .5, pos.min.Y + .5, 1));
+            transform.Children.Add(new TranslateTransform3D(pos.center.X, pos.center.Y, 1));
 
             GeometryModel3D model = new GeometryModel3D
             {

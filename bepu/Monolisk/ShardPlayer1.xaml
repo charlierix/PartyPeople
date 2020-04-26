@@ -55,7 +55,7 @@
                 </TextBlock.Effect>
             </TextBlock>
             
-            <Button Content="Load" Click="Load_Click"/>
+            <Button Focusable="False" Content="Load" Click="Load_Click"/>
         </StackPanel>
     </Grid>
 </Window>

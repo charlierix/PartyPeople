@@ -35,6 +35,41 @@ namespace Game.Bepu.Monolisk
     {
         public ShardItemType1 ItemType { get; set; }
         public ShardAngle1 Angle { get; set; }
+        public double AngleDbl
+        {
+            get
+            {
+                switch (Angle)
+                {
+                    case ShardAngle1._0:
+                        return 0d;
+
+                    case ShardAngle1._45:
+                        return 45d;
+
+                    case ShardAngle1._90:
+                        return 90d;
+
+                    case ShardAngle1._135:
+                        return 135d;
+
+                    case ShardAngle1._180:
+                        return 180d;
+
+                    case ShardAngle1._225:
+                        return 225d;
+
+                    case ShardAngle1._270:
+                        return 270d;
+
+                    case ShardAngle1._315:
+                        return 315d;
+
+                    default:
+                        throw new ApplicationException($"Unknown {nameof(ShardAngle1)}: {Angle}");
+                }
+            }
+        }
     }
 
     #endregion

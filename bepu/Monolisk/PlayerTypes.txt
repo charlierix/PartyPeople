@@ -4,7 +4,7 @@
 ------------------------------- Warrior
 Make this a quadruped.  Not thin like a horse, but stockier.  Have the hind legs shorter, like a hyena or giraffe
 
-Taller than standard
+1.5 times taller than standard
 
 Give this a strong forward charge, short bursts of speed in a forward direction
 
@@ -53,7 +53,7 @@ Weaker melee weapons, Excellent ranged weapons:
 ------------------------------- Shadow
 Slightly shorter, high mobility
 
-Can double/triple/quad jump
+Can triple jump
     Don't let the height keep growing, but do allow for lots of direction changing mid air
     Backflip + bullet time
 
@@ -61,6 +61,8 @@ Fun tricky weapons
 
 Limited stealth?
 
+Specials:
+    The standard shadow abilities, aoe stuff should more effective when deployed mid jump
 
 
 
@@ -69,12 +71,20 @@ Average height, mobility
 
 Jumps are floaty.  Somewhere between an uncontrolled parabola and a jetpack
 
+
 Average melee or ranged
     Pain stick
         Sort of a light saber, does a bunch of elemental damage.  Some chain lightning/stun effects
     Wands
     Blast ball
         Held in hand, so very short melee weapon.  Powerful aoe effects
+    Telekinetic
+        Pick up an enemy and bash others with it 
+        Smaller enemies will be affected more
+        Trigger to select, then draw a path with your hand, release trigger to throw
+        This won't be a long term levitation, just a pick up and throw
+        With some practice, you could throw them straight up, grab them again and slam them down
+
 
 Specials:
     Confusion
@@ -86,10 +96,15 @@ Specials:
 ------------------------------- Artificer
 Shorter, slower, small bursts of speed
 
-Uses a jetpack.  May want to require both hands pointed down to steer.  So very mobile while airborn to compensate for slower ground speed
+Uses a jetpack.  Require both hands pointed down to steer.  So very mobile while airborn to compensate for slower ground speed
 
 Specials:
     Build things
+    Swarm Bots :)
+        Maybe even gesture certain shapes to do different commands
+            O   -- defense (default) - they orbit you until something gets too close
+            ^   -- offense - they seek out enemies, prioritizing the direction you're looking (but once attacking, they stay on that target)
+            \   -- fruit ninja whatever was slashed through, then return to previous mode
 
 
 
@@ -98,12 +113,13 @@ Specials:
 ------------------------------- Elemental Spirit
 Tiny
 
-Doesn't really walk, maybe hover just above the ground
+Doesn't walk, hovers just above the ground
 
 Doesn't use direct weapons/armor.  All attached items are modifiers.  All damage is done with direct contact
 
 Arms out like treading water
-Arms down like a missle
+Arms down like a missile
+Arms higher up to stop (this will be extra useful when first learning to control this char)
 Steering is relationship between head, hand position, wrist orientation
 
 Enemies need to have auras that show where they take damage and where they give out damage
@@ -129,12 +145,25 @@ Movement and jump based on messiah's cherub
 Good stealth ability
 
 Can possess enemies.  While possessing, it builds up damage that will be applied when you jump out of them
-So while possessing, you are attacking other enemies, then when you jump out
+So while possessing, you are attacking other enemies, then when you jump out the host takes damage built up damage
 
 Can only possess by jumping into their back
 
+Do the same health steal that messiah used
+
 (things like spider nests would be difficult to implement)
 
+
+Very low damage weapons.  Just enough to finish something off
+    Butter Knife
+    Sling Shot
+    Bolo balls
+
+
+Specials:
+    Give Present -- you give a present to another npc and they take it to the center of the nearest group.  the gift explodes
+    Pacify -- when in regular form, you can pacify a group in order to get away and get hidden
+    Confusion
 
 
 
@@ -154,7 +183,7 @@ When applying a weather effect, hold both hands around an area, creating a circl
 God hand specials:
     Create fog
     Drop meteors
-    Drop down a wall
+    Place a wall
     Decoys -- clip your finger with the ground, and that will be a decoy
     Pinch enemy -- this will stun an enemy
     Enhance golem -- keep the hands close to the golem.  It acts like a conduit transferring your energy into the real world (visual effect flows from hands to golem)
@@ -184,7 +213,7 @@ The effects have a % chance
     Shadow
         Extra damage
         Blind
-Explosive
+        Explosive
 
     Mage
         Cold
@@ -205,7 +234,7 @@ Magical Escrima
 
 
 
-Some weapon types should be common, even though they don't make sense for some characters.  This will help demonstrate the size differences
+Some weapon types should be common, even though they don't make sense for some characters.  This will help demonstrate the size/strength differences
     A dagger would feel like a short sword for shadow, but a pocket knife for warrior
     A halberd would be used one handed by warrior, but almost too heavy for shadow (hunter and artificer would use it like normal)
 

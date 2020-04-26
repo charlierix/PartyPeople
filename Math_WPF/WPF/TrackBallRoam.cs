@@ -1115,6 +1115,7 @@ namespace Game.Math_WPF.WPF
         private void InertiaTimer_Tick(object sender, EventArgs e)
         {
             const double MINSPEED = .001;
+            const double MAXTIME = .5;      // under heavy processor load, this timer will stutter and sometimes cause the camera to explode.  Controlling max elapsed time seems like the easiest way to fix it.  May need to also have a max speed (but that's difficult because different environments have different speed needs)
 
             if (_velocityInertia == null)
             {
@@ -1123,7 +1124,7 @@ namespace Game.Math_WPF.WPF
             }
 
             DateTime now = DateTime.UtcNow;
-            double elapsed = (now - _velocityInertia.InertiaLastTick).TotalSeconds;
+            double elapsed = Math.Min((now - _velocityInertia.InertiaLastTick).TotalSeconds, MAXTIME);
 
             if (_velocityInertia.Linear != null)
             {
@@ -1173,11 +1174,7 @@ namespace Game.Math_WPF.WPF
 
                 double displacement = _velocityInertia.Angular.Speed * elapsed;
 
-                if (_velocityInertia.Angular.IsInPlace)
-                {
-
-                }
-                else
+                if (!_velocityInertia.Angular.IsInPlace)
                 {
                     OrbitCamera(new Quaternion(_velocityInertia.Angular.Axis, displacement));
                 }
@@ -1258,19 +1255,8 @@ namespace Game.Math_WPF.WPF
                 return;
             }
 
-            // Find and kill any actions that this equals (there should never be more than one, but I want to be safe)
-            int index = 0;
-            while (index < _currentKeyboardActions.Count)
-            {
-                if (_currentKeyboardActions[index] == action.Value)
-                {
-                    _currentKeyboardActions.RemoveAt(index);
-                }
-                else
-                {
-                    index++;
-                }
-            }
+            // Find and kill any actions that this equals (there should never be more than one, but it's better to be safe)
+            _currentKeyboardActions.RemoveWhere(o => o == action.Value);
 
             // If there's nothing left, then turn off the timer
             if (_currentKeyboardActions.Count == 0)
@@ -1280,7 +1266,7 @@ namespace Game.Math_WPF.WPF
         }
         private void EventSource_LostKeyboardFocus(object sender, KeyboardFocusChangedEventArgs e)
         {
-            // Make sure to stop any keyboard actions (the mouse down captures the mouse, but the keyboard doesn't, so I need this extra check)
+            // Make sure to stop any keyboard actions (the mouse down captures the mouse, but the keyboard doesn't, so this extra check is needed)
             _currentKeyboardActions.Clear();
             if (_timerKeyboard != null)
             {
@@ -1659,7 +1645,6 @@ namespace Game.Math_WPF.WPF
                 z *= -1d;
             }
 
-            // Exit Function
             return new Vector3D(x, y, z);
         }
         /// <summary>
@@ -1701,7 +1686,6 @@ namespace Game.Math_WPF.WPF
                 shouldInvertZ = true;
             }
 
-            // Exit Function
             return retVal;
         }
 
@@ -2232,7 +2216,6 @@ namespace Game.Math_WPF.WPF
                 #endregion
             }
 
-            // Exit Function
             return true;
         }
         public bool IsMatch(KeyEventArgs e)
@@ -2367,7 +2350,6 @@ namespace Game.Math_WPF.WPF
                 retVal.Append(DescribeButtons(_mouseButtons[cntr]));
             }
 
-            // Exit Function
             return retVal.ToString();
         }
 
@@ -2647,7 +2629,6 @@ namespace Game.Math_WPF.WPF
                     throw new ApplicationException("Unknown PrebuiltMapping: " + mapping.ToString());
             }
 
-            // Exit Function
             return retVal.ToArray();
         }
 
@@ -2697,7 +2678,6 @@ namespace Game.Math_WPF.WPF
                 }
             }
 
-            // Exit Function
             return retVal.ToString();
         }
 
@@ -2719,7 +2699,6 @@ namespace Game.Math_WPF.WPF
                 retVal[mapping.Movement].Add(mapping);
             }
 
-            // Exit Function
             return retVal;
         }
 
@@ -2758,7 +2737,6 @@ namespace Game.Math_WPF.WPF
                 retVal.AppendLine(description);
             }
 
-            // Exit Function
             return retVal.ToString();
         }
 
@@ -2791,7 +2769,6 @@ namespace Game.Math_WPF.WPF
 
             retVal.Append(")");
 
-            // Exit Function
             return retVal.ToString();
         }
         private List<string> DescribeKeys_Consilidate(Key[] keys)
@@ -2917,7 +2894,6 @@ namespace Game.Math_WPF.WPF
                 index++;
             }
 
-            // Exit Function
             return retVal;
         }
 
@@ -2948,7 +2924,6 @@ namespace Game.Math_WPF.WPF
 
             retVal.Append(")");
 
-            // Exit Function
             return retVal.ToString();
         }
 
