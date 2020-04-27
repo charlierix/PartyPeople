@@ -16,6 +16,17 @@ namespace Game.Bepu.Monolisk
 
         // For this first version, just use a fixed size 2D array
         public ShardTile1[][] Tiles { get; set; }
+
+        public IEnumerable<VectorInt> EnumerateIndices()
+        {
+            for (int y = 0; y < Tiles.Length; y++)
+            {
+                for (int x = 0; x < Tiles[y].Length; x++)
+                {
+                    yield return new VectorInt(x, y);
+                }
+            }
+        }
     }
 
     #endregion

@@ -163,337 +163,6 @@ namespace Game.Bepu.Testers
 
         #endregion
 
-        #region class: SimpleThreadDispatcher
-
-        // Copied from Demos
-        private class SimpleThreadDispatcher : IThreadDispatcher, IDisposable
-        {
-            int threadCount;
-            public int ThreadCount => threadCount;
-            struct Worker
-            {
-                public Thread Thread;
-                public AutoResetEvent Signal;
-            }
-
-            Worker[] workers;
-            AutoResetEvent finished;
-
-            BufferPool[] bufferPools;
-
-            public SimpleThreadDispatcher(int threadCount)
-            {
-                this.threadCount = threadCount;
-                workers = new Worker[threadCount - 1];
-                for (int i = 0; i < workers.Length; ++i)
-                {
-                    workers[i] = new Worker { Thread = new Thread(WorkerLoop), Signal = new AutoResetEvent(false) };
-                    workers[i].Thread.IsBackground = true;
-                    workers[i].Thread.Start(workers[i].Signal);
-                }
-                finished = new AutoResetEvent(false);
-                bufferPools = new BufferPool[threadCount];
-                for (int i = 0; i < bufferPools.Length; ++i)
-                {
-                    bufferPools[i] = new BufferPool();
-                }
-            }
-
-            void DispatchThread(int workerIndex)
-            {
-                //Debug.Assert(workerBody != null);
-                workerBody(workerIndex);
-
-                if (Interlocked.Increment(ref completedWorkerCounter) == threadCount)
-                {
-                    finished.Set();
-                }
-            }
-
-            volatile Action<int> workerBody;
-            int workerIndex;
-            int completedWorkerCounter;
-
-            void WorkerLoop(object untypedSignal)
-            {
-                var signal = (AutoResetEvent)untypedSignal;
-                while (true)
-                {
-                    signal.WaitOne();
-                    if (disposed)
-                        return;
-                    DispatchThread(Interlocked.Increment(ref workerIndex) - 1);
-                }
-            }
-
-            void SignalThreads()
-            {
-                for (int i = 0; i < workers.Length; ++i)
-                {
-                    workers[i].Signal.Set();
-                }
-            }
-
-            public void DispatchWorkers(Action<int> workerBody)
-            {
-                //Debug.Assert(this.workerBody == null);
-                workerIndex = 1; //Just make the inline thread worker 0. While the other threads might start executing first, the user should never rely on the dispatch order.
-                completedWorkerCounter = 0;
-                this.workerBody = workerBody;
-                SignalThreads();
-                //Calling thread does work. No reason to spin up another worker and block this one!
-                DispatchThread(0);
-                finished.WaitOne();
-                this.workerBody = null;
-            }
-
-            volatile bool disposed;
-            public void Dispose()
-            {
-                if (!disposed)
-                {
-                    disposed = true;
-                    SignalThreads();
-                    for (int i = 0; i < bufferPools.Length; ++i)
-                    {
-                        bufferPools[i].Clear();
-                    }
-                    foreach (var worker in workers)
-                    {
-                        worker.Thread.Join();
-                        worker.Signal.Dispose();
-                    }
-                }
-            }
-
-            public BufferPool GetThreadMemoryPool(int workerIndex)
-            {
-                return bufferPools[workerIndex];
-            }
-        }
-
-        #endregion
-
-        #region struct: ExternalForcesCallbacks
-
-        /// <summary>
-        /// This adds accelerations onto body's velocities.  It's how bebu implemented concepts like my IGravityField
-        /// </summary>
-        /// <remarks>
-        /// This deals with accelerations (adding directly to velocity), not forces
-        /// </remarks>
-        private struct ExternalAccelCallbacks : IPoseIntegratorCallbacks
-        {
-            #region Declaration Section
-
-            public SortedList<int, PhysicsBody> Bodies;
-
-            // Can't reference simulation, because simulation references this and makes a copy.  Need to have a list of bodies, or maybe a delegate to simulation?
-            //public Simulation Simulation;
-
-            // The values need to be stored in an object, because directly setting bools and floats as properties of this struct don't carry over (the values stay default because the struct is copied)
-            public VectorFieldArgs Field;
-            private float _fieldStrengthDt;
-            private System.Numerics.Quaternion? _swirlQuat;
-
-            public DragArgs Drag;
-            private float _dragLinearDt;
-            private float _dragAngularDt;
-
-            public BodyBodyArgs BodyBody;
-            private float _bodybodyStrengthDt;
-
-            private SortedList<int, Vector3> _bodybodyAccelerations;
-
-            #endregion
-
-            public AngularIntegrationMode AngularIntegrationMode => AngularIntegrationMode.Nonconserving;
-
-            /// <summary>
-            /// Gets called each frame before all the bodies are queried.  Basically, just multiply the current acceleration values times
-            /// delta and store that to be used during each call to IntegrateVelocity.  At a minimum, store delta to be used by each
-            /// call to IntegrateVelocity
-            /// </summary>
-            /// <remarks>
-            /// Things can only be cached here if they are the same for each body.  For example if gravity isn't position dependant, then
-            /// set _gravityFrame = Gravity * dt each time this method is called
-            /// </remarks>
-            public void PrepareForIntegration(float dt)
-            {
-                _fieldStrengthDt = Field.Strength * dt;
-
-                if (_swirlQuat == null)
-                {
-                    _swirlQuat = System.Numerics.Quaternion.CreateFromAxisAngle(new Vector3(0, 0, 1), Math1D.DegreesToRadians(10f));
-                }
-
-                _dragLinearDt = Drag.PercentSpeed_Linear * dt;
-                _dragAngularDt = Drag.PercentSpeed_Angular * dt;
-
-                _bodybodyStrengthDt = BodyBody.Strength * dt;
-
-                _bodybodyAccelerations?.Clear();
-
-                if (BodyBody.Type != BodyBodyType.None)
-                {
-                    //TODO: In a real app, something like gravity should be done in a different thread.  That way the main thread can just apply the current force felt to each body
-                    CalculateBodyBody(dt);
-                }
-            }
-
-            /// <summary>
-            /// This gets called for each body, each frame
-            /// </summary>
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
-            public void IntegrateVelocity(int bodyIndex, in RigidPose pose, in BodyInertia localInertia, int workerIndex, ref BodyVelocity velocity)
-            {
-                // Ignore kinematics (static bodies)
-                if (localInertia.InverseMass <= 0)
-                {
-                    return;
-                }
-
-                if (Field.HasField)
-                {
-                    #region vector field
-
-                    Vector3 direction = new Vector3();
-
-                    Vector3 positionUnit = (Field.Inward || Field.Swirl || Field.OuterShell) ?
-                        pose.Position.ToUnit() :
-                        new Vector3();
-
-
-                    if (Field.Inward)
-                    {
-                        direction += positionUnit * _fieldStrengthDt;
-                    }
-
-                    if (Field.Swirl)
-                    {
-                        direction += Vector3.Transform(positionUnit * _fieldStrengthDt, _swirlQuat.Value);
-                    }
-
-                    if (Field.ZPlane)
-                    {
-                        float z = pose.Position.Z.IsNearZero() ? 0f :
-                            pose.Position.Z > 0 ? 1f :
-                            -1f;
-
-                        direction += new Vector3(0, 0, z * _fieldStrengthDt);
-                    }
-
-                    if (Field.OuterShell)
-                    {
-                        // See Game.Newt.v2.GameItems GravityFieldSpace.BoundryField.GetForce()
-                        float shellDistance = pose.Position.Length() - Field.OuterShellRadius;
-                        if (shellDistance > 0f)
-                        {
-                            double force = Field.EquationConstant * Math.Pow(shellDistance, Field.OuterShellExponent);
-                            force *= _fieldStrengthDt;
-
-                            direction += positionUnit * (float)force;
-                        }
-                    }
-
-                    if (Field.IsForce)
-                    {
-                        //f=ma, so a=f/m
-                        direction *= localInertia.InverseMass;
-                    }
-
-                    velocity.Linear -= direction;
-
-                    #endregion
-                }
-
-                if (BodyBody.Type != BodyBodyType.None)
-                {
-                    velocity.Linear += _bodybodyAccelerations[BodyBody.Sim.Bodies.ActiveSet.IndexToHandle[bodyIndex]];       //WARNING: bodyIndex is not the same as bodyHandle.  It's the index into the active set
-                }
-
-                if (Drag.ApplyLinear)
-                {
-                    velocity.Linear -= velocity.Linear * _dragLinearDt;
-                }
-
-                if (Drag.ApplyAngular)
-                {
-                    velocity.Angular -= velocity.Angular * _dragAngularDt;
-                }
-
-
-                //velocity.Linear = (velocity.Linear + _gravityDt) * linearDampingDt;
-                //velocity.Angular = velocity.Angular * angularDampingDt;
-
-                // --- or ---
-
-                //var offset = pose.Position - PlanetCenter;
-                //var distance = offset.Length();
-                //velocity.Linear -= _gravityDt * offset / MathF.Max(1f, distance * distance * distance);
-
-            }
-
-            #region Private Methods
-
-            private void CalculateBodyBody(float dt)
-            {
-                // Init the forces list
-                var forces = Bodies.Values.
-                    Select(o => (handle: o.BodyHandle, body: o.Body, force: new Vector3(), mass: 1f / o.Body.LocalInertia.InverseMass)).
-                    ToArray();
-
-                // Calculate Forces
-                for (int outer = 0; outer < Bodies.Values.Count - 1; outer++)
-                {
-                    Vector3 positionOuter = forces[outer].body.Pose.Position;
-
-                    for (int inner = outer + 1; inner < Bodies.Values.Count; inner++)
-                    {
-                        Vector3 positionInner = forces[inner].body.Pose.Position;
-
-                        Vector3 gravityLink = positionOuter - positionInner;
-
-                        var force = BodyBody.Type switch
-                        {
-                            BodyBodyType.Constant => BodyBody.Strength,
-                            BodyBodyType.Spring => BodyBody.Strength * gravityLink.Length(),
-                            BodyBodyType.Gravity => BodyBody.Strength * (forces[outer].mass * forces[inner].mass) / gravityLink.LengthSquared(),
-                            _ => throw new ApplicationException($"Unexpected {nameof(BodyBodyType)}: {BodyBody.Type}"),
-                        };
-
-                        if (!BodyBody.Toward)
-                        {
-                            force *= -1;
-                        }
-
-                        if (!force.IsInvalid())
-                        {
-                            gravityLink = gravityLink.ToUnit() * force;
-
-                            forces[inner].force += gravityLink;
-                            forces[outer].force -= gravityLink;
-                        }
-                    }
-                }
-
-                // Store them
-                if (_bodybodyAccelerations == null)
-                {
-                    _bodybodyAccelerations = new SortedList<int, Vector3>();
-                }
-                _bodybodyAccelerations.Clear();
-
-                foreach (var force in forces)
-                {
-                    _bodybodyAccelerations.Add(force.handle, force.force * force.body.LocalInertia.InverseMass * dt);        // turn force into an acceleration
-                }
-            }
-
-            #endregion
-        }
-
-        #endregion
         #region struct: CollisionCallbacks
 
         /// <summary>
@@ -740,12 +409,231 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+        #region struct: ExternalForcesCallbacks
+
+        /// <summary>
+        /// This adds accelerations onto body's velocities.  It's how bebu implemented concepts like my IGravityField
+        /// </summary>
+        /// <remarks>
+        /// This deals with accelerations (adding directly to velocity), not forces
+        /// </remarks>
+        private struct ExternalAccelCallbacks : IPoseIntegratorCallbacks
+        {
+            #region Declaration Section
+
+            public SortedList<int, PhysicsBody> Bodies;
+
+            // Can't reference simulation, because simulation references this and makes a copy.  Need to have a list of bodies, or maybe a delegate to simulation?
+            //public Simulation Simulation;
+
+            // The values need to be stored in an object, because directly setting bools and floats as properties of this struct don't carry over (the values stay default because the struct is copied)
+            public VectorFieldArgs Field;
+            private float _fieldStrengthDt;
+            private System.Numerics.Quaternion? _swirlQuat;
+
+            public DragArgs Drag;
+            private float _dragLinearDt;
+            private float _dragAngularDt;
+
+            public BodyBodyArgs BodyBody;
+            private float _bodybodyStrengthDt;
+
+            private SortedList<int, Vector3> _bodybodyAccelerations;
+
+            #endregion
+
+            public AngularIntegrationMode AngularIntegrationMode => AngularIntegrationMode.Nonconserving;
+
+            /// <summary>
+            /// Gets called each frame before all the bodies are queried.  Basically, just multiply the current acceleration values times
+            /// delta and store that to be used during each call to IntegrateVelocity.  At a minimum, store delta to be used by each
+            /// call to IntegrateVelocity
+            /// </summary>
+            /// <remarks>
+            /// Things can only be cached here if they are the same for each body.  For example if gravity isn't position dependant, then
+            /// set _gravityFrame = Gravity * dt each time this method is called
+            /// </remarks>
+            public void PrepareForIntegration(float dt)
+            {
+                _fieldStrengthDt = Field.Strength * dt;
+
+                if (_swirlQuat == null)
+                {
+                    _swirlQuat = System.Numerics.Quaternion.CreateFromAxisAngle(new Vector3(0, 0, 1), Math1D.DegreesToRadians(10f));
+                }
+
+                _dragLinearDt = Drag.PercentSpeed_Linear * dt;
+                _dragAngularDt = Drag.PercentSpeed_Angular * dt;
+
+                _bodybodyStrengthDt = BodyBody.Strength * dt;
+
+                _bodybodyAccelerations?.Clear();
+
+                if (BodyBody.Type != BodyBodyType.None)
+                {
+                    //TODO: In a real app, something like gravity should be done in a different thread.  That way the main thread can just apply the current force felt to each body
+                    CalculateBodyBody(dt);
+                }
+            }
+
+            /// <summary>
+            /// This gets called for each body, each frame
+            /// </summary>
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            public void IntegrateVelocity(int bodyIndex, in RigidPose pose, in BodyInertia localInertia, int workerIndex, ref BodyVelocity velocity)
+            {
+                // Ignore kinematics (static bodies)
+                if (localInertia.InverseMass <= 0)
+                {
+                    return;
+                }
+
+                if (Field.HasField)
+                {
+                    #region vector field
+
+                    Vector3 direction = new Vector3();
+
+                    Vector3 positionUnit = (Field.Inward || Field.Swirl || Field.OuterShell) ?
+                        pose.Position.ToUnit() :
+                        new Vector3();
+
+
+                    if (Field.Inward)
+                    {
+                        direction += positionUnit * _fieldStrengthDt;
+                    }
+
+                    if (Field.Swirl)
+                    {
+                        direction += Vector3.Transform(positionUnit * _fieldStrengthDt, _swirlQuat.Value);
+                    }
+
+                    if (Field.ZPlane)
+                    {
+                        float z = pose.Position.Z.IsNearZero() ? 0f :
+                            pose.Position.Z > 0 ? 1f :
+                            -1f;
+
+                        direction += new Vector3(0, 0, z * _fieldStrengthDt);
+                    }
+
+                    if (Field.OuterShell)
+                    {
+                        // See Game.Newt.v2.GameItems GravityFieldSpace.BoundryField.GetForce()
+                        float shellDistance = pose.Position.Length() - Field.OuterShellRadius;
+                        if (shellDistance > 0f)
+                        {
+                            double force = Field.EquationConstant * Math.Pow(shellDistance, Field.OuterShellExponent);
+                            force *= _fieldStrengthDt;
+
+                            direction += positionUnit * (float)force;
+                        }
+                    }
+
+                    if (Field.IsForce)
+                    {
+                        //f=ma, so a=f/m
+                        direction *= localInertia.InverseMass;
+                    }
+
+                    velocity.Linear -= direction;
+
+                    #endregion
+                }
+
+                if (BodyBody.Type != BodyBodyType.None)
+                {
+                    velocity.Linear += _bodybodyAccelerations[BodyBody.Sim.Bodies.ActiveSet.IndexToHandle[bodyIndex]];       //WARNING: bodyIndex is not the same as bodyHandle.  It's the index into the active set
+                }
+
+                if (Drag.ApplyLinear)
+                {
+                    velocity.Linear -= velocity.Linear * _dragLinearDt;
+                }
+
+                if (Drag.ApplyAngular)
+                {
+                    velocity.Angular -= velocity.Angular * _dragAngularDt;
+                }
+
+
+                //velocity.Linear = (velocity.Linear + _gravityDt) * linearDampingDt;
+                //velocity.Angular = velocity.Angular * angularDampingDt;
+
+                // --- or ---
+
+                //var offset = pose.Position - PlanetCenter;
+                //var distance = offset.Length();
+                //velocity.Linear -= _gravityDt * offset / MathF.Max(1f, distance * distance * distance);
+
+            }
+
+            #region Private Methods
+
+            private void CalculateBodyBody(float dt)
+            {
+                // Init the forces list
+                var forces = Bodies.Values.
+                    Select(o => (handle: o.BodyHandle, body: o.Body, force: new Vector3(), mass: 1f / o.Body.LocalInertia.InverseMass)).
+                    ToArray();
+
+                // Calculate Forces
+                for (int outer = 0; outer < Bodies.Values.Count - 1; outer++)
+                {
+                    Vector3 positionOuter = forces[outer].body.Pose.Position;
+
+                    for (int inner = outer + 1; inner < Bodies.Values.Count; inner++)
+                    {
+                        Vector3 positionInner = forces[inner].body.Pose.Position;
+
+                        Vector3 gravityLink = positionOuter - positionInner;
+
+                        var force = BodyBody.Type switch
+                        {
+                            BodyBodyType.Constant => BodyBody.Strength,
+                            BodyBodyType.Spring => BodyBody.Strength * gravityLink.Length(),
+                            BodyBodyType.Gravity => BodyBody.Strength * (forces[outer].mass * forces[inner].mass) / gravityLink.LengthSquared(),
+                            _ => throw new ApplicationException($"Unexpected {nameof(BodyBodyType)}: {BodyBody.Type}"),
+                        };
+
+                        if (!BodyBody.Toward)
+                        {
+                            force *= -1;
+                        }
+
+                        if (!force.IsInvalid())
+                        {
+                            gravityLink = gravityLink.ToUnit() * force;
+
+                            forces[inner].force += gravityLink;
+                            forces[outer].force -= gravityLink;
+                        }
+                    }
+                }
+
+                // Store them
+                if (_bodybodyAccelerations == null)
+                {
+                    _bodybodyAccelerations = new SortedList<int, Vector3>();
+                }
+                _bodybodyAccelerations.Clear();
+
+                foreach (var force in forces)
+                {
+                    _bodybodyAccelerations.Add(force.handle, force.force * force.body.LocalInertia.InverseMass * dt);        // turn force into an acceleration
+                }
+            }
+
+            #endregion
+        }
+
+        #endregion
 
         #region class: PhysicsBody
 
         private class PhysicsBody
         {
-            //TODO: Store the bepu object
             //TODO: Figure out what to do with sets of joined bodies
 
             public int BodyHandle { get; set; }
@@ -774,8 +662,8 @@ namespace Game.Bepu.Testers
         private readonly VectorFieldArgs _field;
         private readonly DragArgs _drag;
         private readonly BodyBodyArgs _bodybody;
-        private ExternalAccelCallbacks _externalAccel;
         private CollisionCallbacks _collision;
+        private ExternalAccelCallbacks _externalAccel;
 
         private SortedList<int, PhysicsBody> _bodies = new SortedList<int, PhysicsBody>();
         private List<Visual3D> _visuals = new List<Visual3D>();
@@ -921,9 +809,14 @@ namespace Game.Bepu.Testers
 
                 #region attempt - copy of demo
 
-                // from ShapesExtractor.AddInstances()
+                //NOTE: A potentially cleaner way of iterating bodies is: (this whole loop was written before I just stored the body reference directly)
+                //foreach (var body in _customBodyList)
+                    //BodyReference bodyRef = _simulation.Bodies.GetBodyReference(body.BodyHandle);
 
-                for (int i = 0; i < _simulation.Bodies.Sets.Length; ++i)
+
+                    // from ShapesExtractor.AddInstances()
+
+                    for (int i = 0; i < _simulation.Bodies.Sets.Length; ++i)
                 {
                     ref var set = ref _simulation.Bodies.Sets[i];
 

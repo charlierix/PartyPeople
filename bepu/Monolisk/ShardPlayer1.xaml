@@ -9,10 +9,11 @@
     <Window.Resources>
         <Style TargetType="Button">
             <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Focusable" Value="False"/>
         </Style>
-        
+
     </Window.Resources>
-    
+
     <Grid>
         <Grid.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -48,14 +49,20 @@
             </Viewport3D>
         </Border>
 
+        <!-- Top Left -->
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8">
             <TextBlock x:Name="lblShardName" FontSize="16" Foreground="#E0FFFFFF">
                 <TextBlock.Effect>
                     <DropShadowEffect BlurRadius="8" Direction="0" Color="#000000" Opacity=".5"/>
                 </TextBlock.Effect>
             </TextBlock>
-            
-            <Button Focusable="False" Content="Load" Click="Load_Click"/>
+
+            <Button Content="Load" Click="Load_Click"/>
+        </StackPanel>
+
+        <!-- Bottom Left -->
+        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8">
+            <Button Content="drop ball" Margin="0,16,0,0" Click="DropBall_Click"/>
         </StackPanel>
     </Grid>
 </Window>

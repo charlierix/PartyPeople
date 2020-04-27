@@ -9,6 +9,16 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Math_WPF\Math_WPF.csproj" />
+    <ProjectReference Include="..\GameItems\GameItems.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="BepuPhysics">
+      <HintPath>..\..\lib\bepu\BepuPhysics.dll</HintPath>
+    </Reference>
+    <Reference Include="BepuUtilities">
+      <HintPath>..\..\lib\bepu\BepuUtilities.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

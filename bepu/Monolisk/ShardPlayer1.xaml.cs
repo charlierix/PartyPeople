@@ -27,6 +27,7 @@ namespace Game.Bepu.Monolisk
         private const double PLAYERHEIGHT = .25;
 
         private readonly PlayerController1 _playerController;
+        private readonly Physics1 _physics;
 
         private ShardVisuals1 _shard = null;
 
@@ -37,6 +38,8 @@ namespace Game.Bepu.Monolisk
         public ShardPlayer1()
         {
             InitializeComponent();
+
+            _physics = new Physics1();
 
             _playerController = new PlayerController1(_camera, grdViewPort);
             _playerController.IsActive = false;
@@ -86,21 +89,76 @@ namespace Game.Bepu.Monolisk
             }
         }
 
+        private void DropBall_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if(_shard == null)
+                {
+                    MessageBox.Show("Load a shard first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                Point3D pos = _camera.Position + (_camera.LookDirection.ToUnit(false) * .3);
+
+                _physics.AddBall(pos, .06, Colors.Yellow, _viewport);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
 
         #region Private Methods
 
         private void LoadShard(ShardMap1 shard)
         {
+            _physics.Clear();
+
             if (_shard != null)
             {
                 _viewport.Children.Remove(_shard.Visual);
                 _shard = null;
             }
 
+            // Visuals
             _shard = ShardRendering1.LoadShard(shard);
-
             _viewport.Children.Add(_shard.Visual);
+
+            // Physics
+            LoadPhysicsTiles(shard, _physics);
+        }
+
+        private static void LoadPhysicsTiles(ShardMap1 shard, Physics1 physics)
+        {
+            var isOpen = new Func<int, int, bool>((x, y) =>
+            {
+                if (x < 0 || y < 0 || x >= shard.Tiles.Length || y >= shard.Tiles.Length)
+                    return true;
+                else
+                    return shard.Tiles[y][x] == null;
+            });
+
+            foreach (VectorInt index in shard.EnumerateIndices())
+            {
+                if (shard.Tiles[index.Y][index.X] != null)
+                {
+                    var pos = ShardRendering1.GetTilePos(index.X, index.Y);
+
+                    double size = Math1D.Avg(pos.max.X - pos.min.X, pos.max.Y - pos.min.Y);
+
+                    physics.AddTerrain
+                    (
+                        new Rect3D(pos.min.X, pos.min.Y, -size, size, size, size),
+                        isOpen(index.X - 1, index.Y),
+                        isOpen(index.X + 1, index.Y),
+                        isOpen(index.X, index.Y - 1),
+                        isOpen(index.X, index.Y + 1)
+                    );
+                }
+            }
         }
 
         private void CreatePlayer()
@@ -123,20 +181,9 @@ namespace Game.Bepu.Monolisk
 
         private VectorInt[] FindItems(ShardItemType1 type)
         {
-            var retVal = new List<VectorInt>();
-
-            for (int y = 0; y < _shard.Shard.Tiles.Length; y++)
-            {
-                for (int x = 0; x < _shard.Shard.Tiles[y].Length; x++)
-                {
-                    if(_shard.Shard.Tiles[y][x]?.Item?.ItemType == type)
-                    {
-                        retVal.Add(new VectorInt(x, y));
-                    }
-                }
-            }
-
-            return retVal.ToArray();
+            return _shard.Shard.EnumerateIndices().
+                Where(o => _shard.Shard.Tiles[o.Y][o.X]?.Item?.ItemType == type).
+                ToArray();
         }
 
         #endregion
