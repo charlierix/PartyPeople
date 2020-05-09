@@ -240,8 +240,13 @@ Some weapon types should be common, even though they don't make sense for some c
 
 
 
+Give them the ability to craft their own weapon (spend some crafting potion)
+    Have a CAD room where they can choose material types
+    Draw components to the size/shape they want
+    Attach the components together
 
 
 
+Make the player take damage if they hit themself with their blade
 
 
