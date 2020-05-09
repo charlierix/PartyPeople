@@ -2987,8 +2987,7 @@ namespace Game.Math_WPF.Mathematics
         /// </summary>
         public static Point[] GetRotatedPoints(Point3D[] points)
         {
-            Transform3D dummy1, dummy2;
-            return GetRotatedPoints(out dummy1, out dummy2, points, false);
+            return GetRotatedPoints(out _, out _, points, false);
         }
         /// <summary>
         /// This overload assumes that there are at least 3 points, or it will just return null

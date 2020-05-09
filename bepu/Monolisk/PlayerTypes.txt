@@ -1,0 +1,252 @@
+﻿All types need to be able to jump onto a tier1 platform, but not onto a tier2 or over a wall
+
+
+------------------------------- Warrior
+Make this a quadruped.  Not thin like a horse, but stockier.  Have the hind legs shorter, like a hyena or giraffe
+
+1.5 times taller than standard
+
+Give this a strong forward charge, short bursts of speed in a forward direction
+
+Standard jump height, a bit extra forward distance.  Almost no back jump, a small amount of side jump
+
+Heavy weapons, armor, shields
+
+Weapons:
+    Various large heavy melee
+    Javelin (somewhere between a javelin and a pike)
+        When in melee, it's held like a sword.  Lots stab, not much other damage
+        When in ranged, it reverses in the hand.  When thrown, the wrist must be pointed backward (can also stab while held in this position)
+    Ball and chain
+        Has longer reach (let it be extended/retracted)
+    Scythe
+        Use is like an actual scythe, mowing them like wheat
+    War Scythe
+        This is more of a pole arm with a curved blade at the end
+    
+
+Specials:
+    Knock back
+
+
+Tiny enemies like small spiders should be no consequence.  The warrior should auto stomp them when you walk over them
+
+
+------------------------------- Hunter
+Standard size, standard mobility
+
+Jump a little higher normal (but still not high enough to reach a tier2 ledge)
+    Bullet time is longer when at the top of a jump
+    Bullet time shouldn't be simple on/off at the top.  It should automatically start to activate around 80% of jump height, full bullet time at top, then fade back on the way down
+    May need some machine learning to not activate bullet time when they are just jumping up to a ledge
+
+
+Weaker melee weapons, Excellent ranged weapons:
+    Bow & Arrow
+        Long range, good aim, good damage
+    Hatchet
+        Medium all around
+    Small sword
+
+
+
+------------------------------- Shadow
+Slightly shorter, high mobility
+
+Can triple jump
+    Don't let the height keep growing, but do allow for lots of direction changing mid air
+    Backflip + bullet time
+
+Fun tricky weapons
+
+Limited stealth?
+
+Specials:
+    The standard shadow abilities, aoe stuff should more effective when deployed mid jump
+
+
+
+------------------------------- Mage
+Average height, mobility
+
+Jumps are floaty.  Somewhere between an uncontrolled parabola and a jetpack
+
+
+Average melee or ranged
+    Pain stick
+        Sort of a light saber, does a bunch of elemental damage.  Some chain lightning/stun effects
+    Wands
+    Blast ball
+        Held in hand, so very short melee weapon.  Powerful aoe effects
+    Telekinetic
+        Pick up an enemy and bash others with it 
+        Smaller enemies will be affected more
+        Trigger to select, then draw a path with your hand, release trigger to throw
+        This won't be a long term levitation, just a pick up and throw
+        With some practice, you could throw them straight up, grab them again and slam them down
+
+
+Specials:
+    Confusion
+    Shield
+
+
+
+
+------------------------------- Artificer
+Shorter, slower, small bursts of speed
+
+Uses a jetpack.  Require both hands pointed down to steer.  So very mobile while airborn to compensate for slower ground speed
+
+Specials:
+    Build things
+    Swarm Bots :)
+        Maybe even gesture certain shapes to do different commands
+            O   -- defense (default) - they orbit you until something gets too close
+            ^   -- offense - they seek out enemies, prioritizing the direction you're looking (but once attacking, they stay on that target)
+            \   -- fruit ninja whatever was slashed through, then return to previous mode
+
+
+
+
+
+------------------------------- Elemental Spirit
+Tiny
+
+Doesn't walk, hovers just above the ground
+
+Doesn't use direct weapons/armor.  All attached items are modifiers.  All damage is done with direct contact
+
+Arms out like treading water
+Arms down like a missile
+Arms higher up to stop (this will be extra useful when first learning to control this char)
+Steering is relationship between head, hand position, wrist orientation
+
+Enemies need to have auras that show where they take damage and where they give out damage
+
+Trigger button probably needs to coincide with contact to do the damage.  Otherwise, you do minimal damage, can still take damge regardless of trigger
+
+Can pass into walls a little, but get pushed out.  Maybe start taking damage if inside floors/walls too long
+
+Mess with sound when blasting into them
+
+
+Specials:
+    Yaka Arrow -- an optimal path is chosen through enemies and you follow that path.  have slight distorted whistling sounds
+    Fire Tornado -- you fly tight circles around a group of enemies and it creates a flame vortex
+
+
+
+------------------------------- Mind Controller
+Small, very weak
+
+Movement and jump based on messiah's cherub
+
+Good stealth ability
+
+Can possess enemies.  While possessing, it builds up damage that will be applied when you jump out of them
+So while possessing, you are attacking other enemies, then when you jump out the host takes damage built up damage
+
+Can only possess by jumping into their back
+
+Do the same health steal that messiah used
+
+(things like spider nests would be difficult to implement)
+
+
+Very low damage weapons.  Just enough to finish something off
+    Butter Knife
+    Sling Shot
+    Bolo balls
+
+
+Specials:
+    Give Present -- you give a present to another npc and they take it to the center of the nearest group.  the gift explodes
+    Pacify -- when in regular form, you can pacify a group in order to get away and get hidden
+    Confusion
+
+
+
+------------------------------- Puppet Master
+Dual.  The player has god hands, and the puppet is a small golem
+
+The puppet will auto fire when close to enemies, can be melee or ranged
+
+Jumping is also performed automatically
+
+This is sort of like playing the mobile game in vr, but the player can directly affect the game
+
+Any direct manipulations would use up mana, so the golem is needed for doing most of the damage
+
+When applying a weather effect, hold both hands around an area, creating a circle, sort of like a target reticle
+
+God hand specials:
+    Create fog
+    Drop meteors
+    Place a wall
+    Decoys -- clip your finger with the ground, and that will be a decoy
+    Pinch enemy -- this will stun an enemy
+    Enhance golem -- keep the hands close to the golem.  It acts like a conduit transferring your energy into the real world (visual effect flows from hands to golem)
+        Heal golem
+        Damage field -- the golem has an aura that damages enemies
+        Fluid suspension -- nearby enemies are sluggish, somewhat floating
+        Grow -- the golem grows around 50% does extra damage, takes less damage, moves faster (looks enraged)
+
+
+
+
+****************************************************
+
+All of the shared weapons have a socket.  Each player type has their own types of gems that can go in those sockets
+The effects have a % chance
+
+    Warrior:
+        Drain defense
+        Weaken
+        Life Steal
+
+    Hunter:
+        Poison
+        Fear
+        Explosive
+
+    Shadow
+        Extra damage
+        Blind
+        Explosive
+
+    Mage
+        Cold
+        Flame
+        Electric
+
+    Artificer
+        Stupidity/Disoriented (not a full on confuse, makes them forgetful, sometimes attack others)
+        Gaseous/Stink (makes others increase distance from them)
+
+
+
+
+Magical Escrima
+    When dual yielded and the endpoints are somewhat lined up, draw an electric bezier curve between those points
+    The other end caps would leak out electricity
+    So they do direct blunt damage, but can also do indirect magic damage
+
+
+
+Some weapon types should be common, even though they don't make sense for some characters.  This will help demonstrate the size/strength differences
+    A dagger would feel like a short sword for shadow, but a pocket knife for warrior
+    A halberd would be used one handed by warrior, but almost too heavy for shadow (hunter and artificer would use it like normal)
+
+
+
+Give them the ability to craft their own weapon (spend some crafting potion)
+    Have a CAD room where they can choose material types
+    Draw components to the size/shape they want
+    Attach the components together
+
+
+
+Make the player take damage if they hit themself with their blade
+
+

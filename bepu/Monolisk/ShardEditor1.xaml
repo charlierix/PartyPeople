@@ -1,0 +1,78 @@
+﻿<Window x:Class="Game.Bepu.Monolisk.ShardEditor1"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Game.Bepu.Monolisk"
+        mc:Ignorable="d"
+        Title="Shard Editor 1" ResizeMode="CanResizeWithGrip" Width="1000" Height="1000" Loaded="Window_Loaded">
+    <Grid>
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#100F0D" Offset="0"/>
+                <GradientStop Color="#525248" Offset=".25"/>
+                <GradientStop Color="#959185" Offset=".5"/>
+                <GradientStop Color="#B9B6A5" Offset=".75"/>
+                <GradientStop Color="#EFEAE4" Offset="1"/>
+            </LinearGradientBrush>
+        </Grid.Background>
+
+        <!-- Viewport -->
+        <Border Name="grdViewPort" Background="Transparent" MouseDown="grdViewPort_MouseDown" MouseMove="grdViewPort_MouseMove" MouseUp="grdViewPort_MouseUp">
+            <Border.Effect>
+                <DropShadowEffect Color="#BECCB4" BlurRadius="14" Opacity=".2" Direction="0" ShadowDepth="0" />
+            </Border.Effect>
+
+            <Viewport3D Name="_viewport" IsHitTestVisible="False">
+                <!-- Camera -->
+                <Viewport3D.Camera>
+                    <PerspectiveCamera x:Name="_camera" Position="0,0,10" LookDirection="0,0,-1" UpDirection="0,1,0" FieldOfView="45"/>
+                </Viewport3D.Camera>
+                <!-- Lights -->
+                <ModelVisual3D>
+                    <ModelVisual3D.Content>
+                        <Model3DGroup>
+                            <AmbientLight Color="DimGray" />
+                            <DirectionalLight Color="White" Direction="1,-1,-1" />
+                            <DirectionalLight Color="#A0A0A0" Direction="-1,1,1" />
+                        </Model3DGroup>
+                    </ModelVisual3D.Content>
+                </ModelVisual3D>
+            </Viewport3D>
+        </Border>
+
+        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8">
+            <Button Content="Show Dot" Click="ShowDot_Click"/>
+            <Button Content="Show Axiis" Click="ShowAxiis_Click"/>
+            <Button Content="Clear Temp Visuals" Click="ClearTempVisuals_Click"/>
+
+            <Button Content="New Random Shard" Margin="0,8,0,0" Click="NewRandomShard_Click"/>
+
+            <TextBox x:Name="txtShardName" FontSize="16" Foreground="#E0FFFFFF" Background="#A0606060" BorderBrush="#48B0B0B0" BorderThickness="1" Margin="0,8,0,0"/>
+            <Button Content="Save" Click="Save_Click"/>
+            <Button Content="Load" Click="Load_Click"/>
+        </StackPanel>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="20">
+            <ToggleButton x:Name="chkDelete" Content="Delete" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="6,2" Margin="0,0,40,0"/>
+
+            <UniformGrid Rows="1">
+                <UniformGrid.Resources>
+                    <Style TargetType="{x:Type RadioButton}">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate>
+                                    <ToggleButton Padding="6,2" Margin="3,0" Content="{Binding Path=Content, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type RadioButton}}}" IsChecked="{Binding Path=IsChecked, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type RadioButton}}}"/>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </UniformGrid.Resources>
+
+                <RadioButton IsChecked="True" x:Name="radCement" Content="Cement"/>
+                <RadioButton x:Name="radStart" Content="Start"/>
+                <RadioButton x:Name="radEnd" Content="End"/>
+            </UniformGrid>
+        </StackPanel>
+    </Grid>
+</Window>

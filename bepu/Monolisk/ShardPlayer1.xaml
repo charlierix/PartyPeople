@@ -1,0 +1,68 @@
+﻿<Window x:Class="Game.Bepu.Monolisk.ShardPlayer1"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Game.Bepu.Monolisk"
+        mc:Ignorable="d"
+        Title="Shard Player 1" ResizeMode="CanResizeWithGrip" Width="1000" Height="1000">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Focusable" Value="False"/>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid>
+        <Grid.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                <GradientStop Color="#100F0D" Offset="0"/>
+                <GradientStop Color="#525248" Offset=".25"/>
+                <GradientStop Color="#959185" Offset=".5"/>
+                <GradientStop Color="#B9B6A5" Offset=".75"/>
+                <GradientStop Color="#EFEAE4" Offset="1"/>
+            </LinearGradientBrush>
+        </Grid.Background>
+
+        <!-- Viewport -->
+        <Border Name="grdViewPort" Background="Transparent">
+            <Border.Effect>
+                <DropShadowEffect Color="#BECCB4" BlurRadius="14" Opacity=".2" Direction="0" ShadowDepth="0" />
+            </Border.Effect>
+
+            <Viewport3D Name="_viewport" IsHitTestVisible="False">
+                <!-- Camera -->
+                <Viewport3D.Camera>
+                    <PerspectiveCamera x:Name="_camera" Position="0,0,10" LookDirection="0,0,-1" UpDirection="0,1,0" FieldOfView="45"/>
+                </Viewport3D.Camera>
+                <!-- Lights -->
+                <ModelVisual3D>
+                    <ModelVisual3D.Content>
+                        <Model3DGroup>
+                            <AmbientLight Color="DimGray" />
+                            <DirectionalLight Color="White" Direction="1,-1,-1" />
+                            <DirectionalLight Color="#A0A0A0" Direction="-1,1,1" />
+                        </Model3DGroup>
+                    </ModelVisual3D.Content>
+                </ModelVisual3D>
+            </Viewport3D>
+        </Border>
+
+        <!-- Top Left -->
+        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8">
+            <TextBlock x:Name="lblShardName" FontSize="16" Foreground="#E0FFFFFF">
+                <TextBlock.Effect>
+                    <DropShadowEffect BlurRadius="8" Direction="0" Color="#000000" Opacity=".5"/>
+                </TextBlock.Effect>
+            </TextBlock>
+
+            <Button Content="Load" Click="Load_Click"/>
+        </StackPanel>
+
+        <!-- Bottom Left -->
+        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8">
+            <Button Content="drop ball" Margin="0,16,0,0" Click="DropBall_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

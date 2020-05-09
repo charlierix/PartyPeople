@@ -15,7 +15,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "bepu", "bepu", "{F0B90F8A-1
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Testers", "bepu\Testers\Testers.csproj", "{F6840E59-6F47-4A78-B9D5-0998C9E965F2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GameItems", "bepu\GameItems\GameItems.csproj", "{88ED2A69-E8B0-4AD4-95DC-3B87CFDF7719}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameItems", "bepu\GameItems\GameItems.csproj", "{88ED2A69-E8B0-4AD4-95DC-3B87CFDF7719}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Monolisk", "bepu\Monolisk\Monolisk.csproj", "{63EEB024-5E11-486E-B061-F9DD18A591D8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +49,10 @@ Global
 		{88ED2A69-E8B0-4AD4-95DC-3B87CFDF7719}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{88ED2A69-E8B0-4AD4-95DC-3B87CFDF7719}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{88ED2A69-E8B0-4AD4-95DC-3B87CFDF7719}.Release|Any CPU.Build.0 = Release|Any CPU
+		{63EEB024-5E11-486E-B061-F9DD18A591D8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{63EEB024-5E11-486E-B061-F9DD18A591D8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{63EEB024-5E11-486E-B061-F9DD18A591D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{63EEB024-5E11-486E-B061-F9DD18A591D8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -54,6 +60,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{F6840E59-6F47-4A78-B9D5-0998C9E965F2} = {F0B90F8A-1BA5-4564-82B0-E0FB40C45957}
 		{88ED2A69-E8B0-4AD4-95DC-3B87CFDF7719} = {F0B90F8A-1BA5-4564-82B0-E0FB40C45957}
+		{63EEB024-5E11-486E-B061-F9DD18A591D8} = {F0B90F8A-1BA5-4564-82B0-E0FB40C45957}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {49B172DC-8B8C-4DC9-8061-AD0E7B50E51A}
