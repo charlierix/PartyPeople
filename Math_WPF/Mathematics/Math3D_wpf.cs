@@ -2389,10 +2389,14 @@ namespace Game.Math_WPF.Mathematics
                 {
                     // This new triangle is coplanar with the neighbor triangle, so pointWithinHull can't be used to figure out if this return
                     // triangle is facing the correct way.  Instead, make it point the same direction as the neighbor triangle
-                    dot = Vector3D.DotProduct(retVal.Normal, neighbor.Normal);
-                    if (dot < 0)
+
+                    if (neighbor != null)       // this function was getting called with no neighbor
                     {
-                        retVal = new TriangleWithPoints(point0, point2, point1, allPoints);
+                        dot = Vector3D.DotProduct(retVal.Normal, neighbor.Normal);
+                        if (dot < 0)
+                        {
+                            retVal = new TriangleWithPoints(point0, point2, point1, allPoints);
+                        }
                     }
                 }
 
@@ -2972,8 +2976,7 @@ namespace Game.Math_WPF.Mathematics
 
             private static ITriangle_wpf GetTangentPlane(int index, ITriangleIndexed_wpf[] triangles, SortedList<int, ITriangle_wpf> planes)
             {
-                ITriangle_wpf retVal;
-                if (planes.TryGetValue(index, out retVal))
+                if (planes.TryGetValue(index, out ITriangle_wpf retVal))
                 {
                     return retVal;
                 }
@@ -2986,6 +2989,8 @@ namespace Game.Math_WPF.Mathematics
             }
             private static ITriangle_wpf GetTangentPlane(int index, ITriangleIndexed_wpf[] triangles)
             {
+                Point3D requestPoint = triangles[0].AllPoints[index];
+
                 // Find the triangles that touch this point
                 ITriangleIndexed_wpf[] touching = triangles.
                     Where(o => o.IndexArray.Contains(index)).
@@ -3000,9 +3005,42 @@ namespace Game.Math_WPF.Mathematics
 
                 // Use those points to define a plane
                 ITriangle_wpf plane = Math2D.GetPlane_Average(otherPoints);
+                if (plane == null)
+                {
+                    // If execution gets here, it looks like the triangles passed in are all on the same plane, and there are only
+                    // three points.  So removing the one point causes only two points left
+
+                    int[] otherIndices = touching.
+                        SelectMany(o => o.IndexArray).
+                        Where(o => o != index).
+                        Distinct().
+                        ToArray();
+
+                    if (otherIndices.Length >= 2)
+                    {
+                        return new Triangle_wpf(requestPoint, triangles[0].AllPoints[otherIndices[0]], triangles[0].AllPoints[otherIndices[1]]);
+                    }
+                    else
+                    {
+                        //Debug3DWindow window = new Debug3DWindow();
+                        //double size = otherPoints.Max(o => o.ToVector().Length);
+                        //var sizes = Debug3DWindow.GetDrawSizes(size);
+                        //window.AddAxisLines(size, sizes.line);
+
+                        //foreach (var triangle in triangles)
+                        //{
+                        //    window.AddTriangle(triangle, WPF.UtilityWPF.GetRandomColor(64, 192));
+                        //}
+
+                        //window.AddDots(otherPoints, sizes.dot, Colors.White);
+                        //window.AddDot(requestPoint, sizes.dot, Colors.Red);
+                        //window.Show();
+
+                        throw new ApplicationException("fix this (find other points in triangles to use?)");
+                    }
+                }
 
                 // Translate the plane
-                Point3D requestPoint = triangles[0].AllPoints[index];
                 return new Triangle_wpf(requestPoint, requestPoint + (plane.Point1 - plane.Point0), requestPoint + (plane.Point2 - plane.Point0));
             }
 
