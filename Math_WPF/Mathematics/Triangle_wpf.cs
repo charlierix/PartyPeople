@@ -7,7 +7,6 @@ using System.Windows.Media.Media3D;
 
 namespace Game.Math_WPF.Mathematics
 {
-    //TODO: Make Triangle threadsafe instead of having a separate class
     #region class: Triangle_wpf
 
     //TODO:  Add methods like Clone, GetTransformed(transform), etc
@@ -52,8 +51,7 @@ namespace Game.Math_WPF.Mathematics
         {
             get
             {
-                // I could put an if statement for null, but I want this to be as fast as possible, and .net will throw an exception anyway
-                return _point0.Value;
+                return _point0.Value;       // skipping the null check to be as fast as possible (.net will throw an execption anyway)
             }
             set
             {
@@ -67,8 +65,7 @@ namespace Game.Math_WPF.Mathematics
         {
             get
             {
-                // I could put an if statement for null, but I want this to be as fast as possible, and .net will throw an exception anyway
-                return _point1.Value;
+                return _point1.Value;       // skipping the null check to be as fast as possible (.net will throw an execption anyway)
             }
             set
             {
@@ -82,8 +79,7 @@ namespace Game.Math_WPF.Mathematics
         {
             get
             {
-                // I could put an if statement for null, but I want this to be as fast as possible, and .net will throw an exception anyway
-                return _point2.Value;
+                return _point2.Value;       // skipping the null check to be as fast as possible (.net will throw an execption anyway)
             }
             set
             {
@@ -116,7 +112,7 @@ namespace Game.Math_WPF.Mathematics
                         return this.Point2;
 
                     default:
-                        throw new ArgumentOutOfRangeException("index", "index can only be 0, 1, 2: " + index.ToString());
+                        throw new ArgumentOutOfRangeException("index", $"index can only be 0, 1, 2: {index}");
                 }
             }
             set
@@ -136,7 +132,7 @@ namespace Game.Math_WPF.Mathematics
                         break;
 
                     default:
-                        throw new ArgumentOutOfRangeException("index", "index can only be 0, 1, 2: " + index.ToString());
+                        throw new ArgumentOutOfRangeException("index", $"index can only be 0, 1, 2: {index}");
                 }
             }
         }
@@ -151,9 +147,7 @@ namespace Game.Math_WPF.Mathematics
             {
                 if (_normal == null)
                 {
-                    Vector3D normal, normalUnit;
-                    double length;
-                    CalculateNormal(out normal, out length, out normalUnit, this.Point0, this.Point1, this.Point2);
+                    CalculateNormal(out Vector3D normal, out double length, out Vector3D normalUnit, this.Point0, this.Point1, this.Point2);
 
                     _normal = normal;
                     _normalLength = length;
@@ -173,9 +167,8 @@ namespace Game.Math_WPF.Mathematics
             {
                 if (_normalUnit == null)
                 {
-                    Vector3D normal, normalUnit;
                     double length;
-                    CalculateNormal(out normal, out length, out normalUnit, this.Point0, this.Point1, this.Point2);
+                    CalculateNormal(out Vector3D normal, out length, out Vector3D normalUnit, this.Point0, this.Point1, this.Point2);
 
                     _normal = normal;
                     _normalLength = length;
@@ -196,9 +189,7 @@ namespace Game.Math_WPF.Mathematics
             {
                 if (_normalLength == null)
                 {
-                    Vector3D normal, normalUnit;
-                    double length;
-                    CalculateNormal(out normal, out length, out normalUnit, this.Point0, this.Point1, this.Point2);
+                    CalculateNormal(out Vector3D normal, out double length, out Vector3D normalUnit, this.Point0, this.Point1, this.Point2);
 
                     _normal = normal;
                     _normalLength = length;
@@ -270,13 +261,13 @@ namespace Game.Math_WPF.Mathematics
         #region IComparable<ITriangle> Members
 
         /// <summary>
-        /// I wanted to be able to use triangles as keys in a sorted list
+        /// This is so triangles can be used as keys in a sorted list
         /// </summary>
         public int CompareTo(ITriangle_wpf other)
         {
             if (other == null)
             {
-                // I'm greater than null
+                // this is greater than null
                 return 1;
             }
 
@@ -2164,57 +2155,30 @@ namespace Game.Math_WPF.Mathematics
     //TODO:  May want more readonly statistics methods, like IsIntersecting, is Acute/Right/Obtuse
     public interface ITriangle_wpf : IComparable<ITriangle_wpf>
     {
-        Point3D Point0
-        {
-            get;
-        }
-        Point3D Point1
-        {
-            get;
-        }
-        Point3D Point2
-        {
-            get;
-        }
+        Point3D Point0 { get; }
+        Point3D Point1 { get; }
+        Point3D Point2 { get; }
 
-        Point3D[] PointArray
-        {
-            get;
-        }
+        Point3D[] PointArray { get; }
 
-        Point3D this[int index]
-        {
-            get;
-        }
+        Point3D this[int index] { get; }
 
-        Vector3D Normal
-        {
-            get;
-        }
+        Vector3D Normal { get; }
         /// <summary>
         /// This returns the triangle's normal.  Its length is one
         /// </summary>
-        Vector3D NormalUnit
-        {
-            get;
-        }
+        Vector3D NormalUnit { get; }
         /// <summary>
         /// This returns the length of the normal (the area of the triangle)
         /// NOTE:  Call this if you just want to know the length of the normal, it's cheaper than calling this.Normal.Length, since it's already been calculated
         /// </summary>
-        double NormalLength
-        {
-            get;
-        }
+        double NormalLength { get; }
 
         /// <summary>
         /// This is useful for functions that use this triangle as the definition of a plane
         /// (normal * planeDist = 0)
         /// </summary>
-        double PlaneDistance
-        {
-            get;
-        }
+        double PlaneDistance { get; }
 
         Point3D GetCenterPoint();
         Point3D GetPoint(TriangleEdge edge, bool isFrom);
@@ -2227,10 +2191,7 @@ namespace Game.Math_WPF.Mathematics
         Point3D GetEdgeMidpoint(TriangleEdge edge);
         double GetEdgeLength(TriangleEdge edge);
 
-        long Token
-        {
-            get;
-        }
+        long Token { get; }
     }
 
     #endregion
@@ -2238,28 +2199,13 @@ namespace Game.Math_WPF.Mathematics
 
     public interface ITriangleIndexed_wpf : ITriangle_wpf
     {
-        int Index0
-        {
-            get;
-        }
-        int Index1
-        {
-            get;
-        }
-        int Index2
-        {
-            get;
-        }
+        int Index0 { get; }
+        int Index1 { get; }
+        int Index2 { get; }
 
-        Point3D[] AllPoints
-        {
-            get;
-        }
+        Point3D[] AllPoints { get; }
 
-        int[] IndexArray
-        {
-            get;
-        }
+        int[] IndexArray { get; }
 
         int GetIndex(int whichIndex);
         int GetIndex(TriangleEdge edge, bool isFrom);

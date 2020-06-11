@@ -23,6 +23,8 @@ Weapons:
         Use is like an actual scythe, mowing them like wheat
     War Scythe
         This is more of a pole arm with a curved blade at the end
+    Dual Buckler :)
+        Monkey with cymbals smashing skulls (if they do this, then unlock a special skill that they can equip)
     
 
 Specials:
@@ -30,6 +32,9 @@ Specials:
 
 
 Tiny enemies like small spiders should be no consequence.  The warrior should auto stomp them when you walk over them
+
+
+Playing as this should feel physically explosively powerful.  No fear, just square up to the enemy, set your face, get it done
 
 
 ------------------------------- Hunter
@@ -49,6 +54,8 @@ Weaker melee weapons, Excellent ranged weapons:
     Small sword
 
 
+Playing as this should feel like you're on the outside, sniping in.  Above and around the action.  Calm
+
 
 ------------------------------- Shadow
 Slightly shorter, high mobility
@@ -57,6 +64,9 @@ Can triple jump
     Don't let the height keep growing, but do allow for lots of direction changing mid air
     Backflip + bullet time
 
+Limited wall run
+    Only if momentum is high enough, don't do some weird auto sticking
+
 Fun tricky weapons
 
 Limited stealth?
@@ -64,6 +74,11 @@ Limited stealth?
 Specials:
     The standard shadow abilities, aoe stuff should more effective when deployed mid jump
 
+
+Maybe dodge chance could increase while moving
+
+
+Playing as this should feel slippery.  Fast, mobile, high skill level.  High risk, high reward
 
 
 ------------------------------- Mage
@@ -81,15 +96,17 @@ Average melee or ranged
     Telekinetic
         Pick up an enemy and bash others with it 
         Smaller enemies will be affected more
-        Trigger to select, then draw a path with your hand, release trigger to throw
+        Trigger to select, they will move according to your hand motion
+        A lot of games only grab one joint.  Have this grab multiple near where you grab, pulling outward.  Strength of spring falls if farther from the center of grab
         This won't be a long term levitation, just a pick up and throw
         With some practice, you could throw them straight up, grab them again and slam them down
 
 
 Specials:
-    Confusion
     Shield
 
+
+Playing as this should have feel elementally powerful.  You're bending the world as you please, a mana fountain
 
 
 
@@ -107,6 +124,7 @@ Specials:
             \   -- fruit ninja whatever was slashed through, then return to previous mode
 
 
+Playing as this should feel more tactical, like you have a specific device to throw at any situation.  You're outsmarting them
 
 
 
@@ -135,6 +153,8 @@ Specials:
     Yaka Arrow -- an optimal path is chosen through enemies and you follow that path.  have slight distorted whistling sounds
     Fire Tornado -- you fly tight circles around a group of enemies and it creates a flame vortex
 
+
+Play as this should be pure joy.  Flitting around, doing as you please
 
 
 ------------------------------- Mind Controller
@@ -166,6 +186,8 @@ Specials:
     Confusion
 
 
+Playing as this should be a little scared, cautious.  Requires planning
+
 
 ------------------------------- Puppet Master
 Dual.  The player has god hands, and the puppet is a small golem
@@ -193,6 +215,7 @@ God hand specials:
         Grow -- the golem grows around 50% does extra damage, takes less damage, moves faster (looks enraged)
 
 
+Not sure how this should feel.  You're kind of detached, but still responsible for your golem?
 
 
 ****************************************************
@@ -207,7 +230,7 @@ The effects have a % chance
 
     Hunter:
         Poison
-        Fear
+        Fear -- not sure this fits
         Explosive
 
     Shadow
@@ -219,6 +242,7 @@ The effects have a % chance
         Cold
         Flame
         Electric
+        Gravity
 
     Artificer
         Stupidity/Disoriented (not a full on confuse, makes them forgetful, sometimes attack others)
@@ -248,5 +272,4 @@ Give them the ability to craft their own weapon (spend some crafting potion)
 
 
 Make the player take damage if they hit themself with their blade
-
 

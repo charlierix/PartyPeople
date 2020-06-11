@@ -823,6 +823,7 @@ namespace Game.Math_WPF.WPF
 
             // If execution gets here, then the event never returned anything.  Figure out the radius myself
 
+            //TODO: Don't just use a public property.  Let a key control (like shift+right click)
             if (!_shouldHitTestOnOrbit)
             {
                 // This works great when looking at the origin, but is really weird when offset from the orign

@@ -310,5 +310,25 @@ namespace Game.Math_WPF.Mathematics
 
             return numberText + " " + _suffix[place] + (includeB ? "B" : "");
         }
+
+        /// <summary>
+        /// This can be used to iterate over line segments of a polygon
+        /// </summary>
+        /// <remarks>
+        /// If 4 is passed in, this will return:
+        ///     0,1
+        ///     1,2
+        ///     2,3
+        ///     3,0
+        /// </remarks>
+        public static IEnumerable<(int from, int to)> IterateEdges(int count)
+        {
+            for (int cntr = 0; cntr < count - 1; cntr++)
+            {
+                yield return (cntr, cntr + 1);
+            }
+
+            yield return (count - 1, 0);
+        }
     }
 }

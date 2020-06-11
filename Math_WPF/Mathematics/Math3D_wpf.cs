@@ -8135,6 +8135,7 @@ namespace Game.Math_WPF.Mathematics
                 Z = Math1D.GetNearZeroValue(maxValue),
             };
         }
+
         /// <summary>
         /// Gets a random vector with radius between maxRadius*-1 and maxRadius (bounds are spherical,
         /// rather than cube)
@@ -8177,6 +8178,7 @@ namespace Game.Math_WPF.Mathematics
 
             return new Vector3D(x, y, z);
         }
+
         /// <summary>
         /// Gets a random vector with radius between maxRadius*-1 and maxRadius (bounds are spherical,
         /// rather than cube).  Z will always be zero.
@@ -9164,7 +9166,7 @@ namespace Game.Math_WPF.Mathematics
 
         private static CirclePlaneIntersectProps GetClosestPointsBetweenLineCylinder_PlaneIntersect(CircleLineArgs args, Point3D nearestLinePoint, Vector3D nearestLine, double nearestLineDistance)
         {
-            //NOTE: This is nearly identical to GetClosestPointsBetweenLineCircleSprtPlaneIntersect, but since some stuff was already done,
+            //NOTE: This is nearly identical to GetClosestPointsBetweenLineCircle_PlaneIntersect, but since some stuff was already done,
             // it's more just filling out the struct
 
             CirclePlaneIntersectProps retVal;
