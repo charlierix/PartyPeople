@@ -55,7 +55,7 @@ namespace Game.Core
         #region Declaration Section
 
         /// <summary>
-        /// This serves as both a lock object and a random number generator whenever a new thread needs its own random class
+        /// This is a random number generator whenever a new thread needs its own random class
         /// </summary>
         /// <remarks>
         /// RNGCryptoServiceProvider is slower than Random, but is more random.  So this is used when coming up with a new random

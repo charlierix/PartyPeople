@@ -3305,7 +3305,7 @@ namespace Game.Math_WPF.Mathematics
         /// Use this to figure out how to call GetCells, GetCells_InvertY with an arbitrary number of cells.  This packs them into
         /// roughly a square
         /// </summary>
-        public static VectorInt GetCellColumnsRows(int count)
+        public static VectorInt2 GetCellColumnsRows(int count)
         {
             int rows = Math.Sqrt(count).ToInt_Floor();
 
@@ -3315,7 +3315,7 @@ namespace Game.Math_WPF.Mathematics
                 columns++;
             }
 
-            return new VectorInt(columns, rows);
+            return new VectorInt2(columns, rows);
         }
 
         #endregion

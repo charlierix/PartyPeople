@@ -389,7 +389,7 @@ namespace Game.Math_WPF.WPF
                 throw new ArgumentException(string.Format("The new size can't be smaller than old.  Old={0},{1}  --  New={2},{3}", conv.Width, conv.Height, width, height));
             }
 
-            VectorInt offset = new VectorInt()
+            VectorInt2 offset = new VectorInt2()
             {
                 X = (width - conv.Width) / 2,
                 Y = (height - conv.Height) / 2,
@@ -1238,7 +1238,7 @@ namespace Game.Math_WPF.WPF
                     retVal.AppendLine();
                 }
 
-                VectorInt size = set.GetSize();
+                VectorInt2 size = set.GetSize();
 
                 retVal.AppendFormat("{0}x{1}", size.X, size.Y);
             }
@@ -1308,7 +1308,7 @@ namespace Game.Math_WPF.WPF
         private const double MINPERCENT = .03;
         private const double MAXPERCENT = .97;
 
-        public static RectInt GetExtractRectangle(VectorInt imageSize, bool isSquare)
+        public static RectInt2 GetExtractRectangle(VectorInt2 imageSize, bool isSquare)
         {
             Random rand = StaticRandom.GetRandomForThread();
 
@@ -1350,7 +1350,7 @@ namespace Game.Math_WPF.WPF
             }
 
             // Rectangle
-            return new RectInt()
+            return new RectInt2()
             {
                 X = rand.Next(imageSize.X - width),
                 Y = rand.Next(imageSize.Y - height),
@@ -1358,7 +1358,7 @@ namespace Game.Math_WPF.WPF
                 Height = height,
             };
         }
-        public static RectInt GetExtractRectangle(VectorInt imageSize, bool isSquare, double sizePercent)
+        public static RectInt2 GetExtractRectangle(VectorInt2 imageSize, bool isSquare, double sizePercent)
         {
             const double PERCENTDIFF = .02;
 
@@ -1412,7 +1412,7 @@ namespace Game.Math_WPF.WPF
             }
 
             // Rectangle
-            return new RectInt()
+            return new RectInt2()
             {
                 X = rand.Next(imageSize.X - width),
                 Y = rand.Next(imageSize.Y - height),
@@ -1421,7 +1421,7 @@ namespace Game.Math_WPF.WPF
             };
         }
 
-        public static bool IsTooSmall(VectorInt size, bool allow1x1 = false)
+        public static bool IsTooSmall(VectorInt2 size, bool allow1x1 = false)
         {
             return IsTooSmall(size.X, size.Y, allow1x1);
         }
@@ -1452,7 +1452,7 @@ namespace Game.Math_WPF.WPF
         ///         line up the brightest point before subtracting
         ///         allow larger differences farther away from center
         /// </remarks>
-        public static double GetExtractScore(Convolution2D patch, VectorInt brightestPoint, double? idealBrightness = null)
+        public static double GetExtractScore(Convolution2D patch, VectorInt2 brightestPoint, double? idealBrightness = null)
         {
             const double PERCENT_POS_MIN = .25;
             const double PERCENT_POS_MAX = .75;
@@ -1744,11 +1744,11 @@ namespace Game.Math_WPF.WPF
                 throw new ArgumentException("MaxOf kernel set needs at least two children");
             }
 
-            VectorInt firstReduce = kernel.Convolutions[0].GetReduction();
+            VectorInt2 firstReduce = kernel.Convolutions[0].GetReduction();
 
             for (int cntr = 1; cntr < kernel.Convolutions.Length; cntr++)
             {
-                VectorInt nextReduce = kernel.Convolutions[cntr].GetReduction();
+                VectorInt2 nextReduce = kernel.Convolutions[cntr].GetReduction();
 
                 if (firstReduce.X != nextReduce.X || firstReduce.Y != nextReduce.Y)
                 {
@@ -2488,9 +2488,9 @@ namespace Game.Math_WPF.WPF
 
         #region Public Methods
 
-        public override VectorInt GetReduction()
+        public override VectorInt2 GetReduction()
         {
-            VectorInt retVal = new VectorInt(0, 0);
+            VectorInt2 retVal = new VectorInt2(0, 0);
 
             if (this.OperationType == SetOperationType.MaxOf)
             {
@@ -2522,13 +2522,13 @@ namespace Game.Math_WPF.WPF
         /// <summary>
         /// The returned size doesn't have much meaning, other than for a tooltip
         /// </summary>
-        public VectorInt GetSize()
+        public VectorInt2 GetSize()
         {
-            VectorInt retVal = new VectorInt(0, 0);
+            VectorInt2 retVal = new VectorInt2(0, 0);
 
             foreach (ConvolutionBase2D child in this.Convolutions)
             {
-                VectorInt currentSize = new VectorInt();
+                VectorInt2 currentSize = new VectorInt2();
 
                 if (child is Convolution2D)
                 {
@@ -2743,7 +2743,7 @@ namespace Game.Math_WPF.WPF
                 this.Values[(y * this.Width) + x] = value;
             }
         }
-        public double this[VectorInt pos]
+        public double this[VectorInt2 pos]
         {
             get
             {
@@ -2755,11 +2755,11 @@ namespace Game.Math_WPF.WPF
             }
         }
 
-        public VectorInt Size
+        public VectorInt2 Size
         {
             get
             {
-                return new VectorInt(this.Width, this.Height);
+                return new VectorInt2(this.Width, this.Height);
             }
         }
 
@@ -2767,9 +2767,9 @@ namespace Game.Math_WPF.WPF
 
         #region Public Methods
 
-        public override VectorInt GetReduction()
+        public override VectorInt2 GetReduction()
         {
-            VectorInt retVal = new VectorInt();
+            VectorInt2 retVal = new VectorInt2();
 
             if (!this.ExpandBorder)
             {
@@ -2780,7 +2780,7 @@ namespace Game.Math_WPF.WPF
             return retVal;
         }
 
-        public Convolution2D Extract(RectInt rect, ConvolutionExtractType extractType)
+        public Convolution2D Extract(RectInt2 rect, ConvolutionExtractType extractType)
         {
             bool isNegPos = this.IsNegPos;
             double[] values = ExtractValues(rect);
@@ -2826,7 +2826,7 @@ namespace Game.Math_WPF.WPF
             return new Convolution2D(values, rect.Width, rect.Height, isNegPos, this.Gain, this.Iterations, this.ExpandBorder);
         }
 
-        public Tuple<VectorInt, double> GetMin()
+        public Tuple<VectorInt2, double> GetMin()
         {
             double min = double.MaxValue;
             int index = -1;
@@ -2843,9 +2843,9 @@ namespace Game.Math_WPF.WPF
             int y = index / this.Width;
             int x = index - (y * this.Width);
 
-            return Tuple.Create(new VectorInt(x, y), min);
+            return Tuple.Create(new VectorInt2(x, y), min);
         }
-        public Tuple<VectorInt, double> GetMin(IEnumerable<RectInt> ignore)
+        public Tuple<VectorInt2, double> GetMin(IEnumerable<RectInt2> ignore)
         {
             double min = double.MaxValue;
             int bX = -1;
@@ -2874,10 +2874,10 @@ namespace Game.Math_WPF.WPF
                 }
             }
 
-            return Tuple.Create(new VectorInt(bX, bY), min);
+            return Tuple.Create(new VectorInt2(bX, bY), min);
         }
 
-        public Tuple<VectorInt, double> GetMax()
+        public Tuple<VectorInt2, double> GetMax()
         {
             double max = double.MinValue;
             int index = -1;
@@ -2894,9 +2894,9 @@ namespace Game.Math_WPF.WPF
             int y = index / this.Width;
             int x = index - (y * this.Width);
 
-            return Tuple.Create(new VectorInt(x, y), max);
+            return Tuple.Create(new VectorInt2(x, y), max);
         }
-        public Tuple<VectorInt, double> GetMax(IEnumerable<RectInt> ignore)
+        public Tuple<VectorInt2, double> GetMax(IEnumerable<RectInt2> ignore)
         {
             double max = double.MinValue;
             int bX = -1;
@@ -2925,7 +2925,7 @@ namespace Game.Math_WPF.WPF
                 }
             }
 
-            return Tuple.Create(new VectorInt(bX, bY), max);
+            return Tuple.Create(new VectorInt2(bX, bY), max);
         }
 
         public Convolution2D_DNA ToDNA()
@@ -2980,7 +2980,7 @@ namespace Game.Math_WPF.WPF
 
         #region Private Methods
 
-        private double[] ExtractValues(RectInt rect)
+        private double[] ExtractValues(RectInt2 rect)
         {
             double[] retVal = new double[rect.Width * rect.Height];
 
@@ -3113,7 +3113,7 @@ namespace Game.Math_WPF.WPF
 
         public abstract string Description { get; }
 
-        public abstract VectorInt GetReduction();
+        public abstract VectorInt2 GetReduction();
     }
 
     #endregion

@@ -81,7 +81,7 @@ namespace Game.Bepu.Monolisk
                     return;
                 }
 
-                VectorInt? index = GetClickedIndex(e);
+                VectorInt2? index = GetClickedIndex(e);
                 if (index == null)
                 {
                     return;
@@ -113,7 +113,7 @@ namespace Game.Bepu.Monolisk
                     return;
                 }
 
-                VectorInt? index = GetClickedIndex(e);
+                VectorInt2? index = GetClickedIndex(e);
                 if (index == null)
                 {
                     return;
@@ -314,7 +314,7 @@ namespace Game.Bepu.Monolisk
             int count = Math.Max(4, (ShardRendering1.SIZE * ShardRendering1.SIZE) / 12);
             for (int cntr = 0; cntr < count; cntr++)
             {
-                VectorInt index = new VectorInt(rand.Next(size), rand.Next(size));
+                VectorInt2 index = new VectorInt2(rand.Next(size), rand.Next(size));
 
                 if (retVal.Tiles[index.Y][index.X] != null)
                 {
@@ -344,7 +344,7 @@ namespace Game.Bepu.Monolisk
             return retVal;
         }
 
-        private VectorInt? GetClickedIndex(MouseEventArgs e)
+        private VectorInt2? GetClickedIndex(MouseEventArgs e)
         {
             // Fire a ray from the mouse point
             Point clickPoint = e.GetPosition(grdViewPort);
@@ -358,7 +358,7 @@ namespace Game.Bepu.Monolisk
             }
 
             // Convert that into a tile index
-            VectorInt index = ShardRendering1.GetTileIndex(intersect.Value.ToPoint2D());
+            VectorInt2 index = ShardRendering1.GetTileIndex(intersect.Value.ToPoint2D());
             if (index.X < 0 || index.X >= ShardRendering1.SIZE || index.Y < 0 || index.Y >= ShardRendering1.SIZE)
             {
                 return null;
@@ -367,7 +367,7 @@ namespace Game.Bepu.Monolisk
             return index;
         }
 
-        private void ApplyDrag_Tile(VectorInt index)
+        private void ApplyDrag_Tile(VectorInt2 index)
         {
             // Try delete first, it's easiest
             if (chkDelete.IsChecked.Value)
@@ -412,7 +412,7 @@ namespace Game.Bepu.Monolisk
                 }
             }
         }
-        private void ApplyDrag_Item(VectorInt index)
+        private void ApplyDrag_Item(VectorInt2 index)
         {
             if (chkDelete.IsChecked.Value)
             {

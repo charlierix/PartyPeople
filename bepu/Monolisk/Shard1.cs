@@ -6,7 +6,7 @@ using System.Xml.Serialization;
 
 namespace Game.Bepu.Monolisk
 {
-    // This first attempt will only port
+    // This first attempt will only be ports
 
     #region class: ShardMap1
 
@@ -17,13 +17,13 @@ namespace Game.Bepu.Monolisk
         // For this first version, just use a fixed size 2D array
         public ShardTile1[][] Tiles { get; set; }
 
-        public IEnumerable<VectorInt> EnumerateIndices()
+        public IEnumerable<VectorInt2> EnumerateIndices()
         {
             for (int y = 0; y < Tiles.Length; y++)
             {
                 for (int x = 0; x < Tiles[y].Length; x++)
                 {
-                    yield return new VectorInt(x, y);
+                    yield return new VectorInt2(x, y);
                 }
             }
         }

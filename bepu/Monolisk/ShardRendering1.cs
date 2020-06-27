@@ -34,12 +34,12 @@ namespace Game.Bepu.Monolisk
                 new Point(offsetX + .5, offsetY + .5)
             );
         }
-        public static VectorInt GetTileIndex(Point pos)
+        public static VectorInt2 GetTileIndex(Point pos)
         {
             int x = (pos.X + ShardRendering1.HALFSIZE).ToInt_Floor();
             int y = (pos.Y + ShardRendering1.HALFSIZE).ToInt_Floor();
 
-            return new VectorInt(x, y);
+            return new VectorInt2(x, y);
         }
 
         public static ShardVisuals1 LoadShard(ShardMap1 shard)
@@ -59,7 +59,7 @@ namespace Game.Bepu.Monolisk
                 {
                     if (shard.Tiles[y][x] != null)
                     {
-                        var index = new VectorInt(x, y);
+                        var index = new VectorInt2(x, y);
 
                         AddTileGraphic(index, shard.Tiles[y][x].GroundType, retVal.TileGroup, retVal.Tiles);
 
@@ -83,18 +83,18 @@ namespace Game.Bepu.Monolisk
             return retVal;
         }
 
-        public static void RemoveTileGraphic(VectorInt index, Model3DGroup group, Model3D[,] models)
+        public static void RemoveTileGraphic(VectorInt2 index, Model3DGroup group, Model3D[,] models)
         {
             group.Children.Remove(models[index.X, index.Y]);
             models[index.X, index.Y] = null;
         }
-        public static void RemoveItemGraphic(VectorInt index, Model3DGroup group, Model3D[,] models)
+        public static void RemoveItemGraphic(VectorInt2 index, Model3DGroup group, Model3D[,] models)
         {
             group.Children.Remove(models[index.X, index.Y]);
             models[index.X, index.Y] = null;
         }
 
-        public static void AddTileGraphic(VectorInt index, ShardGroundType1 type, Model3DGroup group, Model3D[,] models)
+        public static void AddTileGraphic(VectorInt2 index, ShardGroundType1 type, Model3DGroup group, Model3D[,] models)
         {
             if (models[index.X, index.Y] != null)
             {
@@ -111,7 +111,7 @@ namespace Game.Bepu.Monolisk
                     throw new ApplicationException($"Unknown {nameof(ShardGroundType1)}: {type}");
             }
         }
-        public static void AddItemGraphic(VectorInt index, ShardItem1 item, Model3DGroup group, Model3D[,] models)
+        public static void AddItemGraphic(VectorInt2 index, ShardItem1 item, Model3DGroup group, Model3D[,] models)
         {
             if (models[index.X, index.Y] != null)
             {
@@ -143,7 +143,7 @@ namespace Game.Bepu.Monolisk
 
         #region Private Methods
 
-        private static void AddTileGraphic_Cement(VectorInt index, Model3DGroup group, Model3D[,] models)
+        private static void AddTileGraphic_Cement(VectorInt2 index, Model3DGroup group, Model3D[,] models)
         {
             // diffuse: 777
             // specular: 30602085, 3
@@ -196,7 +196,7 @@ namespace Game.Bepu.Monolisk
             group.Children.Add(models[index.X, index.Y]);
         }
 
-        private static void AddItemGraphic_StartLocation(VectorInt index, Model3DGroup group, Model3D[,] models)
+        private static void AddItemGraphic_StartLocation(VectorInt2 index, Model3DGroup group, Model3D[,] models)
         {
             var pos = GetTilePos(index.X, index.Y);
 
@@ -215,7 +215,7 @@ namespace Game.Bepu.Monolisk
             models[index.X, index.Y] = model;
             group.Children.Add(models[index.X, index.Y]);
         }
-        private static void AddItemGraphic_EndGate(VectorInt index, Model3DGroup group, Model3D[,] models)
+        private static void AddItemGraphic_EndGate(VectorInt2 index, Model3DGroup group, Model3D[,] models)
         {
             // This is a good start, but the endcaps cover the entire face
             //UtilityWPF.GetMultiRingedTube

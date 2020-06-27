@@ -19,8 +19,8 @@ namespace Game.Math_WPF.Mathematics
             public Point3D From { get; set; }
             public Point3D To { get; set; }
 
-            public VectorInt FromIndex { get; set; }
-            public VectorInt ToIndex { get; set; }
+            public VectorInt2 FromIndex { get; set; }
+            public VectorInt2 ToIndex { get; set; }
 
             public double DistSegment { get; set; }
             public double DistSum { get; set; }
@@ -499,7 +499,7 @@ namespace Game.Math_WPF.Mathematics
                 SelectMany(o => o).
                 ToArray();
 
-            VectorInt center = new VectorInt(horzCount_centers / 2, vertCount_centers / 2);
+            VectorInt2 center = new VectorInt2(horzCount_centers / 2, vertCount_centers / 2);
 
             var distances = GetDistancesFromPoint(center, allPoints, horzCount_centers, vertCount_centers);
 
@@ -768,7 +768,7 @@ namespace Game.Math_WPF.Mathematics
             return retVal.ToArray();
         }
 
-        private static (Vector[] lengths, BezierMeshSamples_Distance_wpf[] lines) GetDistancesFromPoint(VectorInt center, Point3D[] points, int horzCount, int vertCount)
+        private static (Vector[] lengths, BezierMeshSamples_Distance_wpf[] lines) GetDistancesFromPoint(VectorInt2 center, Point3D[] points, int horzCount, int vertCount)
         {
             Vector[] lengths = new Vector[points.Length];
             var lines = new List<BezierMeshSamples_Distance_wpf>();
@@ -807,8 +807,8 @@ namespace Game.Math_WPF.Mathematics
                 {
                     From = points[index0],
                     To = points[index1],
-                    FromIndex = new VectorInt(x, y),
-                    ToIndex = new VectorInt(x + axisX.Increment, y),
+                    FromIndex = new VectorInt2(x, y),
+                    ToIndex = new VectorInt2(x + axisX.Increment, y),
                     DistSegment = lineLen,
                     DistSum = lengths[index1].X,
                     IsHorizontal = true,
@@ -835,8 +835,8 @@ namespace Game.Math_WPF.Mathematics
                 {
                     From = points[index0],
                     To = points[index1],
-                    FromIndex = new VectorInt(x, y),
-                    ToIndex = new VectorInt(x, y + axisY.Increment),
+                    FromIndex = new VectorInt2(x, y),
+                    ToIndex = new VectorInt2(x, y + axisY.Increment),
                     DistSegment = lineLen,
                     DistSum = lengths[index1].Y,
                     IsHorizontal = false,
