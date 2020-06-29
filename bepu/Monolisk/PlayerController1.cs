@@ -360,7 +360,7 @@ namespace Game.Bepu.Monolisk
             double dX = currentPosition.X - _previousPosition2D.X;
             double dY = currentPosition.Y - _previousPosition2D.Y;
 
-            dX *= _rotateScale;
+            dX *= -_rotateScale;
             dY *= -_rotateScale;
 
             AxisAngleRotation3D aarY = new AxisAngleRotation3D(camY, dX);

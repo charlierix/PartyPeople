@@ -121,8 +121,22 @@ namespace Game.Bepu.Monolisk
     {
         // do you use explicit ones for each map, or try to make them more generic?
         // explicit would give a chance to make a rainbow shard, but for v1, it's all port
+        //
+        // see ShardRendering1.GetTileMaterials() for more thoughts
 
-        Cement
+        Water_deep,
+        Water_shallow,
+        Tile,
+        Cement,
+        Ice,
+        Brick_small,
+        Brick_large,
+        Wood_tight,
+        Wood_loose,
+        Dirt,
+        Sand,
+        Rocks,
+        Snow,
     }
 
     #endregion

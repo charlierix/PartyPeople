@@ -89,9 +89,10 @@ namespace Game.Bepu.Monolisk
 
                 _isDragging = true;
 
-                if (radCement.IsChecked.Value)
+                ShardGroundType1? groundType = GetGroundTileType();
+                if (groundType != null)
                 {
-                    ApplyDrag_Tile(index.Value);
+                    ApplyDrag_Tile(index.Value, groundType.Value);
                 }
 
                 if (radStart.IsChecked.Value || radEnd.IsChecked.Value)
@@ -104,6 +105,7 @@ namespace Game.Bepu.Monolisk
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
         private void grdViewPort_MouseMove(object sender, MouseEventArgs e)
         {
             try
@@ -119,14 +121,14 @@ namespace Game.Bepu.Monolisk
                     return;
                 }
 
-                if (radCement.IsChecked.Value)
+                ShardGroundType1? groundType = GetGroundTileType();
+                if (groundType != null)
                 {
-                    ApplyDrag_Tile(index.Value);
+                    ApplyDrag_Tile(index.Value, groundType.Value);
                 }
 
 
                 //TODO: Have a selected item
-
 
 
             }
@@ -274,6 +276,38 @@ namespace Game.Bepu.Monolisk
 
         #endregion
 
+        private ShardGroundType1? GetGroundTileType()
+        {
+            if (radWater_deep.IsChecked.Value)
+                return ShardGroundType1.Water_deep;
+            else if (radWater_shallow.IsChecked.Value)
+                return ShardGroundType1.Water_shallow;
+            else if (radTile.IsChecked.Value)
+                return ShardGroundType1.Tile;
+            else if (radCement.IsChecked.Value)
+                return ShardGroundType1.Cement;
+            else if (radIce.IsChecked.Value)
+                return ShardGroundType1.Ice;
+            else if (radBrick_small.IsChecked.Value)
+                return ShardGroundType1.Brick_small;
+            else if (radBrick_large.IsChecked.Value)
+                return ShardGroundType1.Brick_large;
+            else if (radWood_tight.IsChecked.Value)
+                return ShardGroundType1.Wood_tight;
+            else if (radWood_loose.IsChecked.Value)
+                return ShardGroundType1.Wood_loose;
+            else if (radDirt.IsChecked.Value)
+                return ShardGroundType1.Dirt;
+            else if (radSand.IsChecked.Value)
+                return ShardGroundType1.Sand;
+            else if (radRocks.IsChecked.Value)
+                return ShardGroundType1.Rocks;
+            else if (radSnow.IsChecked.Value)
+                return ShardGroundType1.Snow;
+            else
+                return null;
+        }
+
         #region Private Methods
 
         private void LoadShard(ShardMap1 shard)
@@ -367,7 +401,7 @@ namespace Game.Bepu.Monolisk
             return index;
         }
 
-        private void ApplyDrag_Tile(VectorInt2 index)
+        private void ApplyDrag_Tile(VectorInt2 index, ShardGroundType1 groundType)
         {
             // Try delete first, it's easiest
             if (chkDelete.IsChecked.Value)
@@ -386,9 +420,6 @@ namespace Game.Bepu.Monolisk
 
                 return;
             }
-
-            var groundType = radCement.IsChecked.Value ? ShardGroundType1.Cement :
-                throw new ApplicationException("Unknown tile type");
 
             if (_shard.Tiles[index.X, index.Y] == null)
             {

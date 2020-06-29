@@ -56,8 +56,8 @@
         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="20">
             <ToggleButton x:Name="chkDelete" Content="Delete" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="6,2" Margin="0,0,40,0"/>
 
-            <UniformGrid Rows="1">
-                <UniformGrid.Resources>
+            <WrapPanel Orientation="Vertical" MaxHeight="60">
+                <WrapPanel.Resources>
                     <Style TargetType="{x:Type RadioButton}">
                         <Setter Property="Template">
                             <Setter.Value>
@@ -67,12 +67,35 @@
                             </Setter.Value>
                         </Setter>
                     </Style>
-                </UniformGrid.Resources>
+                </WrapPanel.Resources>
 
                 <RadioButton IsChecked="True" x:Name="radCement" Content="Cement"/>
+                <RadioButton x:Name="radTile" Content="Tile"/>
+
+                <RadioButton x:Name="radBrick_large" Content="Brick (large)"/>
+                <RadioButton x:Name="radBrick_small" Content="Brick (small)"/>
+
+                <RadioButton x:Name="radWood_tight" Content="Wood (tight)"/>
+                <RadioButton x:Name="radWood_loose" Content="Wood (loose)"/>
+
+                <RadioButton x:Name="radDirt" Content="Dirt"/>
+                <RadioButton x:Name="radSand" Content="Sand"/>
+
+                <RadioButton x:Name="radRocks" Content="Rocks"/>
+                <RadioButton IsEnabled="False" Content=" "/>
+
+                <RadioButton x:Name="radWater_deep" Content="Water (deep)"/>
+                <RadioButton x:Name="radWater_shallow" Content="Water (shallow)"/>
+                <RadioButton x:Name="radIce" Content="Ice"/>
+                <RadioButton x:Name="radSnow" Content="Snow"/>
+
+                <RadioButton IsEnabled="False" Content=" "/>
+                <RadioButton IsEnabled="False" Content=" "/>
+
                 <RadioButton x:Name="radStart" Content="Start"/>
                 <RadioButton x:Name="radEnd" Content="End"/>
-            </UniformGrid>
+            </WrapPanel>
+
         </StackPanel>
     </Grid>
 </Window>
