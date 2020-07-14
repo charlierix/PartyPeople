@@ -25,6 +25,9 @@ namespace Game.Bepu.Testers.ColorTools
 
         private readonly Effect _errorEffect;
 
+        private TextBox _prevTextbox = null;
+        private decimal _prevDelta = 0m;
+
         #endregion
 
         #region Constructor
@@ -193,16 +196,16 @@ namespace Game.Bepu.Testers.ColorTools
             {
                 ClearEffects();
 
-                var values = new[] { (txtHSV_A, 100), (txtHSV_H, 360), (txtHSV_S, 100), (txtHSV_V, 100) }.
+                var values = new[] { txtHSV_A, txtHSV_H, txtHSV_S, txtHSV_V }.
                     Select(o =>
                     {
-                        if (double.TryParse(o.Item1.Text, out double result) && result >= 0d && result <= o.Item2)
+                        if (double.TryParse(o.Text, out double result) && result >= 0d && result <= double.Parse((string)o.Tag))      // tag holds the max value
                         {
                             return (true, result);
                         }
                         else
                         {
-                            o.Item1.Effect = _errorEffect;
+                            o.Effect = _errorEffect;
                             return (false, 0d);
                         }
                     }).
@@ -285,9 +288,39 @@ namespace Game.Bepu.Testers.ColorTools
             }
         }
 
+        /// <summary>
+        /// This makes up and down arrows increment the value a bit
+        /// </summary>
         private void TextBox_KeyDown(object sender, KeyEventArgs e)
         {
-            //TODO: Up and down arrows should increment the value a bit
+            try
+            {
+                if (!_isInitialized)
+                    return;
+                else if (e.Key != Key.Up && e.Key != Key.Down)
+                    return;
+
+                if (!(sender is TextBox textBox))       // the cast is lost if this is an elseif
+                    return;
+
+                if (!decimal.TryParse(textBox.Text, out decimal number))
+                    return;
+
+                decimal max = decimal.Parse((string)textBox.Tag);
+
+                bool isRepeat = e.IsRepeat && _prevTextbox == textBox;      // e.IsRepeat is true if they switched textboxes and hit the same arrow key again (it doesn't seem to care whether IsKeyDown/IsKeyUp occurred, just that the same key is pressed again)
+                _prevTextbox = textBox;
+
+                decimal delta = GetDelta(ref _prevDelta, isRepeat, number, max, e.Key == Key.Up);
+
+                decimal newNumber = Math.Clamp(number + delta, 0, max);
+
+                textBox.Text = newNumber.ToString();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         #endregion
@@ -367,6 +400,32 @@ namespace Game.Bepu.Testers.ColorTools
             txtHSVp_H.Text = Math.Round(hsv.H / 360d, 2).ToString();
             txtHSVp_S.Text = Math.Round(hsv.S / 100d, 2).ToString();
             txtHSVp_V.Text = Math.Round(hsv.V / 100d, 2).ToString();
+        }
+
+        private static decimal GetDelta(ref decimal prevDelta, bool isRepeat, decimal number, decimal max, bool isUp)
+        {
+            if (isRepeat)
+                return prevDelta;       // don't want to reevaluate decimal place, because .49 going to .5 would change the precision
+
+            decimal retVal = 1m;
+
+            if (max == 1)
+            {
+                // This is a percent.  Increment by the last decimal place (.5 would increment by .1 | .55 would increment by .01)
+
+                string numberText = number.ToString();
+
+                int numDecimals = Math.Max(1, numberText.Length - 1 - numberText.IndexOf('.'));
+
+                retVal = decimal.Parse("." + "1".PadLeft(numDecimals, '0'));
+            }
+
+            if (!isUp)
+                retVal = -retVal;
+
+            prevDelta = retVal;
+
+            return retVal;
         }
 
         #endregion

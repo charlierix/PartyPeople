@@ -164,37 +164,37 @@
             <!-- ARGB -->
             <Label Grid.Column="0" Grid.Row="2" Content="ARGB" Style="{StaticResource label}"/>
             <StackPanel Grid.Column="1" Grid.Row="2" Orientation="Horizontal">
-                <TextBox x:Name="txtRGB_A" TextChanged="txtRGB_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
-                <TextBox x:Name="txtRGB_R" TextChanged="txtRGB_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
-                <TextBox x:Name="txtRGB_G" TextChanged="txtRGB_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
-                <TextBox x:Name="txtRGB_B" TextChanged="txtRGB_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGB_A" Tag="255" TextChanged="txtRGB_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGB_R" Tag="255" TextChanged="txtRGB_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGB_G" Tag="255" TextChanged="txtRGB_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGB_B" Tag="255" TextChanged="txtRGB_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
             </StackPanel>
 
             <!-- ARGB% -->
             <Label Grid.Column="0" Grid.Row="3" Content="ARGB%" Style="{StaticResource label}"/>
             <StackPanel Grid.Column="1" Grid.Row="3" Orientation="Horizontal">
-                <TextBox x:Name="txtRGBp_A" TextChanged="txtRGBp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
-                <TextBox x:Name="txtRGBp_R" TextChanged="txtRGBp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
-                <TextBox x:Name="txtRGBp_G" TextChanged="txtRGBp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
-                <TextBox x:Name="txtRGBp_B" TextChanged="txtRGBp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGBp_A" Tag="1" TextChanged="txtRGBp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGBp_R" Tag="1" TextChanged="txtRGBp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGBp_G" Tag="1" TextChanged="txtRGBp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGBp_B" Tag="1" TextChanged="txtRGBp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
             </StackPanel>
 
             <!-- AHSV -->
             <Label Grid.Column="0" Grid.Row="5" Content="AHSV" Style="{StaticResource label}"/>
             <StackPanel Grid.Column="1" Grid.Row="5" Orientation="Horizontal">
-                <TextBox x:Name="txtHSV_A" TextChanged="txtHSV_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
-                <TextBox x:Name="txtHSV_H" TextChanged="txtHSV_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
-                <TextBox x:Name="txtHSV_S" TextChanged="txtHSV_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
-                <TextBox x:Name="txtHSV_V" TextChanged="txtHSV_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSV_A" Tag="100" TextChanged="txtHSV_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSV_H" Tag="360" TextChanged="txtHSV_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSV_S" Tag="100" TextChanged="txtHSV_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSV_V" Tag="100" TextChanged="txtHSV_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
             </StackPanel>
 
             <!-- AHSV% -->
             <Label Grid.Column="0" Grid.Row="6" Content="AHSV%" Style="{StaticResource label}"/>
             <StackPanel Grid.Column="1" Grid.Row="6" Orientation="Horizontal">
-                <TextBox x:Name="txtHSVp_A" TextChanged="txtHSVp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
-                <TextBox x:Name="txtHSVp_H" TextChanged="txtHSVp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
-                <TextBox x:Name="txtHSVp_S" TextChanged="txtHSVp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
-                <TextBox x:Name="txtHSVp_V" TextChanged="txtHSVp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSVp_A" Tag="1" TextChanged="txtHSVp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSVp_H" Tag="1" TextChanged="txtHSVp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSVp_S" Tag="1" TextChanged="txtHSVp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSVp_V" Tag="1" TextChanged="txtHSVp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
             </StackPanel>
 
             <!-- Color Example -->
