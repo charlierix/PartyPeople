@@ -290,12 +290,12 @@ namespace Game.Bepu.Monolisk
 
                 case ShardGroundType1.Wood_tight:
                 case ShardGroundType1.Wood_loose:
-                    diffuseTop = rand.ColorHSV("B89B6A", 2, 4, 5);
-                    specTop = rand.ColorHSV("30B5A88D", 0, 2, 3);
+                    diffuseTop = rand.ColorHSV("9D987D", 2, 4, 5);
+                    specTop = rand.ColorHSV("30262626", 0, 2, 3);
                     powTop = 2;
 
-                    diffuseSide = rand.ColorHSV("937B55", 2, 4, 5);
-                    specSide = rand.ColorHSV("20B5A88D", 0, 2, 3);
+                    diffuseSide = rand.ColorHSV("8C8870", 2, 4, 5);
+                    specSide = rand.ColorHSV("20262626", 0, 2, 3);
                     powSide = 1;
                     break;
 

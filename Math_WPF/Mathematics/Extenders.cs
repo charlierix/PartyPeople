@@ -679,7 +679,6 @@ namespace Game.Math_WPF.Mathematics
 
             if (retVal < 0) retVal = 0;
             else if (retVal > 255) retVal = 255;
-            else retVal = 255;
 
             return Convert.ToByte(retVal);
         }

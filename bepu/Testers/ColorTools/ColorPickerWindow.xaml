@@ -6,9 +6,9 @@
         xmlns:local="clr-namespace:Game.Bepu.Testers.ColorTools"
         mc:Ignorable="d"
         Title="ColorPickerWindow" Width="800" Height="700">
-    <Grid>
+    <Grid Margin="8">
 
-       
+
         <!-- Radio buttons for alternate colors (see websites above) -->
         <!-- also, when the mouse gets over the background plate, show examples to the right of what each option does based on the current color -->
         <!-- kuler has them in random order and misleading names -->
@@ -35,7 +35,7 @@
         <!-- *** my thoughts of categories *** -->
         <!-- one: -->
         <!-- mono, tint, etc -->
-        
+
         <!-- two -->
 
         <!-- * for these, give extra options for the shape (equilateral triangle vs more isosceles, regular polygon or stretched) -->
@@ -48,10 +48,10 @@
         <!-- even distribution -->
         <!-- color pallette -->
         <!-- custom -->
-        
 
-        
-        
+
+
+
         <!-- Big Picker graphics -->
         <!-- kuler's wheel -->
         <!-- traditional square and slider -->
@@ -60,15 +60,15 @@
         <!-- hue ring with a triangle in the midddle.  select a color on the ring and the triangle shows all possible saturations and values -->
         <!-- color gamut -->
         <!-- 3D hsv cone with points (wouldn't be a picker, just a side graphic) -->
-        
-        
-        
-        
-        
+
+
+
+
+
         <!-- Set of squares -->
         <!-- give an option for how many -->
         <!-- give an option for margin between samples -->
-        
+
         <!-- give an option for arrangement: (, , hex, columns by type ) -->
         <!-- row of squares-->
         <!-- uniform grid of squares -->
@@ -77,15 +77,15 @@
         <!--    Each type would be shades of a base color.  So if they pick triad, there would be 3 columns and each row would be a shade -->
         <!--    Option for rows above as well as below.  Lets them isolate variations between saturation, value, both -->
 
-        
-        
+
+
         <!-- Slider for background darkness -->
         <!-- Or spawn a picker popup for the background -->
         <!-- Or spawn pipette for the background -->
-        
-        
-        
-        
+
+
+
+
         <!-- clone window -->
         <!-- https://color.adobe.com/create -->
         <!-- https://htmlcolorcodes.com/color-picker/ -->
@@ -97,9 +97,109 @@
 
         <!-- ************************ other windows for this folder *********************** -->
         <!-- color patches (similar to kuler's explore tab, but will be randomly generated sets :: allow them to see as a random grid or clustered up) -->
-        
-        
-        
-        
+
+
+
+
+
+
+
+        <!-- TODO: Make this section a user control that will be used for each selected color -->
+        <!-- Or maybe a popup -->
+        <Grid HorizontalAlignment="Center" VerticalAlignment="Bottom">
+            <Grid.Resources>
+                <Style x:Key="label" TargetType="Label">
+                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Margin" Value="0,0,4,0"/>
+                </Style>
+
+                <Style x:Key="bigTextBox" TargetType="TextBox">
+                    <!--<Setter Property="HorizontalAlignment" Value="Left"/>-->
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <!--<Setter Property="Width" Value="200"/>-->
+                    <Setter Property="Height" Value="23"/>
+                    <Setter Property="Margin" Value="0,3"/>
+                </Style>
+
+                <Style x:Key="smallTextBox" TargetType="TextBox">
+                    <Setter Property="HorizontalAlignment" Value="Left"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="Width" Value="50"/>
+                    <Setter Property="Height" Value="23"/>
+                    <Setter Property="Margin" Value="-1,3"/>
+                </Style>
+            </Grid.Resources>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="75"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="6"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="6"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="auto"/>
+                <RowDefinition Height="6"/>
+                <RowDefinition Height="1*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Hex -->
+            <Label Grid.Column="0" Grid.Row="0" Content="Hex" Style="{StaticResource label}"/>
+            <Grid Grid.Column="1" Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="4"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBox Grid.Column="0" x:Name="txtHex" Text="FF808080" TextChanged="txtHex_TextChanged" Style="{StaticResource bigTextBox}"/>
+                <TextBox Grid.Column="2" x:Name="txtHexDisplay" IsReadOnly="True" IsReadOnlyCaretVisible="True" Background="#18808040" Style="{StaticResource bigTextBox}"/>
+            </Grid>
+
+            <!-- ARGB -->
+            <Label Grid.Column="0" Grid.Row="2" Content="ARGB" Style="{StaticResource label}"/>
+            <StackPanel Grid.Column="1" Grid.Row="2" Orientation="Horizontal">
+                <TextBox x:Name="txtRGB_A" TextChanged="txtRGB_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGB_R" TextChanged="txtRGB_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGB_G" TextChanged="txtRGB_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGB_B" TextChanged="txtRGB_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+            </StackPanel>
+
+            <!-- ARGB% -->
+            <Label Grid.Column="0" Grid.Row="3" Content="ARGB%" Style="{StaticResource label}"/>
+            <StackPanel Grid.Column="1" Grid.Row="3" Orientation="Horizontal">
+                <TextBox x:Name="txtRGBp_A" TextChanged="txtRGBp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGBp_R" TextChanged="txtRGBp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGBp_G" TextChanged="txtRGBp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtRGBp_B" TextChanged="txtRGBp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+            </StackPanel>
+
+            <!-- AHSV -->
+            <Label Grid.Column="0" Grid.Row="5" Content="AHSV" Style="{StaticResource label}"/>
+            <StackPanel Grid.Column="1" Grid.Row="5" Orientation="Horizontal">
+                <TextBox x:Name="txtHSV_A" TextChanged="txtHSV_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSV_H" TextChanged="txtHSV_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSV_S" TextChanged="txtHSV_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSV_V" TextChanged="txtHSV_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+            </StackPanel>
+
+            <!-- AHSV% -->
+            <Label Grid.Column="0" Grid.Row="6" Content="AHSV%" Style="{StaticResource label}"/>
+            <StackPanel Grid.Column="1" Grid.Row="6" Orientation="Horizontal">
+                <TextBox x:Name="txtHSVp_A" TextChanged="txtHSVp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSVp_H" TextChanged="txtHSVp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSVp_S" TextChanged="txtHSVp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+                <TextBox x:Name="txtHSVp_V" TextChanged="txtHSVp_TextChanged" PreviewKeyDown="TextBox_KeyDown" Style="{StaticResource smallTextBox}"/>
+            </StackPanel>
+
+            <!-- Color Example -->
+            <Border Grid.Column="1" Grid.Row="8" x:Name="pnlColorSample" MinHeight="120" CornerRadius="6" BorderThickness="1" BorderBrush="#80000000" Background="#FF808080"/>
+        </Grid>
+
     </Grid>
 </Window>

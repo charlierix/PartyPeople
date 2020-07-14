@@ -99,7 +99,6 @@ namespace Game.Math_WPF.WPF
                     rand.NextDrift(color.V, driftV)
                 );
             }
-
         }
 
         #endregion
