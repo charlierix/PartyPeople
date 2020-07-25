@@ -58,6 +58,11 @@ namespace Game.Tester
             new Game.Bepu.Monolisk.ShardPlayer1().Show();
         }
 
+        private void AnalyzeVRPoints_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.AnalyzeVRPoints().Show();
+        }
+
         #endregion
     }
 }

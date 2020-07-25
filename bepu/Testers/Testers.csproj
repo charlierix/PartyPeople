@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Math_WPF\Math_WPF.csproj" />
+    <ProjectReference Include="..\..\ML\ML.csproj" />
     <ProjectReference Include="..\GameItems\GameItems.csproj" />
   </ItemGroup>
 

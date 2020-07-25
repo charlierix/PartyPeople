@@ -104,6 +104,24 @@ namespace Game.ML
             });
         }
 
+        /// <summary>
+        /// This will create a bunch of random samples.  Then, score them, breed/mutate them, repeat until a satisfactory
+        /// solution is found
+        /// </summary>
+        public static void DiscoverSolution_CrossoverMutate<T>(CrossoverMutate_Delegates<T> delegates, CrossoverMutate_Options<T> options = null)
+        {
+            DiscoverSolution_CrossoverMutate_Worker.DiscoverSolution(delegates, options);
+        }
+
+        /// <summary>
+        /// This does crossover of multiple parents (genetic algorithm)
+        /// NOTE: All parent arrays need to be the same size
+        /// </summary>
+        public static T[][] Crossover<T>(T[][] parents, int numSlices)
+        {
+            return CrossoverWorker.Crossover(parents, numSlices);
+        }
+
         #region Private Methods
 
         private static VectorND_Sparse ConvertToSparse(VBuffer<float> vector)

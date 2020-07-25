@@ -60,7 +60,7 @@
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
 
-        <WrapPanel Grid.Row="0" Orientation="Vertical" MaxHeight="500">
+        <WrapPanel Grid.Row="0" Orientation="Vertical" MaxHeight="250">
             <!-- TODO: Create an entry that starts the old game tester (in it's own process) -->
 
             <StackPanel>
@@ -84,6 +84,13 @@
                 <ListBox>
                     <ListBoxItem Content="Editor 1" MouseUp="MonoliskEditor1_MouseUp"/>
                     <ListBoxItem Content="Player 1" MouseUp="MonoliskPlayer1_MouseUp"/>
+                </ListBox>
+            </StackPanel>
+
+            <StackPanel>
+                <Label Content="VR Utils" Style="{StaticResource subHeaderLabel}"/>
+                <ListBox>
+                    <ListBoxItem Content="Analyze VR Points" MouseUp="AnalyzeVRPoints_MouseUp"/>
                 </ListBox>
             </StackPanel>
         </WrapPanel>

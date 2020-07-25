@@ -282,8 +282,8 @@ namespace Game.Math_WPF.WPF
                 var avg_stddev = Math1D.Get_Average_StandardDeviation(axisAngles.Select(o => o.angle));
                 var avgTime = Math1D.Get_Average_StandardDeviation(Enumerable.Range(0, axisAngles.Length - 1).Select(o => (axisAngles[o + 1].time - axisAngles[o].time).TotalSeconds));
 
-                window.AddText($"avg individuals: {avg_stddev.Item1.ToStringSignificantDigits(3)}");
-                window.AddText($"avg individuals scaled: {(avg_stddev.Item1 / avgTime.Item1).ToStringSignificantDigits(3)}");
+                window.AddText($"avg individuals: {avg_stddev.avg.ToStringSignificantDigits(3)}");
+                window.AddText($"avg individuals scaled: {(avg_stddev.avg / avgTime.avg).ToStringSignificantDigits(3)}");
 
                 #endregion
 
@@ -318,7 +318,7 @@ namespace Game.Math_WPF.WPF
                 }
 
                 avg_stddev = Math1D.Get_Average_StandardDeviation(fifties);
-                window.AddText($"avg 50s: {avg_stddev.Item1.ToStringSignificantDigits(3)}");
+                window.AddText($"avg 50s: {avg_stddev.avg.ToStringSignificantDigits(3)}");
 
                 #endregion
 
