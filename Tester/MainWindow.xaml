@@ -93,6 +93,13 @@
                     <ListBoxItem Content="Analyze VR Points" MouseUp="AnalyzeVRPoints_MouseUp"/>
                 </ListBox>
             </StackPanel>
+
+            <StackPanel>
+                <Label Content="Machine Learning" Style="{StaticResource subHeaderLabel}"/>
+                <ListBox>
+                    <ListBoxItem Content="Genetic Sharp" MouseUp="GeneticSharp_MouseUp"/>
+                </ListBox>
+            </StackPanel>
         </WrapPanel>
 
         <!-- TODO: Bottom links -->

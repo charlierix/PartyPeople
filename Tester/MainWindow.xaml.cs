@@ -63,6 +63,11 @@ namespace Game.Tester
             new Game.Bepu.Testers.AnalyzeVRPoints().Show();
         }
 
+        private void GeneticSharp_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.GeneticSharpTester().Show();
+        }
+
         #endregion
     }
 }
