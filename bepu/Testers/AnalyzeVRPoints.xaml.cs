@@ -4,6 +4,14 @@ using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
 using Game.ML;
+using GeneticSharp.Domain;
+using GeneticSharp.Domain.Chromosomes;
+using GeneticSharp.Domain.Crossovers;
+using GeneticSharp.Domain.Fitnesses;
+using GeneticSharp.Domain.Mutations;
+using GeneticSharp.Domain.Populations;
+using GeneticSharp.Domain.Selections;
+using GeneticSharp.Domain.Terminations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -185,7 +193,7 @@ namespace Game.Bepu.Testers
             }
         }
 
-        private void IsolateNeck_Click(object sender, RoutedEventArgs e)
+        private void IsolateNeck1_Click(object sender, RoutedEventArgs e)
         {
             const double MAX = .5d;
 
@@ -230,53 +238,174 @@ namespace Game.Bepu.Testers
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private void IsolateNeck2_Click(object sender, RoutedEventArgs e)
+        {
+            const double MULT = 10000d;
+            const double MAX = .5d;
+
+            try
+            {
+                if (_snapshots == null)
+                {
+                    MessageBox.Show("Need to load snapshots first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                lblNeckResults.Text = "working...";
+
+                //TODO: Figure out how to deal directly with fractions (how many bits to use)
+                int bits = GeneticSharpUtil.GetChromosomeBits((MAX * MULT).ToInt_Ceiling());
+
+                // Element0 = Neck Back
+                // Element1 = Neck Down
+                var chromosome = new FloatingPointChromosome(
+                    new double[] { 0, 0 },
+                    new double[] { MAX * MULT, MAX * MULT },
+                    new int[] { bits, bits },       // The total bits used to represent each number
+                    new int[] { 0, 0 });      // The number of fraction (scale or decimal) part of the number. In our case we will not use any
+
+                var population = new Population(72, 144, chromosome);
+
+                var fitness = new FuncFitness(c =>
+                {
+                    double[] values = ((FloatingPointChromosome)c).ToFloatingPoints();
+
+                    for (int cntr = 0; cntr < values.Length; cntr++)
+                        values[cntr] /= MULT;       // the values are stored as integers, because I haven't figured out how many bits to use for floating point yet
+
+                    return GetNeckDisplacementError(_snapshots, values);
+                });
+
+                //WARNING: This selection works, but population still favors high score within that returned set, haven't figured out how to change that yet
+                var selection = new ErrorSelection();       // the smaller the error, the better
+
+                var crossover = new UniformCrossover(0.5f);     // .5 will pull half from each parent
+
+                var mutation = new FlipBitMutation();       // FloatingPointChromosome inherits from BinaryChromosomeBase, which is a series of bits.  This mutator will flip random bits
+
+                var termination = new FitnessStagnationTermination(144);        // keeps going until it generates the same winner this many generations in a row
+
+                var ga = new GeneticAlgorithm(population, fitness, selection, crossover, mutation)
+                {
+                    Termination = termination,
+                };
+
+                double latestFitness = 0.0;
+                var winners = new List<(double, double[])>();
+
+                ga.GenerationRan += (s1, e1) =>
+                {
+                    var bestChromosome = ga.BestChromosome as FloatingPointChromosome;
+                    double bestFitness = bestChromosome.Fitness.Value;
+
+                    if (bestFitness != latestFitness)
+                    {
+                        latestFitness = bestFitness;
+                        winners.Add(
+                        (
+                            latestFitness,
+                            bestChromosome.ToFloatingPoints().
+                                Select(o => o / MULT).
+                                ToArray()
+                        ));
+                    }
+                };
+
+                ga.TerminationReached += (s2, e2) => ShowNeckResults(winners, 0);
+
+                ga.Start();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void IsolateNeck3_Click(object sender, RoutedEventArgs e)
+        {
+            const double MULT = 10000d;
+            const double MAX = .5d;
+
+            try
+            {
+                if (_snapshots == null)
+                {
+                    MessageBox.Show("Need to load snapshots first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                lblNeckResults.Text = "working...";
+
+                //TODO: Figure out how to deal directly with fractions (how many bits to use)
+                int bits = GeneticSharpUtil.GetChromosomeBits((MAX * MULT).ToInt_Ceiling());
+
+                // Element0 = Neck Back
+                // Element1 = Neck Down
+                var chromosome = new FloatingPointChromosome(
+                    new double[] { 0, 0 },
+                    new double[] { MAX * MULT, MAX * MULT },
+                    new int[] { bits, bits },       // The total bits used to represent each number
+                    new int[] { 0, 0 });      // The number of fraction (scale or decimal) part of the number. In our case we will not use any
+
+                var population = new Population(72, 144, chromosome);
+
+                double worstScore = MAX * Math.Sqrt(2);
+                worstScore += MAX;      // add a bit to be safe
+
+                var fitness = new FuncFitness(c =>
+                {
+                    double[] values = ((FloatingPointChromosome)c).ToFloatingPoints();
+
+                    for (int cntr = 0; cntr < values.Length; cntr++)
+                        values[cntr] /= MULT;       // the values are stored as integers, because I haven't figured out how many bits to use for floating point yet
+
+                    return worstScore - GetNeckDisplacementError(_snapshots, values);       // subtracting because this needs to return a top score when error is zero
+                });
+
+                var selection = new EliteSelection();       // the higher the score, the better
+
+                var crossover = new UniformCrossover(0.5f);     // .5 will pull half from each parent
+
+                var mutation = new FlipBitMutation();       // FloatingPointChromosome inherits from BinaryChromosomeBase, which is a series of bits.  This mutator will flip random bits
+
+                var termination = new FitnessStagnationTermination(144);        // keeps going until it generates the same winner this many generations in a row
+
+                var ga = new GeneticAlgorithm(population, fitness, selection, crossover, mutation)
+                {
+                    Termination = termination,
+                };
+
+                double latestFitness = 0.0;
+                var winners = new List<(double, double[])>();
+
+                ga.GenerationRan += (s1, e1) =>
+                {
+                    var bestChromosome = ga.BestChromosome as FloatingPointChromosome;
+                    double bestFitness = bestChromosome.Fitness.Value;
+
+                    if (bestFitness != latestFitness)
+                    {
+                        latestFitness = bestFitness;
+                        winners.Add(
+                        (
+                            latestFitness,
+                            bestChromosome.ToFloatingPoints().
+                                Select(o => o / MULT).
+                                ToArray()
+                        ));
+                    }
+                };
+
+                ga.TerminationReached += (s2, e2) => ShowNeckResults(winners, worstScore);
+
+                ga.Start();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
         #endregion
-
-        private static double GetNeckDisplacementError(Snapshot[] snapshots, double[] settings)
-        {
-            Point3D[] necks = snapshots.
-                Select(o => GetNeckPosition(o.Head_Pos, o.Head_Rot, settings[0], settings[1])).
-                ToArray();
-
-            Point3D center = Math3D.GetCenter(necks);
-
-            double[] distances = necks.
-                Select(o => (o - center).Length).
-                ToArray();
-
-            var avg_stddev = Math1D.Get_Average_StandardDeviation(distances);
-
-            //TODO: May want to weight it using standard deviation
-            return avg_stddev.avg;
-        }
-
-        private static double[] MutateDisplacements(double[] settings, double max)
-        {
-            double[] retVal = settings.ToArray();
-
-            int index = StaticRandom.Next(settings.Length);
-
-            retVal[index] = Math.Clamp(StaticRandom.NextPercent(retVal[index], .1), -max, max);
-
-            return retVal;
-        }
-
-        private void ShowNeckResults(CrossoverMutate_Result<double> result)
-        {
-            Debug3DWindow window = new Debug3DWindow();
-
-            var graph = Debug3DWindow.GetGraph(result.History.Select(o => o[0]).ToArray());
-            window.AddGraph(graph, new Point3D(), 1);
-
-            window.AddText($"score: {result.Score[0]}");
-
-            window.Show();
-
-
-
-            lblNeckResults.Text = string.Format("neckBack: {0}\r\nneckDown: {1}", result.Item[0], result.Item[1]);
-        }
 
         #region Private Methods
 
@@ -449,6 +578,64 @@ namespace Game.Bepu.Testers
             finalPos -= up * neckDown;
 
             return finalPos;
+        }
+
+        private static double GetNeckDisplacementError(Snapshot[] snapshots, double[] settings)
+        {
+            Point3D[] necks = snapshots.
+                Select(o => GetNeckPosition(o.Head_Pos, o.Head_Rot, settings[0], settings[1])).
+                ToArray();
+
+            Point3D center = Math3D.GetCenter(necks);
+
+            double[] distances = necks.
+                Select(o => (o - center).Length).
+                ToArray();
+
+            var avg_stddev = Math1D.Get_Average_StandardDeviation(distances);
+
+            //TODO: May want to weight it using standard deviation
+            return avg_stddev.avg;
+        }
+        private static double[] MutateDisplacements(double[] settings, double max)
+        {
+            double[] retVal = settings.ToArray();
+
+            int index = StaticRandom.Next(settings.Length);
+
+            retVal[index] = Math.Clamp(StaticRandom.NextPercent(retVal[index], .1), -max, max);
+
+            return retVal;
+        }
+        private void ShowNeckResults(CrossoverMutate_Result<double> result)
+        {
+            Debug3DWindow window = new Debug3DWindow();
+
+            var graph = Debug3DWindow.GetGraph(result.History.Select(o => o[0]).ToArray());
+            window.AddGraph(graph, new Point3D(), 1);
+
+            window.AddText($"score: {result.Score[0]}");
+
+            window.Show();
+
+
+
+            lblNeckResults.Text = string.Format("neckBack: {0}\r\nneckDown: {1}", result.Item[0], result.Item[1]);
+        }
+        private void ShowNeckResults(List<(double, double[])> log, double worstScore)
+        {
+            Debug3DWindow window = new Debug3DWindow();
+
+            var graph = Debug3DWindow.GetGraph(log.Select(o => worstScore - o.Item1).ToArray());
+            window.AddGraph(graph, new Point3D(), 1);
+
+            window.AddText($"score: {worstScore - log[^1].Item1}");
+
+            window.Show();
+
+
+
+            lblNeckResults.Text = string.Format("neckBack: {0}\r\nneckDown: {1}", log[^1].Item2[0], log[^1].Item2[1]);
         }
 
         #endregion

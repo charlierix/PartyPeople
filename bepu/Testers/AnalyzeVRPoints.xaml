@@ -34,7 +34,9 @@
             <TextBox x:Name="txtNeckDown" ToolTip="Neck Down" Text=".12" TextChanged="Neck_TextChanged"/>
             <Button Content="load..." Click="Load_Click"/>
 
-            <Button Content="Isolate Neck" Margin="0,8,0,0" Click="IsolateNeck_Click"/>
+            <Button Content="Isolate Neck 1" Margin="0,8,0,0" Click="IsolateNeck1_Click"/>
+            <Button Visibility="Collapsed" Content="Isolate Neck 2" Click="IsolateNeck2_Click"/>
+            <Button Content="Isolate Neck 3" Click="IsolateNeck3_Click"/>
             <TextBlock x:Name="lblNeckResults"/>
         </StackPanel>
 

@@ -1,6 +1,7 @@
 ﻿using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
+using Game.ML;
 using GeneticSharp.Domain;
 using GeneticSharp.Domain.Chromosomes;
 using GeneticSharp.Domain.Crossovers;
@@ -54,7 +55,7 @@ namespace Game.Bepu.Testers
                 float maxWidth = 998f;
                 float maxHeight = 680f;
 
-                int bits = GetChromosomeBits(Math.Max(maxWidth, maxHeight).ToInt_Ceiling());
+                int bits = GeneticSharpUtil.GetChromosomeBits(Math.Max(maxWidth, maxHeight).ToInt_Ceiling());
 
                 //NOTE: The arrays are length 4 because they are FromPoint and ToPoint
                 var chromosome = new FloatingPointChromosome(
@@ -142,22 +143,6 @@ namespace Game.Bepu.Testers
             {
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }
-
-        #endregion
-
-        #region Private Methods
-
-        //TODO: Make a version that can handle floating point values
-        private static int GetChromosomeBits(int maxValue)
-        {
-            //https://www.calculatorsoup.com/calculators/algebra/exponentsolve.php
-
-            //TODO: Figure out how to handle negative numbers - is abs enough? (test with genetic sharp to see if it can handle them).  May need to just shift to positive values
-            if (maxValue <= 0)
-                throw new ArgumentException("maxValue must be positive");
-
-            return (Math.Log(maxValue) / Math.Log(2)).ToInt_Ceiling();
         }
 
         #endregion
