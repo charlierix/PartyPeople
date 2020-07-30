@@ -71,6 +71,18 @@ namespace Game.Bepu.Testers
             public Point3D Right_Pos { get; }
             public Quaternion Right_Rot { get; }
 
+            public Point3D GetNeckPosition(double neckBack, double neckDown)
+            {
+                Vector3D up = Head_Rot.GetRotatedVector(new Vector3D(0, 1, 0));
+                Vector3D forword = Head_Rot.GetRotatedVector(new Vector3D(0, 0, 1));
+
+                Point3D finalPos = Head_Pos;
+                finalPos -= forword * neckBack;
+                finalPos -= up * neckDown;
+
+                return finalPos;
+            }
+
             private static Point3D ToPoint(Vec3 v)
             {
                 return new Point3D(v.x, v.y, v.z);
@@ -85,6 +97,10 @@ namespace Game.Bepu.Testers
 
         #region Declaration Section
 
+        private const double DOTRADIUS = .02;
+        private const string COLOR_LEFT = "269BAB";
+        private const string COLOR_RIGHT = "AB4726";
+
         /// <summary>
         /// Workers that call UtilityML.DiscoverSolution_CrossoverMutate will run on this thread
         /// </summary>
@@ -97,10 +113,12 @@ namespace Game.Bepu.Testers
 
         private Visual3D[] _axisVisual = null;
 
-        private Visual3D _snapshotVisual = null;
+        private List<Visual3D> _visuals = new List<Visual3D>();
         private Snapshot[] _snapshots = null;
 
-        private string _filename = null;
+        private string[] _filenames = null;
+
+        private bool _initialized = false;
 
         #endregion
 
@@ -116,6 +134,11 @@ namespace Game.Bepu.Testers
             _trackball.AllowZoomOnMouseWheel = true;
             _trackball.Mappings.AddRange(TrackBallMapping.GetPrebuilt(TrackBallMapping.PrebuiltMapping.MouseComplete_NoLeft));
             _trackball.ShouldHitTestOnOrbit = false;
+            _trackball.MouseWheelScale *= .3;
+
+            _initialized = true;
+
+            chkAxiis_Checked(this, new RoutedEventArgs());
         }
 
         #endregion
@@ -126,7 +149,7 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                if (chkAxiis == null)
+                if (!_initialized)
                     return;
 
                 if (!chkAxiis.IsChecked.Value)
@@ -152,10 +175,28 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void chCenterOnNeck_Checked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!_initialized)
+                    return;
+
+                LoadFile();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void Neck_TextChanged(object sender, TextChangedEventArgs e)
         {
             try
             {
+                if (!_initialized)
+                    return;
+
                 LoadFile();
             }
             catch (Exception ex)
@@ -174,7 +215,7 @@ namespace Game.Bepu.Testers
                 {
                     InitialDirectory = folder,
                     //Filter = "*.xaml|*.xml|*.*",
-                    Multiselect = false,
+                    Multiselect = true,
                 };
 
                 bool? result = dialog.ShowDialog();
@@ -183,7 +224,7 @@ namespace Game.Bepu.Testers
                     return;
                 }
 
-                _filename = dialog.FileName;
+                _filenames = dialog.FileNames;
 
                 LoadFile();
             }
@@ -405,71 +446,181 @@ namespace Game.Bepu.Testers
             }
         }
 
+        //TODO: Each hand needs its own plane
+        private void CalculatePlane1_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_snapshots == null)
+                {
+                    MessageBox.Show("Need to load snapshots first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                bool centerOnNeck = chkCenterOnNeck.IsChecked.Value;
+
+                string left = CalculateShowPlane(_snapshots.Select(o => o.Left_Pos), UtilityWPF.ColorFromHex(COLOR_LEFT), centerOnNeck);
+                string right = CalculateShowPlane(_snapshots.Select(o => o.Right_Pos), UtilityWPF.ColorFromHex(COLOR_RIGHT), centerOnNeck);
+
+                lblPlane.Text = $"Left\r\n{left}\r\nRight{right}";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void CalculatePlane2_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_snapshots == null)
+                {
+                    MessageBox.Show("Need to load snapshots first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                Point3D[] points = _snapshots.
+                    Select(o => o.Left_Pos).
+                    ToArray();
+
+                var planes = Enumerable.Range(0, 144).
+                    Select(o =>
+                    {
+                        var plane = Math2D.GetPlane_Average(points);
+
+                        if (Vector3D.DotProduct(plane.Normal, new Vector3D(0, 1, 0)) < 0)
+                            return new Triangle_wpf(plane.Point0, plane.Point2, plane.Point1);      // reversing the vertex order
+                        else
+                            return plane;
+                    }).
+                    ToArray();
+
+                Vector3D avgNormal = Math3D.GetAverage(planes.Select(o => o.NormalUnit));
+
+                var dots = planes.
+                    Select(o => new
+                    {
+                        plane = o,
+                        dot = Vector3D.DotProduct(o.NormalUnit, avgNormal),
+                    }).
+                    OrderBy(o => o.dot).
+                    ToArray();
+
+
+                foreach (var plane in dots.Take(1))
+                {
+                    ImprovePlane(plane.plane, points, 12);
+                }
+
+                //foreach (var plane in dots.TakeLast(2))
+                //{
+                //    ImprovePlane(plane.plane, points);
+                //}
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void CalculatePlane3_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 2 failed because the corrected plane didn't try to minimize the sum of the distance from the plane
+
+                // it would be kind of fun to try a genetic algorithm, even though it's probably not optimal
+
+                // the code in math2d chooses completely random triangles and averages them with equal weight, but should really
+                // give a lot more importance to the largest triangles, or throw out tiny triangles completely (based on the length
+                // of the normals)
+                //
+                // but what's a good way to choose the points that are likely to give large areas?
+                //    once one vertex is chosen, choose another that is at least X away?
+                //    choose a bunch of random like it currently does, look at the distribution of areas, decide on a threshold, keep choosing until a count is met?
+
+
+
+
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
 
         #region Private Methods
 
         private void LoadFile()
         {
-            if (_filename == null || !System.IO.File.Exists(_filename))
+            if (_filenames == null || _filenames.Length == 0 || _filenames.Any(o => !System.IO.File.Exists(o)))
                 return;
 
-
-
-
-
-
-            //TODO: Instead of guessing with textboxes, use ML to find the values with the least neck variance
             if (!double.TryParse(txtNeckBack.Text, out double neckBack))
                 neckBack = 0d;
 
             if (!double.TryParse(txtNeckDown.Text, out double neckDown))
                 neckDown = 0d;
 
+            lblFilename.Content = _filenames.
+                Select(o => System.IO.Path.GetFileName(o)).
+                ToJoin("\r\n");
 
 
+            var snapshots = new List<Snapshot>();
 
+            foreach (string filename in _filenames)
+            {
+                string jsonString = System.IO.File.ReadAllText(filename);
 
+                SnapshotSet snapshot = JsonSerializer.Deserialize<SnapshotSet>(jsonString);
 
-
-            lblFilename.Content = System.IO.Path.GetFileName(_filename);
-
-            string jsonString = System.IO.File.ReadAllText(_filename);
-
-            SnapshotSet snapshot = JsonSerializer.Deserialize<SnapshotSet>(jsonString);
-
-            var transformed = snapshot?.Snapshots?.
-                Select(o => new Snapshot(o)).
-                ToArray();
+                snapshots.AddRange(snapshot?.Snapshots?.Select(o => new Snapshot(o)));
+            }
 
             Clear();
-            Show(transformed, neckBack, neckDown);
-            AnalyzePoints(transformed, neckBack, neckDown);
+            Show(snapshots.ToArray(), neckBack, neckDown, chkCenterOnNeck.IsChecked.Value);
+            AnalyzePoints(snapshots.ToArray(), neckBack, neckDown);
         }
 
         private void Clear()
         {
-            if (_snapshotVisual != null)
-            {
-                _viewport.Children.Remove(_snapshotVisual);
-                _snapshotVisual = null;
-            }
+            _viewport.Children.RemoveAll(_visuals);
+            _visuals.Clear();
 
             _snapshots = null;
         }
-        private void Show(Snapshot[] snapshots, double neckBack, double neckDown)
+        private void Show(Snapshot[] snapshots, double neckBack, double neckDown, bool handsOffNeck)
         {
             var mat = GetMaterials();
 
             Model3DGroup modelGroup = new Model3DGroup();
 
+            Point3D avgNeck = handsOffNeck ?
+                Math3D.GetCenter(snapshots.Select(o => o.GetNeckPosition(neckBack, neckDown))) :
+                new Point3D();
+
             foreach (var snapshot in snapshots)
             {
-                AddDot(modelGroup, snapshot.Head_Pos, mat.head);
-                AddDot(modelGroup, snapshot.Left_Pos, mat.left);
-                AddDot(modelGroup, snapshot.Right_Pos, mat.right);
+                Point3D neckPos = snapshot.GetNeckPosition(neckBack, neckDown);
 
-                AddNeckDot(modelGroup, snapshot.Head_Pos, snapshot.Head_Rot, mat.neck, neckBack, neckDown);
+                if (handsOffNeck)
+                {
+                    AddDot(modelGroup, avgNeck + (snapshot.Head_Pos - neckPos), mat.head);
+                    AddDot(modelGroup, avgNeck + (snapshot.Left_Pos - neckPos), mat.left);
+                    AddDot(modelGroup, avgNeck + (snapshot.Right_Pos - neckPos), mat.right);
+                    AddDot(modelGroup, avgNeck + (neckPos - neckPos), mat.neck, .5);
+                }
+                else
+                {
+                    AddDot(modelGroup, snapshot.Head_Pos, mat.head);
+                    AddDot(modelGroup, snapshot.Left_Pos, mat.left);
+                    AddDot(modelGroup, snapshot.Right_Pos, mat.right);
+                    AddDot(modelGroup, neckPos, mat.neck, .5);
+                }
             }
 
             Visual3D visual = new ModelVisual3D
@@ -477,35 +628,21 @@ namespace Game.Bepu.Testers
                 Content = modelGroup,
             };
 
-            _snapshotVisual = visual;
+            _visuals.Add(visual);
             _viewport.Children.Add(visual);
 
             _snapshots = snapshots;
         }
 
-        private void AddDot(Model3DGroup modelGroup, Point3D pos, Material mat)
+        private void AddDot(Model3DGroup modelGroup, Point3D pos, Material mat, double radiusPercent = 1)
         {
             GeometryModel3D model = new GeometryModel3D();
             model.Material = mat;
             model.BackMaterial = mat;
 
-            model.Geometry = UtilityWPF.GetSphere_Ico(.02, 1, true);
+            model.Geometry = UtilityWPF.GetSphere_Ico(DOTRADIUS * radiusPercent, 1, true);
 
             model.Transform = new TranslateTransform3D(pos.ToVector());
-
-            modelGroup.Children.Add(model);
-        }
-        private void AddNeckDot(Model3DGroup modelGroup, Point3D pos, Quaternion rot, Material mat, double neckBack, double neckDown)
-        {
-            GeometryModel3D model = new GeometryModel3D();
-            model.Material = mat;
-            model.BackMaterial = mat;
-
-            model.Geometry = UtilityWPF.GetSphere_Ico(.01, 1, true);
-
-            Point3D finalPos = GetNeckPosition(pos, rot, neckBack, neckDown);
-
-            model.Transform = new TranslateTransform3D(finalPos.ToVector());
 
             modelGroup.Children.Add(model);
         }
@@ -517,11 +654,11 @@ namespace Game.Bepu.Testers
             //head.Children.Add(new SpecularMaterial(UtilityWPF.BrushFromHex(""), ));
 
             MaterialGroup left = new MaterialGroup();
-            left.Children.Add(new DiffuseMaterial(UtilityWPF.BrushFromHex("269BAB")));
+            left.Children.Add(new DiffuseMaterial(UtilityWPF.BrushFromHex(COLOR_LEFT)));
             left.Children.Add(new SpecularMaterial(UtilityWPF.BrushFromHex("503E7B"), 1));
 
             MaterialGroup right = new MaterialGroup();
-            right.Children.Add(new DiffuseMaterial(UtilityWPF.BrushFromHex("AB4726")));
+            right.Children.Add(new DiffuseMaterial(UtilityWPF.BrushFromHex(COLOR_RIGHT)));
             right.Children.Add(new SpecularMaterial(UtilityWPF.BrushFromHex("7B783E"), 1));
 
             MaterialGroup neck = new MaterialGroup();
@@ -568,22 +705,10 @@ namespace Game.Bepu.Testers
             lblStats.Text = report.ToString();
         }
 
-        private static Point3D GetNeckPosition(Point3D headPos, Quaternion headRot, double neckBack, double neckDown)
-        {
-            Vector3D up = headRot.GetRotatedVector(new Vector3D(0, 1, 0));
-            Vector3D forword = headRot.GetRotatedVector(new Vector3D(0, 0, 1));
-
-            Point3D finalPos = headPos;
-            finalPos -= forword * neckBack;
-            finalPos -= up * neckDown;
-
-            return finalPos;
-        }
-
         private static double GetNeckDisplacementError(Snapshot[] snapshots, double[] settings)
         {
             Point3D[] necks = snapshots.
-                Select(o => GetNeckPosition(o.Head_Pos, o.Head_Rot, settings[0], settings[1])).
+                Select(o => o.GetNeckPosition(settings[0], settings[1])).
                 ToArray();
 
             Point3D center = Math3D.GetCenter(necks);
@@ -636,6 +761,157 @@ namespace Game.Bepu.Testers
 
 
             lblNeckResults.Text = string.Format("neckBack: {0}\r\nneckDown: {1}", log[^1].Item2[0], log[^1].Item2[1]);
+        }
+
+        private string CalculateShowPlane(IEnumerable<Point3D> points, Color color, bool centerOnNeck)
+        {
+            // Get Points
+            Point3D[] points1 = null;
+            if (centerOnNeck)
+            {
+                if (!double.TryParse(txtNeckBack.Text, out double neckBack))
+                    neckBack = 0d;
+
+                if (!double.TryParse(txtNeckDown.Text, out double neckDown))
+                    neckDown = 0d;
+
+                Point3D avgNeck = Math3D.GetCenter(_snapshots.Select(o => o.GetNeckPosition(neckBack, neckDown)));
+
+                points1 = points.
+                    Select((o, i) =>
+                    {
+                        Point3D neckPos = _snapshots[i].GetNeckPosition(neckBack, neckDown);
+                        return avgNeck + (o - neckPos);
+                    }).
+                    ToArray();
+            }
+            else
+            {
+                points1 = points.ToArray();
+            }
+
+            // Show Plane
+            var plane = Math2D.GetPlane_Average(points1);
+            Point3D pointOnPlane = Math3D.GetClosestPoint_Plane_Point(plane, Math3D.GetCenter(points1));
+
+            Visual3D visual = Debug3DWindow.GetPlane(plane, 3, color, center: pointOnPlane);
+            _viewport.Children.Add(visual);
+            _visuals.Add(visual);
+
+            visual = Debug3DWindow.GetDot(pointOnPlane, DOTRADIUS * 1.5, color);
+            _viewport.Children.Add(visual);
+            _visuals.Add(visual);
+
+            visual = Debug3DWindow.GetLine(pointOnPlane, pointOnPlane + plane.NormalUnit, DOTRADIUS / 3, color);
+            _viewport.Children.Add(visual);
+            _visuals.Add(visual);
+
+            // Report
+            StringBuilder report = new StringBuilder();
+            report.AppendLine($"Normal: {plane.NormalUnit.ToStringSignificantDigits(3)}");
+            report.AppendLine($"Point: {pointOnPlane.ToStringSignificantDigits(3)}");
+
+            return report.ToString();
+        }
+
+        private static ITriangle_wpf ImprovePlane(ITriangle_wpf plane, Point3D[] points, int countdown)
+        {
+            var pointDistances = points.
+                Select(o => new
+                {
+                    point = o,
+                    dist = Math.Abs(Math3D.DistanceFromPlane(plane, o)),
+                }).
+                ToArray();
+
+            double maxDist = pointDistances.Max(o => o.dist);
+
+            Point3D center = Math3D.GetCenter(points);
+
+            var sizes = Debug3DWindow.GetDrawSizes(Math3D.GetAABB(points).max.ToVector3().Length());
+
+            #region draw initial
+
+            Debug3DWindow window = new Debug3DWindow()
+            {
+                Title = countdown.ToString(),
+                Width = 1000,
+                Height = 1000,
+            };
+
+            window.AddAxisLines(2, sizes.line);
+
+            foreach (var point in pointDistances)
+            {
+                double percent = UtilityMath.GetScaledValue_Capped(0, 1, 0, maxDist, point.dist);
+                Color color = UtilityWPF.AlphaBlend(Colors.Red, Colors.White, percent);
+
+                window.AddDot(point.point, sizes.dot, color);
+            }
+
+            window.AddDot(center, sizes.dot, Colors.Black);
+
+            window.AddPlane(plane, 2, Colors.Coral);
+
+            window.Show();
+
+            #endregion
+
+            var offsets = points.
+                Select(o =>
+                {
+                    Point3D planePoint = Math3D.GetClosestPoint_Plane_Point(plane, o);
+                    //Quaternion rotation = Math3D.GetRotation(o - center, planePoint - center);
+                    Quaternion rotation = Math3D.GetRotation(o - center, planePoint - center);
+
+                    return new
+                    {
+                        point = o,
+                        planePoint,
+                        //rotation = rotation.ToUnit(),
+                        rotation,
+                    };
+                }).
+                ToArray();
+
+            Quaternion average = Math3D.GetAverage(offsets.Select(o => o.rotation).ToArray());
+
+            Vector3D planeNormal = plane.NormalUnit;
+
+            #region draw quats
+
+            window = new Debug3DWindow()
+            {
+                Title = "Rotations",
+                Width = 1000,
+                Height = 1000,
+            };
+
+            window.AddLines
+            (
+                offsets.
+                    Select(o =>
+                    (
+                        center,
+                        center + o.rotation.GetRotatedVector(planeNormal)
+                    )),
+                sizes.line,
+                Colors.Black
+            );
+
+            window.AddLine(center, center + average.GetRotatedVector(planeNormal * 1.1), sizes.line, Colors.White);
+
+            window.AddLine(center, center + planeNormal * 1.1, sizes.line, Colors.Red);
+
+            //window.Show();
+
+            #endregion
+
+            var plane2 = Math3D.GetPlane(center, average.GetRotatedVector(plane.NormalUnit));
+
+            return countdown > 0 ?
+                ImprovePlane(plane2, points, countdown - 1) :
+                plane2;
         }
 
         #endregion

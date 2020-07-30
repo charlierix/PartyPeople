@@ -1585,6 +1585,7 @@ namespace Game.Math_WPF.Mathematics
         #endregion
         #region class: AveragePlane_wpf
 
+        //TODO: When there are enough points, pull the random vertices from far away locations instead of pure random
         private static class AveragePlane_wpf
         {
             /// <remarks>
@@ -1629,7 +1630,6 @@ namespace Game.Math_WPF.Mathematics
                 // Average them together to get a single normal
                 Vector3D avgNormal = Math3D.GetAverage(upVectors);
 
-                // Exit Function
                 return Math3D.GetPlane(center, avgNormal);
             }
 

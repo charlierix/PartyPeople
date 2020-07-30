@@ -5,7 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Game.Bepu.Testers"
         mc:Ignorable="d"
-        Title="AnalyzeVRPoints" Width="900" Height="800">
+        Title="AnalyzeVRPoints" Width="1100" Height="1000">
+    <Window.Resources>
+        <Style x:Key="displayBox" TargetType="TextBox">
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Background" Value="#24FFFFFF"/>
+            <Setter Property="AcceptsReturn" Value="True"/>
+        </Style>
+    </Window.Resources>
+
     <Grid>
         <!-- Viewport -->
         <Border Name="grdViewPort" Background="#B3BDC4">
@@ -28,20 +36,30 @@
         </Border>
 
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8">
-            <CheckBox x:Name="chkAxiis" Content="Axiis" Checked="chkAxiis_Checked" Unchecked="chkAxiis_Checked"/>
+            <CheckBox IsChecked="True" x:Name="chkAxiis" Content="Axiis" Checked="chkAxiis_Checked" Unchecked="chkAxiis_Checked"/>
+            <CheckBox x:Name="chkCenterOnNeck" Content="Center on Neck" Checked="chCenterOnNeck_Checked" Unchecked="chCenterOnNeck_Checked">
+                <CheckBox.ToolTip>
+                    <TextBlock>Checked: Neck is drawn at a fixed point, everything else will be relative to it<LineBreak/>False: Everything drawn in raw coords</TextBlock>
+                </CheckBox.ToolTip>
+            </CheckBox>
 
-            <TextBox x:Name="txtNeckBack" ToolTip="Neck Back" Text=".12" Margin="0,4,0,0" TextChanged="Neck_TextChanged"/>
-            <TextBox x:Name="txtNeckDown" ToolTip="Neck Down" Text=".12" TextChanged="Neck_TextChanged"/>
+            <TextBox x:Name="txtNeckBack" ToolTip="Neck Back" Text=".085" Margin="0,4,0,0" TextChanged="Neck_TextChanged"/>
+            <TextBox x:Name="txtNeckDown" ToolTip="Neck Down" Text=".085" TextChanged="Neck_TextChanged"/>
             <Button Content="load..." Click="Load_Click"/>
 
-            <Button Content="Isolate Neck 1" Margin="0,8,0,0" Click="IsolateNeck1_Click"/>
+            <Button Visibility="Collapsed" Content="Isolate Neck 1" Click="IsolateNeck1_Click"/>
             <Button Visibility="Collapsed" Content="Isolate Neck 2" Click="IsolateNeck2_Click"/>
-            <Button Content="Isolate Neck 3" Click="IsolateNeck3_Click"/>
-            <TextBlock x:Name="lblNeckResults"/>
+            <Button Content="Isolate Neck" Margin="0,8,0,0" Click="IsolateNeck3_Click"/>
+            <TextBox x:Name="lblNeckResults" Style="{StaticResource displayBox}"/>
+
+            <Button Content="Calculate Plane 1" ToolTip="Finds the plane that the hands define" Margin="0,8,0,0" Click="CalculatePlane1_Click"/>
+            <Button Content="Calculate Plane 2" Click="CalculatePlane2_Click"/>
+            <Button Content="Calculate Plane 3" Click="CalculatePlane3_Click"/>
+            <TextBox x:Name="lblPlane" Style="{StaticResource displayBox}"/>
         </StackPanel>
 
         <Label x:Name="lblFilename" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
 
-        <TextBlock x:Name="lblStats" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8"/>
+        <TextBox x:Name="lblStats" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="8" Style="{StaticResource displayBox}"/>
     </Grid>
 </Window>

@@ -5912,6 +5912,59 @@ namespace Game.Math_WPF.Mathematics
 
             return new Vector3D(x * totalWeightInverse, y * totalWeightInverse, z * totalWeightInverse);
         }
+        /// <summary>
+        /// Get an average (mean) from more then two quaternions (with two, slerp would be used)
+        /// NOTE: this only works if all the quaternions are relatively close together
+        /// </summary>
+        /// <remarks>
+        /// This is a copy of unity's function
+        /// http://wiki.unity3d.com/index.php/Averaging_Quaternions_and_Vectors
+        /// 
+        /// Referenced from this page
+        /// https://stackoverflow.com/questions/12374087/average-of-multiple-quaternions
+        /// </remarks>
+        public static Quaternion GetAverage(IEnumerable<Quaternion> quaternions)
+        {
+            double w = 0;
+            double x = 0;
+            double y = 0;
+            double z = 0;
+
+            int count = 0;
+
+            bool isFirst = true;
+            Quaternion first;
+
+            foreach (Quaternion quat in quaternions)
+            {
+                count++;
+
+                Quaternion quat1 = quat.IsNormalized ?
+                    quat :
+                    quat.ToUnit();      // this average function only works if they are normalized
+
+                if (isFirst)
+                {
+                    first = quat1;
+                    isFirst = false;
+                }
+                else if (Dot(quat1, first) < 0)
+                {
+                    // The dot product is flipped, so the signs need to be reversed (it's the same rotation, but otherwise
+                    // couldn't be averaged).  This is NOT the same as the inverse
+                    quat1 = new Quaternion(-quat1.X, -quat1.Y, -quat1.Z, -quat1.W);
+                }
+
+                w += quat1.W;
+                x += quat1.X;
+                y += quat1.Y;
+                z += quat1.Z;
+            }
+
+            double addDet = 1d / (double)count;
+
+            return NormalizeQuaternion(x * addDet, y * addDet, z * addDet, w * addDet);
+        }
 
         public static Vector3D GetSum(IEnumerable<Vector3D> vectors)
         {
@@ -8773,6 +8826,26 @@ namespace Game.Math_WPF.Mathematics
                 inside,
                 inside + ((outside - inside) * intersectPercent.Value),
             };
+        }
+
+        private static Quaternion NormalizeQuaternion(double x, double y, double z, double w)
+        {
+            double lengthD = 1d / ((w * w) + (x * x) + (y * y) + (z * z));
+
+            w *= lengthD;
+            x *= lengthD;
+            y *= lengthD;
+            z *= lengthD;
+
+            return new Quaternion(x, y, z, w);
+        }
+        private static double Dot(Quaternion q1, Quaternion q2)
+        {
+            return
+                (q1.X * q2.X) +
+                (q1.Y * q2.Y) +
+                (q1.Z * q2.Z) +
+                (q1.W * q2.W);
         }
 
         #region Circle/Line Intersect Helpers
