@@ -295,7 +295,7 @@ namespace Game.Bepu.Testers
                 lblNeckResults.Text = "working...";
 
                 //TODO: Figure out how to deal directly with fractions (how many bits to use)
-                int bits = GeneticSharpUtil.GetChromosomeBits((MAX * MULT).ToInt_Ceiling());
+                int bits = GeneticSharpUtil.GetChromosomeBits((MAX * MULT).ToInt_Ceiling(), 0);
 
                 // Element0 = Neck Back
                 // Element1 = Neck Down
@@ -377,7 +377,7 @@ namespace Game.Bepu.Testers
                 lblNeckResults.Text = "working...";
 
                 //TODO: Figure out how to deal directly with fractions (how many bits to use)
-                int bits = GeneticSharpUtil.GetChromosomeBits((MAX * MULT).ToInt_Ceiling());
+                int bits = GeneticSharpUtil.GetChromosomeBits((MAX * MULT).ToInt_Ceiling(), 0);
 
                 // Element0 = Neck Back
                 // Element1 = Neck Down

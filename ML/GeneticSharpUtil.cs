@@ -11,16 +11,46 @@ namespace Game.ML
 {
     public static class GeneticSharpUtil
     {
-        //TODO: Make a version that can handle floating point values
-        public static int GetChromosomeBits(int maxValue)
+        /// <summary>
+        /// This helps determine how many bits to use for FloatingPointChromosome
+        /// </summary>
+        /// <remarks>
+        /// Here is the code that converts to bits
+        /// https://github.com/giacomelli/GeneticSharp/blob/720e95e81360a4e33e1c1711c584b8561e318a4c/src/GeneticSharp.Infrastructure.Framework/Commons/BinaryStringRepresentation.cs
+        /// 
+        /// ToRepresentation(double value, int totalBits = 0, int fractionDigits = 2)
+        /// ToRepresentation(long value, int totalBits, bool throwsException)
+        /// 
+        /// The functions convert to a long, then a string of zeros and ones
+        /// </remarks>
+        public static int GetChromosomeBits(double maxValue, int fractionDigits)
         {
-            //https://www.calculatorsoup.com/calculators/algebra/exponentsolve.php
-
-            //TODO: Figure out how to handle negative numbers - is abs enough? (test with genetic sharp to see if it can handle them).  May need to just shift to positive values
+            // When it's negative, the conversion to bits uses all 64, most of the leftmost bits are one.  When the chromosome
+            // picks random numbers, it converts the bits to a long, then clamps min to max.  Which means most arrangements of
+            // bits would be way negative, and getting converted to min -- very inneficient
             if (maxValue <= 0)
-                throw new ArgumentException("maxValue must be positive");
+                throw new ArgumentException($"maxValue must be positive: {maxValue}");
 
-            return (Math.Log(maxValue) / Math.Log(2)).ToInt_Ceiling();
+            if (fractionDigits < 0)
+                throw new ArgumentException($"fractionDigits can't be negative: {fractionDigits}");
+
+            long longValue = fractionDigits == 0 ?
+                Convert.ToInt64(maxValue) :
+                Convert.ToInt64(maxValue * Math.Pow(10, fractionDigits));       //TODO: See if this needs to be all 9s
+
+            string bits = Convert.ToString(longValue, 2);
+
+            return bits.Length;
+        }
+
+        // These translate values so that the chromosome uses zero as the min.  This makes the most efficient use of the bits
+        public static double FromChromosome(double min, double value)
+        {
+            return value + min;
+        }
+        public static double ToChromosome(double min, double value)
+        {
+            return value - min;
         }
     }
 

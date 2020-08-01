@@ -12,9 +12,13 @@
             <ColumnDefinition Width="8"/>
             <ColumnDefinition Width="1*"/>
         </Grid.ColumnDefinitions>
-        
+
         <StackPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top">
             <Button Content="Max distance points in rectangle" Click="MaxEuclideanDistance_Click"/>
+
+            <Button Visibility="Collapsed" Content="Negative number" Margin="0,8,0,0" Click="NegativeNumber_Click"/>
+            <Button Content="Negative number (shifted)" Margin="0,8,0,0" Click="NegativeNumber_Shifted_Click"/>
+            <Button Content="Floating point" Click="FloatingPoint_Click"/>
         </StackPanel>
 
         <TextBox Grid.Column="2" x:Name="txtLog" AcceptsReturn="True"/>
