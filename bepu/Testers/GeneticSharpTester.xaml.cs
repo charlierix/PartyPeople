@@ -372,6 +372,95 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void FloatingPointChromosome2_Click(object sender, RoutedEventArgs e)
+        {
+            //const double MIN = -12;
+            //const double MAX = 12;
+            //const double FIND = 7.777;
+
+            const double MIN = 512;
+            const double MAX = 1050;
+            const double FIND = 700.007;
+
+            try
+            {
+                var chromosome = FloatingPointChromosome2.Create(
+                    new double[] { MIN },
+                    new double[] { MAX },
+                    new int[] { 3 });
+
+                var population = new Population(72, 144, chromosome);
+
+                double maxError = MAX - MIN + 12;
+
+                var log = new List<double>();
+
+                var fitness = new FuncFitness(c =>
+                {
+                    var fc = c as FloatingPointChromosome2;
+                    var values = fc.ToFloatingPoints();
+
+                    log.Add(values[0]);
+
+                    return maxError - Math.Abs(values[0] - FIND);       // need to return in a format where largest value wins
+                });
+
+                var selection = new EliteSelection();       // the larger the score, the better
+
+                var crossover = new UniformCrossover(0.5f);     // .5 will pull half from each parent
+
+                var mutation = new FlipBitMutation();       // FloatingPointChromosome inherits from BinaryChromosomeBase, which is a series of bits.  This mutator will flip random bits
+
+                var termination = new FitnessStagnationTermination(144);        // keeps going until it generates the same winner this many generations in a row
+
+                var ga = new GeneticAlgorithm(population, fitness, selection, crossover, mutation)
+                {
+                    Termination = termination,
+                };
+
+                txtLog.Text = "Starting...\r\n";
+
+                double latestFitness = 0;
+                var winners = new List<double[]>();
+
+                ga.GenerationRan += (s1, e1) =>
+                {
+                    var bestChromosome = ga.BestChromosome as FloatingPointChromosome2;
+                    double bestFitness = bestChromosome.Fitness.Value;
+
+                    if (bestFitness != latestFitness)
+                    {
+                        latestFitness = bestFitness;
+                        double[] phenotype = bestChromosome.ToFloatingPoints();
+
+                        txtLog.Text += string.Format(
+                            "Generation {0,2}: {1} = {2}\r\n",
+                            ga.GenerationsNumber,
+                            phenotype[0],
+                            Math.Round(bestFitness, 2));
+
+                        winners.Add(phenotype);
+                    }
+                };
+
+                ga.TerminationReached += (s1, e1) =>
+                {
+                    var outOfRange = log.
+                        Where(o => o < MIN || o > MAX).
+                        ToArray();
+
+                    if (outOfRange.Length > 0)
+                        txtLog.Text += "----- OUT OF RANGE ----\r\n";
+                };
+
+                ga.Start();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
     }
 }

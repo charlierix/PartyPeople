@@ -19,6 +19,8 @@
             <Button Visibility="Collapsed" Content="Negative number" Margin="0,8,0,0" Click="NegativeNumber_Click"/>
             <Button Content="Negative number (shifted)" Margin="0,8,0,0" Click="NegativeNumber_Shifted_Click"/>
             <Button Content="Floating point" Click="FloatingPoint_Click"/>
+
+            <Button Content="FloatingPointChromosome2" Margin="0,8,0,0" Click="FloatingPointChromosome2_Click"/>
         </StackPanel>
 
         <TextBox Grid.Column="2" x:Name="txtLog" AcceptsReturn="True"/>
