@@ -538,11 +538,84 @@ namespace Game.Bepu.Testers
                 //    once one vertex is chosen, choose another that is at least X away?
                 //    choose a bunch of random like it currently does, look at the distribution of areas, decide on a threshold, keep choosing until a count is met?
 
+                if (_snapshots == null)
+                {
+                    MessageBox.Show("Need to load snapshots first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
+                Point3D[] points = _snapshots.
+                    Select(o => o.Left_Pos).
+                    ToArray();
 
+                Point3D center = Math3D.GetCenter(points);
 
+                var aabb = Math3D.GetAABB(points);
 
+                var chromosome = FloatingPointChromosome2.Create(
+                    new double[] { aabb.min.X, aabb.min.Y, aabb.min.Z, -12, -12, -12 },
+                    new double[] { aabb.max.X, aabb.max.Y, aabb.max.Z, 12, 12, 12 },
+                    new int[]
+                    {
+                        GeneticSharpUtil.GetNumDecimalPlaces(3, aabb.min.X, aabb.max.X),
+                        GeneticSharpUtil.GetNumDecimalPlaces(3, aabb.min.Y, aabb.max.Y),
+                        GeneticSharpUtil.GetNumDecimalPlaces(3, aabb.min.Z, aabb.max.Z),
+                        5,
+                        5,
+                        5,
+                    },
+                    new double[] { center.X, center.Y, center.Z, 0, 0, 1 });
 
+                var population = new Population(72, 144, chromosome);
+
+                double maxError = ((aabb.max - aabb.min).Length * points.Length) * 1.5;
+
+                var fitness = new FuncFitness(c =>
+                {
+                    var fc = c as FloatingPointChromosome2;
+                    var values = fc.ToFloatingPoints();
+
+                    var plane = Math3D.GetPlane(new Point3D(values[0], values[1], values[2]), new Vector3D(values[3], values[4], values[5]));
+                    double error = points.Sum(o => Math.Abs(Math3D.DistanceFromPlane(plane, o)));
+
+                    if (error > maxError)
+                        throw new ApplicationException("we're going to need a bigger boat");
+
+                    return maxError - error;       // need to return in a format where largest value wins
+                });
+
+                var selection = new EliteSelection();       // the larger the score, the better
+
+                var crossover = new UniformCrossover(0.5f);     // .5 will pull half from each parent
+
+                var mutation = new FlipBitMutation();       // FloatingPointChromosome inherits from BinaryChromosomeBase, which is a series of bits.  This mutator will flip random bits
+
+                var termination = new FitnessStagnationTermination(144);        // keeps going until it generates the same winner this many generations in a row
+
+                var ga = new GeneticAlgorithm(population, fitness, selection, crossover, mutation)
+                {
+                    Termination = termination,
+                };
+
+                double latestFitness = 0;
+                var winners = new List<(double score, double[] values)>();
+
+                ga.GenerationRan += (s1, e1) =>
+                {
+                    var bestChromosome = ga.BestChromosome as FloatingPointChromosome2;
+                    double bestFitness = bestChromosome.Fitness.Value;
+
+                    if (bestFitness != latestFitness)
+                    {
+                        latestFitness = bestFitness;
+                        double[] phenotype = bestChromosome.ToFloatingPoints();
+                        winners.Add((latestFitness, phenotype));
+                    }
+                };
+
+                ga.TerminationReached += (s1, e1) => ShowWinningPlanes(winners, points);
+
+                ga.Start();
             }
             catch (Exception ex)
             {
@@ -912,6 +985,49 @@ namespace Game.Bepu.Testers
             return countdown > 0 ?
                 ImprovePlane(plane2, points, countdown - 1) :
                 plane2;
+        }
+
+        private static void ShowWinningPlanes(List<(double score, double[] values)> winners, Point3D[] points)
+        {
+            var sizes = Debug3DWindow.GetDrawSizes(Math3D.GetAABB(points).max.ToVector3().Length());
+
+            Point3D center = Math3D.GetCenter(points);
+
+            foreach (var set in winners.Take(2).Concat(winners.TakeLast(2)))
+            {
+                var plane = Math3D.GetPlane(new Point3D(set.values[0], set.values[1], set.values[2]), new Vector3D(set.values[3], set.values[4], set.values[5]));
+
+                var pointDistances = points.
+                    Select(o => new
+                    {
+                        point = o,
+                        dist = Math.Abs(Math3D.DistanceFromPlane(plane, o)),
+                    }).
+                    ToArray();
+
+                double maxDist = pointDistances.Max(o => o.dist);
+
+                Debug3DWindow window = new Debug3DWindow()
+                {
+                    Title = set.score.ToString(),
+                };
+
+                window.AddAxisLines(2, sizes.line);
+
+                foreach (var point in pointDistances)
+                {
+                    double percent = UtilityMath.GetScaledValue_Capped(0, 1, 0, maxDist, point.dist);
+                    Color color = UtilityWPF.AlphaBlend(Colors.Red, Colors.White, percent);
+
+                    window.AddDot(point.point, sizes.dot, color);
+                }
+
+                window.AddDot(center, sizes.dot, Colors.Black);
+
+                window.AddPlane(plane, 2, Colors.Coral, center: Math3D.GetClosestPoint_Plane_Point(plane, center));
+
+                window.Show();
+            }
         }
 
         #endregion

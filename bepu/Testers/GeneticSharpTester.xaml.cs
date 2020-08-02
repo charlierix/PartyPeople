@@ -300,9 +300,9 @@ namespace Game.Bepu.Testers
         }
         private void FloatingPoint_Click(object sender, RoutedEventArgs e)
         {
-            const double MIN = 0;
-            const double MAX = 12;
-            const double FIND = 7.777;
+            const double MIN = 256;
+            const double MAX = 1024;
+            const double FIND = 700.007;
 
             try
             {
@@ -378,16 +378,20 @@ namespace Game.Bepu.Testers
             //const double MAX = 12;
             //const double FIND = 7.777;
 
-            const double MIN = 512;
-            const double MAX = 1050;
-            const double FIND = 700.007;
+            //const double MIN = 512;
+            //const double MAX = 1050;
+            //const double FIND = 700.007;
+
+            const double MIN = -36;
+            const double MAX = -24;
+            const double FIND = -30;
 
             try
             {
                 var chromosome = FloatingPointChromosome2.Create(
                     new double[] { MIN },
                     new double[] { MAX },
-                    new int[] { 3 });
+                    new int[] { 2 });
 
                 var population = new Population(72, 144, chromosome);
 

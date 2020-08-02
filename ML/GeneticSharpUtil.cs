@@ -52,6 +52,33 @@ namespace Game.ML
         {
             return value - min;
         }
+
+        /// <summary>
+        /// This helps determine how many decimal places it would take to have a number of significant digits
+        /// </summary>
+        /// <remarks>
+        /// This is used to tell FloatingPointChromosome how many decimal places to use
+        /// 
+        /// If you want 5 significant digits and the values passed in only use one integer position (0-9), you would
+        /// need four decimal places.  If the integers are in the millions, then there would be no decimal places
+        /// 
+        /// The concept is copied from ToStringSignificantDigits_Standard
+        /// </remarks>
+        public static int GetNumDecimalPlaces(int desiredSignificantDigits, params double[] values)
+        {
+            double min = values.Min();
+            double max = values.Max();
+
+            double largest = max - min;
+
+            var intPortion = new System.Numerics.BigInteger(Math.Truncate(largest));
+
+            int numInt = intPortion == 0 ?
+                0 :
+                intPortion.ToString().Length;
+
+            return Math.Max(desiredSignificantDigits - numInt, 0);
+        }
     }
 
     #region class: ErrorSelection

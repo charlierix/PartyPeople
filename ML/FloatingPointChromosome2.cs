@@ -55,9 +55,9 @@ namespace Game.ML
             _totalBits = totalBits;
             _fractionDigits = fractionDigits;
 
-            // If values are not supplied, create random values
             if (geneValues == null)
             {
+                // Values weren't supplied, create random values to start with
                 geneValues = new double[minValue.Length];
                 var rnd = RandomizationProvider.Current;
 
@@ -65,6 +65,13 @@ namespace Game.ML
                 {
                     geneValues[i] = rnd.GetDouble(0, GeneticSharpUtil.ToChromosome(minValue[i], maxValue[i]));
                 }
+            }
+            else
+            {
+                // Starter values were passed in, transform to local coords
+                geneValues = geneValues.
+                    Select((o, i) => GeneticSharpUtil.ToChromosome(minValue[i], o)).
+                    ToArray();
             }
 
             _originalValueStringRepresentation = String.Join(
