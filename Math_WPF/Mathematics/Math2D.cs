@@ -1633,7 +1633,7 @@ namespace Game.Math_WPF.Mathematics
 
         #region misc
 
-        public static (VectorInt min, VectorInt max) GetAABB(IEnumerable<VectorInt> points)
+        public static (VectorInt2 min, VectorInt2 max) GetAABB(IEnumerable<VectorInt2> points)
         {
             //NOTE: Copied for speed
 
@@ -1643,7 +1643,7 @@ namespace Game.Math_WPF.Mathematics
             int maxX = int.MinValue;
             int maxY = int.MinValue;
 
-            foreach (VectorInt point in points)
+            foreach (VectorInt2 point in points)
             {
                 foundOne = true;        // it's too expensive to look at points.Count()
 
@@ -1672,10 +1672,10 @@ namespace Game.Math_WPF.Mathematics
             {
                 // There were no points passed in
                 //TODO: May want an exception
-                return (new VectorInt(0, 0), new VectorInt(0, 0));
+                return (new VectorInt2(0, 0), new VectorInt2(0, 0));
             }
 
-            return (new VectorInt(minX, minY), new VectorInt(maxX, maxY));
+            return (new VectorInt2(minX, minY), new VectorInt2(maxX, maxY));
         }
 
         public static float LengthSquared(float x1, float y1, float x2, float y2)

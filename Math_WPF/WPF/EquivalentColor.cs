@@ -275,7 +275,7 @@ namespace Game.Math_WPF.WPF
             }
         }
 
-        private static RectInt GetSearchRect(double hue, byte gray, ColorHSV sourceColor)
+        private static RectInt2 GetSearchRect(double hue, byte gray, ColorHSV sourceColor)
         {
             byte sourceGray = UtilityWPF.HSVtoRGB(hue, sourceColor.S, sourceColor.V).ToGray().R;
 
@@ -284,7 +284,7 @@ namespace Game.Math_WPF.WPF
 
             if (sourceGray == gray)
             {
-                return new RectInt(sourceV, sourceS, 1, 1);
+                return new RectInt2(sourceV, sourceS, 1, 1);
             }
 
             // Send out feelers.  All the way up down left right and see which directions crossed over the boundry
@@ -296,7 +296,7 @@ namespace Game.Math_WPF.WPF
             if ((isUp && isDown) || (isLeft && isRight) || (!isUp && !isDown && !isLeft && !isRight))
             {
                 // Should never happen, just brute force the whole square
-                return new RectInt(0, 0, 100, 100);
+                return new RectInt2(0, 0, 100, 100);
             }
 
             // Walk along the yes lines until there is a match, or it's crossed over, then stop at that line
@@ -312,11 +312,11 @@ namespace Game.Math_WPF.WPF
                     new AxisFor(Axis.Y, sourceColor.S.ToInt_Round(), 0) :
                     new AxisFor(Axis.Y, sourceColor.S.ToInt_Round(), 100);
 
-                VectorInt corner = Find_TwoAxiis(horz, vert, hue, sourceGray, gray);
+                VectorInt2 corner = Find_TwoAxiis(horz, vert, hue, sourceGray, gray);
 
-                var aabb = Math2D.GetAABB(new[] { corner, new VectorInt(sourceV, sourceS) });
+                var aabb = Math2D.GetAABB(new[] { corner, new VectorInt2(sourceV, sourceS) });
 
-                return new RectInt(aabb.min.X, aabb.min.Y, aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y);
+                return new RectInt2(aabb.min.X, aabb.min.Y, aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y);
             }
             else
             {
@@ -335,9 +335,9 @@ namespace Game.Math_WPF.WPF
             }
         }
 
-        private static VectorInt Find_TwoAxiis(AxisFor horz, AxisFor vert, double hue, byte sourceGray, byte gray, int extra = 2)
+        private static VectorInt2 Find_TwoAxiis(AxisFor horz, AxisFor vert, double hue, byte sourceGray, byte gray, int extra = 2)
         {
-            VectorInt retVal = new VectorInt(horz.Start, vert.Start);
+            VectorInt2 retVal = new VectorInt2(horz.Start, vert.Start);
 
             var enumHz = horz.Iterate().GetEnumerator();
             var enumVt = vert.Iterate().GetEnumerator();
@@ -384,7 +384,7 @@ namespace Game.Math_WPF.WPF
                 }
             }
 
-            return new VectorInt(UtilityMath.Clamp(retVal.X + (horz.Increment * extra), 0, 100), UtilityMath.Clamp(retVal.Y + (vert.Increment * extra), 0, 100));
+            return new VectorInt2(UtilityMath.Clamp(retVal.X + (horz.Increment * extra), 0, 100), UtilityMath.Clamp(retVal.Y + (vert.Increment * extra), 0, 100));
         }
         private static int Find_OneAxis(AxisFor axis, double hue, double val, double sat, byte sourceGray, byte gray, int extra = 2)
         {
@@ -406,16 +406,16 @@ namespace Game.Math_WPF.WPF
             throw new ApplicationException("Didn't find curve");
         }
 
-        private static RectInt GetBox_OneAxis(AxisFor axis, int axisStop, double hue, double val, double sat, byte sourceGray, byte gray)
+        private static RectInt2 GetBox_OneAxis(AxisFor axis, int axisStop, double hue, double val, double sat, byte sourceGray, byte gray)
         {
             int fromX = val.ToInt_Round();
             int fromY = sat.ToInt_Round();
 
             int direction = GetBox_OneAxis_Direction(axis, axisStop, hue, fromX, fromY, sourceGray, gray);
 
-            var corners = new List<VectorInt>();
+            var corners = new List<VectorInt2>();
 
-            corners.Add(new VectorInt(fromX, fromY));
+            corners.Add(new VectorInt2(fromX, fromY));
 
             switch (axis.Axis)
             {
@@ -424,14 +424,14 @@ namespace Game.Math_WPF.WPF
 
                     if (direction <= 0)
                     {
-                        corners.Add(new VectorInt(fromX, fromY - distX));
-                        corners.Add(new VectorInt(axisStop, fromY - distX));
+                        corners.Add(new VectorInt2(fromX, fromY - distX));
+                        corners.Add(new VectorInt2(axisStop, fromY - distX));
                     }
 
                     if (direction >= 0)
                     {
-                        corners.Add(new VectorInt(fromX, fromY + distX));
-                        corners.Add(new VectorInt(axisStop, fromY + distX));
+                        corners.Add(new VectorInt2(fromX, fromY + distX));
+                        corners.Add(new VectorInt2(axisStop, fromY + distX));
                     }
                     break;
 
@@ -440,14 +440,14 @@ namespace Game.Math_WPF.WPF
 
                     if (direction <= 0)
                     {
-                        corners.Add(new VectorInt(fromX - distY, fromY));
-                        corners.Add(new VectorInt(fromX - distY, axisStop));
+                        corners.Add(new VectorInt2(fromX - distY, fromY));
+                        corners.Add(new VectorInt2(fromX - distY, axisStop));
                     }
 
                     if (direction >= 0)
                     {
-                        corners.Add(new VectorInt(fromX + distY, fromY));
-                        corners.Add(new VectorInt(fromX + distY, axisStop));
+                        corners.Add(new VectorInt2(fromX + distY, fromY));
+                        corners.Add(new VectorInt2(fromX + distY, axisStop));
                     }
 
                     break;
@@ -463,11 +463,11 @@ namespace Game.Math_WPF.WPF
 
             aabb =
             (
-                new VectorInt(UtilityMath.Clamp(aabb.min.X, 0, 100), UtilityMath.Clamp(aabb.min.Y, 0, 100)),
-                new VectorInt(UtilityMath.Clamp(aabb.max.X, 0, 100), UtilityMath.Clamp(aabb.max.Y, 0, 100))
+                new VectorInt2(UtilityMath.Clamp(aabb.min.X, 0, 100), UtilityMath.Clamp(aabb.min.Y, 0, 100)),
+                new VectorInt2(UtilityMath.Clamp(aabb.max.X, 0, 100), UtilityMath.Clamp(aabb.max.Y, 0, 100))
             );
 
-            return new RectInt(aabb.min.X, aabb.min.Y, aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y);
+            return new RectInt2(aabb.min.X, aabb.min.Y, aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y);
         }
         private static int GetBox_OneAxis_Direction(AxisFor axis, int axisStop, double hue, int fromX, int fromY, byte sourceGray, byte gray)
         {
@@ -513,7 +513,7 @@ namespace Game.Math_WPF.WPF
             }
         }
 
-        private static (double s, double v, Color color)? SearchForBest(double hue, byte gray, ColorHSV sourceColor, RectInt rectangle)
+        private static (double s, double v, Color color)? SearchForBest(double hue, byte gray, ColorHSV sourceColor, RectInt2 rectangle)
         {
             return AllGridPoints(rectangle.Top, rectangle.Bottom, rectangle.Left, rectangle.Right).     // x is value, y is saturation
                 AsParallel().

@@ -1,5 +1,14 @@
 ﻿using Game.Core;
 using Game.Math_WPF.Mathematics.Clipper;
+using Game.Math_WPF.Mathematics.GeneticSharp;
+using GeneticSharp.Domain;
+using GeneticSharp.Domain.Crossovers;
+using GeneticSharp.Domain.Fitnesses;
+using GeneticSharp.Domain.Mutations;
+using GeneticSharp.Domain.Populations;
+using GeneticSharp.Domain.Selections;
+using GeneticSharp.Domain.Terminations;
+using GeneticSharp.Infrastructure.Framework.Threading;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -1585,6 +1594,7 @@ namespace Game.Math_WPF.Mathematics
         #endregion
         #region class: AveragePlane_wpf
 
+        //TODO: When there are enough points, pull the random vertices from far away locations instead of pure random
         private static class AveragePlane_wpf
         {
             /// <remarks>
@@ -1619,6 +1629,15 @@ namespace Game.Math_WPF.Mathematics
                 // The plane will go through this center point
                 Point3D center = Math3D.GetCenter(points);
 
+                var retVal = Get_RandomTriangles(points, center, matchPolyNormalDirection);
+
+                return Improve_Genetic(retVal, points, center);
+            }
+
+            #region Private Methods - random triangles
+
+            private static ITriangle_wpf Get_RandomTriangles(Point3D[] points, Point3D center, bool matchPolyNormalDirection = false)
+            {
                 // Get a bunch of sample up vectors
                 Vector3D[] upVectors = GetAveragePlane_UpVectors(points, matchPolyNormalDirection);
                 if (upVectors.Length == 0)
@@ -1629,11 +1648,8 @@ namespace Game.Math_WPF.Mathematics
                 // Average them together to get a single normal
                 Vector3D avgNormal = Math3D.GetAverage(upVectors);
 
-                // Exit Function
                 return Math3D.GetPlane(center, avgNormal);
             }
-
-            #region Private Methods
 
             /// <summary>
             /// This chooses a bunch of random triangles out of the points passed in, and returns their normals (all pointing the
@@ -1874,6 +1890,86 @@ namespace Game.Math_WPF.Mathematics
                 retVal.AddRange(points.Skip(startIndex));
 
                 return retVal.ToArray();
+            }
+
+            #endregion
+            #region Private Methods - genetic
+
+            private static ITriangle_wpf Improve_Genetic(ITriangle_wpf current, Point3D[] points, Point3D center)
+            {
+                Point3D initial_pos = Math3D.GetClosestPoint_Plane_Point(current, center);
+                Vector3D initial_norm = current.NormalUnit;
+
+                var aabb = Math3D.GetAABB(points);
+
+                var chromosome = FloatingPointChromosome2.Create(
+                    new double[] { aabb.min.X, aabb.min.Y, aabb.min.Z, -3, -3, -3 },
+                    new double[] { aabb.max.X, aabb.max.Y, aabb.max.Z, 3, 3, 3 },
+                    new int[]
+                    {
+                        GeneticSharpUtil.GetNumDecimalPlaces(3, aabb.min.X, aabb.max.X),
+                        GeneticSharpUtil.GetNumDecimalPlaces(3, aabb.min.Y, aabb.max.Y),
+                        GeneticSharpUtil.GetNumDecimalPlaces(3, aabb.min.Z, aabb.max.Z),
+                        5,
+                        5,
+                        5,
+                    },
+                    new double[] { initial_pos.X, initial_pos.Y, initial_pos.Z, initial_norm.X, initial_norm.Y, initial_norm.Z });
+
+                var population = new Population(72, 144, chromosome);
+
+                double maxError = ((aabb.max - aabb.min).Length * points.Length) * 1.5;
+
+                var fitness = new FuncFitness(c =>
+                {
+                    var fc = c as FloatingPointChromosome2;
+                    var values = fc.ToFloatingPoints();
+
+                    var plane = Math3D.GetPlane(new Point3D(values[0], values[1], values[2]), new Vector3D(values[3], values[4], values[5]));
+                    double error = points.Sum(o => Math.Abs(Math3D.DistanceFromPlane(plane, o)));
+
+                    if (error > maxError)
+                        throw new ApplicationException("we're going to need a bigger boat");
+
+                    return maxError - error;       // need to return in a format where largest value wins
+                });
+
+                var selection = new EliteSelection();       // the larger the score, the better
+
+                var crossover = new UniformCrossover(0.5f);     // .5 will pull half from each parent
+
+                var mutation = new FlipBitMutation();       // FloatingPointChromosome inherits from BinaryChromosomeBase, which is a series of bits.  This mutator will flip random bits
+
+                var termination = new FitnessStagnationTermination(144);        // keeps going until it generates the same winner this many generations in a row
+
+                var taskExecutor = new ParallelTaskExecutor();
+
+                var ga = new GeneticAlgorithm(population, fitness, selection, crossover, mutation)
+                {
+                    TaskExecutor = taskExecutor,
+                    Termination = termination,
+                };
+
+                ITriangle_wpf retVal = null;
+
+                ga.TerminationReached += (s1, e1) =>
+                {
+                    var bestChromosome = ga.BestChromosome as FloatingPointChromosome2;
+                    double[] values = bestChromosome.ToFloatingPoints();
+
+                    var plane = Math3D.GetPlane(new Point3D(values[0], values[1], values[2]), new Vector3D(values[3], values[4], values[5]));
+
+                    Point3D final_pos = Math3D.GetClosestPoint_Plane_Point(plane, center);      // the plane's probably drifted, force it to be near the center of the sample points
+                    Vector3D final_norm = plane.NormalUnit;
+                    if (Vector3D.DotProduct(initial_norm, final_norm) < 0)
+                        final_norm = -final_norm;       // the normal flipped, flip it back
+
+                    retVal = Math3D.GetPlane(final_pos, final_norm);
+                };
+
+                ga.Start();     // this won't return until its finished, which means termination event will already have fired before execution moves on
+
+                return retVal;
             }
 
             #endregion
@@ -3305,7 +3401,7 @@ namespace Game.Math_WPF.Mathematics
         /// Use this to figure out how to call GetCells, GetCells_InvertY with an arbitrary number of cells.  This packs them into
         /// roughly a square
         /// </summary>
-        public static VectorInt GetCellColumnsRows(int count)
+        public static VectorInt2 GetCellColumnsRows(int count)
         {
             int rows = Math.Sqrt(count).ToInt_Floor();
 
@@ -3315,7 +3411,7 @@ namespace Game.Math_WPF.Mathematics
                 columns++;
             }
 
-            return new VectorInt(columns, rows);
+            return new VectorInt2(columns, rows);
         }
 
         #endregion

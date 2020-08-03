@@ -60,7 +60,7 @@
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
 
-        <WrapPanel Grid.Row="0" Orientation="Vertical" MaxHeight="500">
+        <WrapPanel Grid.Row="0" Orientation="Vertical" MaxHeight="250">
             <!-- TODO: Create an entry that starts the old game tester (in it's own process) -->
 
             <StackPanel>
@@ -74,6 +74,7 @@
             <StackPanel>
                 <Label Content="Color" Style="{StaticResource subHeaderLabel}"/>
                 <ListBox>
+                    <ListBoxItem Content="Color Picker" MouseUp="ColorPicker_MouseUp"/>
                     <ListBoxItem Content="Color Manipulations" MouseUp="ColorManipulations_MouseUp"/>
                 </ListBox>
             </StackPanel>
@@ -83,6 +84,20 @@
                 <ListBox>
                     <ListBoxItem Content="Editor 1" MouseUp="MonoliskEditor1_MouseUp"/>
                     <ListBoxItem Content="Player 1" MouseUp="MonoliskPlayer1_MouseUp"/>
+                </ListBox>
+            </StackPanel>
+
+            <StackPanel>
+                <Label Content="VR Utils" Style="{StaticResource subHeaderLabel}"/>
+                <ListBox>
+                    <ListBoxItem Content="Analyze VR Points" MouseUp="AnalyzeVRPoints_MouseUp"/>
+                </ListBox>
+            </StackPanel>
+
+            <StackPanel>
+                <Label Content="Machine Learning" Style="{StaticResource subHeaderLabel}"/>
+                <ListBox>
+                    <ListBoxItem Content="Genetic Sharp" MouseUp="GeneticSharp_MouseUp"/>
                 </ListBox>
             </StackPanel>
         </WrapPanel>

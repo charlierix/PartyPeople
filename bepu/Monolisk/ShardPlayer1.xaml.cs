@@ -141,7 +141,7 @@ namespace Game.Bepu.Monolisk
                     return shard.Tiles[y][x] == null;
             });
 
-            foreach (VectorInt index in shard.EnumerateIndices())
+            foreach (VectorInt2 index in shard.EnumerateIndices())
             {
                 if (shard.Tiles[index.Y][index.X] != null)
                 {
@@ -163,7 +163,7 @@ namespace Game.Bepu.Monolisk
 
         private void CreatePlayer()
         {
-            VectorInt[] starts = FindItems(ShardItemType1.StartLocation);
+            VectorInt2[] starts = FindItems(ShardItemType1.StartLocation);
             if (starts.Length != 1)
             {
                 throw new ApplicationException($"Need exactly one start point: {starts.Length}");
@@ -179,7 +179,7 @@ namespace Game.Bepu.Monolisk
             _playerController.IsActive = true;
         }
 
-        private VectorInt[] FindItems(ShardItemType1 type)
+        private VectorInt2[] FindItems(ShardItemType1 type)
         {
             return _shard.Shard.EnumerateIndices().
                 Where(o => _shard.Shard.Tiles[o.Y][o.X]?.Item?.ItemType == type).

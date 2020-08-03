@@ -2389,10 +2389,14 @@ namespace Game.Math_WPF.Mathematics
                 {
                     // This new triangle is coplanar with the neighbor triangle, so pointWithinHull can't be used to figure out if this return
                     // triangle is facing the correct way.  Instead, make it point the same direction as the neighbor triangle
-                    dot = Vector3D.DotProduct(retVal.Normal, neighbor.Normal);
-                    if (dot < 0)
+
+                    if (neighbor != null)       // this function was getting called with no neighbor
                     {
-                        retVal = new TriangleWithPoints(point0, point2, point1, allPoints);
+                        dot = Vector3D.DotProduct(retVal.Normal, neighbor.Normal);
+                        if (dot < 0)
+                        {
+                            retVal = new TriangleWithPoints(point0, point2, point1, allPoints);
+                        }
                     }
                 }
 
@@ -2972,8 +2976,7 @@ namespace Game.Math_WPF.Mathematics
 
             private static ITriangle_wpf GetTangentPlane(int index, ITriangleIndexed_wpf[] triangles, SortedList<int, ITriangle_wpf> planes)
             {
-                ITriangle_wpf retVal;
-                if (planes.TryGetValue(index, out retVal))
+                if (planes.TryGetValue(index, out ITriangle_wpf retVal))
                 {
                     return retVal;
                 }
@@ -2986,6 +2989,8 @@ namespace Game.Math_WPF.Mathematics
             }
             private static ITriangle_wpf GetTangentPlane(int index, ITriangleIndexed_wpf[] triangles)
             {
+                Point3D requestPoint = triangles[0].AllPoints[index];
+
                 // Find the triangles that touch this point
                 ITriangleIndexed_wpf[] touching = triangles.
                     Where(o => o.IndexArray.Contains(index)).
@@ -3000,9 +3005,42 @@ namespace Game.Math_WPF.Mathematics
 
                 // Use those points to define a plane
                 ITriangle_wpf plane = Math2D.GetPlane_Average(otherPoints);
+                if (plane == null)
+                {
+                    // If execution gets here, it looks like the triangles passed in are all on the same plane, and there are only
+                    // three points.  So removing the one point causes only two points left
+
+                    int[] otherIndices = touching.
+                        SelectMany(o => o.IndexArray).
+                        Where(o => o != index).
+                        Distinct().
+                        ToArray();
+
+                    if (otherIndices.Length >= 2)
+                    {
+                        return new Triangle_wpf(requestPoint, triangles[0].AllPoints[otherIndices[0]], triangles[0].AllPoints[otherIndices[1]]);
+                    }
+                    else
+                    {
+                        //Debug3DWindow window = new Debug3DWindow();
+                        //double size = otherPoints.Max(o => o.ToVector().Length);
+                        //var sizes = Debug3DWindow.GetDrawSizes(size);
+                        //window.AddAxisLines(size, sizes.line);
+
+                        //foreach (var triangle in triangles)
+                        //{
+                        //    window.AddTriangle(triangle, WPF.UtilityWPF.GetRandomColor(64, 192));
+                        //}
+
+                        //window.AddDots(otherPoints, sizes.dot, Colors.White);
+                        //window.AddDot(requestPoint, sizes.dot, Colors.Red);
+                        //window.Show();
+
+                        throw new ApplicationException("fix this (find other points in triangles to use?)");
+                    }
+                }
 
                 // Translate the plane
-                Point3D requestPoint = triangles[0].AllPoints[index];
                 return new Triangle_wpf(requestPoint, requestPoint + (plane.Point1 - plane.Point0), requestPoint + (plane.Point2 - plane.Point0));
             }
 
@@ -5874,6 +5912,59 @@ namespace Game.Math_WPF.Mathematics
 
             return new Vector3D(x * totalWeightInverse, y * totalWeightInverse, z * totalWeightInverse);
         }
+        /// <summary>
+        /// Get an average (mean) from more then two quaternions (with two, slerp would be used)
+        /// NOTE: this only works if all the quaternions are relatively close together
+        /// </summary>
+        /// <remarks>
+        /// This is a copy of unity's function
+        /// http://wiki.unity3d.com/index.php/Averaging_Quaternions_and_Vectors
+        /// 
+        /// Referenced from this page
+        /// https://stackoverflow.com/questions/12374087/average-of-multiple-quaternions
+        /// </remarks>
+        public static Quaternion GetAverage(IEnumerable<Quaternion> quaternions)
+        {
+            double w = 0;
+            double x = 0;
+            double y = 0;
+            double z = 0;
+
+            int count = 0;
+
+            bool isFirst = true;
+            Quaternion first;
+
+            foreach (Quaternion quat in quaternions)
+            {
+                count++;
+
+                Quaternion quat1 = quat.IsNormalized ?
+                    quat :
+                    quat.ToUnit();      // this average function only works if they are normalized
+
+                if (isFirst)
+                {
+                    first = quat1;
+                    isFirst = false;
+                }
+                else if (Dot(quat1, first) < 0)
+                {
+                    // The dot product is flipped, so the signs need to be reversed (it's the same rotation, but otherwise
+                    // couldn't be averaged).  This is NOT the same as the inverse
+                    quat1 = new Quaternion(-quat1.X, -quat1.Y, -quat1.Z, -quat1.W);
+                }
+
+                w += quat1.W;
+                x += quat1.X;
+                y += quat1.Y;
+                z += quat1.Z;
+            }
+
+            double addDet = 1d / (double)count;
+
+            return NormalizeQuaternion(x * addDet, y * addDet, z * addDet, w * addDet);
+        }
 
         public static Vector3D GetSum(IEnumerable<Vector3D> vectors)
         {
@@ -8097,6 +8188,7 @@ namespace Game.Math_WPF.Mathematics
                 Z = Math1D.GetNearZeroValue(maxValue),
             };
         }
+
         /// <summary>
         /// Gets a random vector with radius between maxRadius*-1 and maxRadius (bounds are spherical,
         /// rather than cube)
@@ -8139,6 +8231,7 @@ namespace Game.Math_WPF.Mathematics
 
             return new Vector3D(x, y, z);
         }
+
         /// <summary>
         /// Gets a random vector with radius between maxRadius*-1 and maxRadius (bounds are spherical,
         /// rather than cube).  Z will always be zero.
@@ -8735,6 +8828,26 @@ namespace Game.Math_WPF.Mathematics
             };
         }
 
+        private static Quaternion NormalizeQuaternion(double x, double y, double z, double w)
+        {
+            double lengthD = 1d / ((w * w) + (x * x) + (y * y) + (z * z));
+
+            w *= lengthD;
+            x *= lengthD;
+            y *= lengthD;
+            z *= lengthD;
+
+            return new Quaternion(x, y, z, w);
+        }
+        private static double Dot(Quaternion q1, Quaternion q2)
+        {
+            return
+                (q1.X * q2.X) +
+                (q1.Y * q2.Y) +
+                (q1.Z * q2.Z) +
+                (q1.W * q2.W);
+        }
+
         #region Circle/Line Intersect Helpers
 
         private struct CircleLineArgs
@@ -9126,7 +9239,7 @@ namespace Game.Math_WPF.Mathematics
 
         private static CirclePlaneIntersectProps GetClosestPointsBetweenLineCylinder_PlaneIntersect(CircleLineArgs args, Point3D nearestLinePoint, Vector3D nearestLine, double nearestLineDistance)
         {
-            //NOTE: This is nearly identical to GetClosestPointsBetweenLineCircleSprtPlaneIntersect, but since some stuff was already done,
+            //NOTE: This is nearly identical to GetClosestPointsBetweenLineCircle_PlaneIntersect, but since some stuff was already done,
             // it's more just filling out the struct
 
             CirclePlaneIntersectProps retVal;

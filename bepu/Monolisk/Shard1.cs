@@ -6,7 +6,7 @@ using System.Xml.Serialization;
 
 namespace Game.Bepu.Monolisk
 {
-    // This first attempt will only port
+    // This first attempt will only be ports
 
     #region class: ShardMap1
 
@@ -17,13 +17,13 @@ namespace Game.Bepu.Monolisk
         // For this first version, just use a fixed size 2D array
         public ShardTile1[][] Tiles { get; set; }
 
-        public IEnumerable<VectorInt> EnumerateIndices()
+        public IEnumerable<VectorInt2> EnumerateIndices()
         {
             for (int y = 0; y < Tiles.Length; y++)
             {
                 for (int x = 0; x < Tiles[y].Length; x++)
                 {
-                    yield return new VectorInt(x, y);
+                    yield return new VectorInt2(x, y);
                 }
             }
         }
@@ -121,8 +121,22 @@ namespace Game.Bepu.Monolisk
     {
         // do you use explicit ones for each map, or try to make them more generic?
         // explicit would give a chance to make a rainbow shard, but for v1, it's all port
+        //
+        // see ShardRendering1.GetTileMaterials() for more thoughts
 
-        Cement
+        Water_deep,
+        Water_shallow,
+        Tile,
+        Cement,
+        Ice,
+        Brick_small,
+        Brick_large,
+        Wood_tight,
+        Wood_loose,
+        Dirt,
+        Sand,
+        Rocks,
+        Snow,
     }
 
     #endregion

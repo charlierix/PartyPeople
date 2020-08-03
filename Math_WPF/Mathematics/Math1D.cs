@@ -232,7 +232,7 @@ namespace Game.Math_WPF.Mathematics
         /// <remarks>
         /// http://www.mathsisfun.com/data/standard-deviation.html
         /// </remarks>
-        public static Tuple<double, double> Get_Average_StandardDeviation(IEnumerable<double> values)
+        public static (double avg, double stdDev) Get_Average_StandardDeviation(IEnumerable<double> values)
         {
             double mean = values.Average();
 
@@ -245,14 +245,14 @@ namespace Game.Math_WPF.Mathematics
                 }).
                 Average();
 
-            return Tuple.Create(mean, Math.Sqrt(variance));
+            return (mean, Math.Sqrt(variance));
         }
 
-        public static Tuple<double, double> Get_Average_StandardDeviation(IEnumerable<int> values)
+        public static (double avg, double stdDev) Get_Average_StandardDeviation(IEnumerable<int> values)
         {
             return Get_Average_StandardDeviation(values.Select(o => Convert.ToDouble(o)));
         }
-        public static Tuple<DateTime, TimeSpan> Get_Average_StandardDeviation(IEnumerable<DateTime> dates)
+        public static (DateTime avg, TimeSpan stdDev) Get_Average_StandardDeviation(IEnumerable<DateTime> dates)
         {
             // I don't know if this is the best way (timezones and all that craziness)
 
@@ -262,9 +262,9 @@ namespace Game.Math_WPF.Mathematics
                 Select(o => (o - first).TotalHours).
                 ToArray();
 
-            Tuple<double, double> retVal = Get_Average_StandardDeviation(hours);
+            var retVal = Get_Average_StandardDeviation(hours);
 
-            return Tuple.Create(first + TimeSpan.FromHours(retVal.Item1), TimeSpan.FromHours(retVal.Item2));
+            return (first + TimeSpan.FromHours(retVal.avg), TimeSpan.FromHours(retVal.stdDev));
         }
 
         /// <summary>

@@ -34,12 +34,12 @@ namespace Game.Bepu.Monolisk
                 new Point(offsetX + .5, offsetY + .5)
             );
         }
-        public static VectorInt GetTileIndex(Point pos)
+        public static VectorInt2 GetTileIndex(Point pos)
         {
             int x = (pos.X + ShardRendering1.HALFSIZE).ToInt_Floor();
             int y = (pos.Y + ShardRendering1.HALFSIZE).ToInt_Floor();
 
-            return new VectorInt(x, y);
+            return new VectorInt2(x, y);
         }
 
         public static ShardVisuals1 LoadShard(ShardMap1 shard)
@@ -59,7 +59,7 @@ namespace Game.Bepu.Monolisk
                 {
                     if (shard.Tiles[y][x] != null)
                     {
-                        var index = new VectorInt(x, y);
+                        var index = new VectorInt2(x, y);
 
                         AddTileGraphic(index, shard.Tiles[y][x].GroundType, retVal.TileGroup, retVal.Tiles);
 
@@ -83,35 +83,54 @@ namespace Game.Bepu.Monolisk
             return retVal;
         }
 
-        public static void RemoveTileGraphic(VectorInt index, Model3DGroup group, Model3D[,] models)
+        public static void RemoveTileGraphic(VectorInt2 index, Model3DGroup group, Model3D[,] models)
         {
             group.Children.Remove(models[index.X, index.Y]);
             models[index.X, index.Y] = null;
         }
-        public static void RemoveItemGraphic(VectorInt index, Model3DGroup group, Model3D[,] models)
+        public static void RemoveItemGraphic(VectorInt2 index, Model3DGroup group, Model3D[,] models)
         {
             group.Children.Remove(models[index.X, index.Y]);
             models[index.X, index.Y] = null;
         }
 
-        public static void AddTileGraphic(VectorInt index, ShardGroundType1 type, Model3DGroup group, Model3D[,] models)
+        public static void AddTileGraphic(VectorInt2 index, ShardGroundType1 type, Model3DGroup group, Model3D[,] models)
         {
             if (models[index.X, index.Y] != null)
             {
                 RemoveTileGraphic(index, group, models);
             }
 
-            switch (type)
-            {
-                case ShardGroundType1.Cement:
-                    AddTileGraphic_Cement(index, group, models);
-                    break;
+            Random rand = StaticRandom.GetRandomForThread();
 
-                default:
-                    throw new ApplicationException($"Unknown {nameof(ShardGroundType1)}: {type}");
-            }
+            var materials = GetTileMaterials(type);
+
+            var pos = GetTilePos(index.X, index.Y);
+
+            double tileZ = rand.NextPercent(TILE_Z, .12);
+
+            Model3DGroup tileGroup = new Model3DGroup();
+
+            // Top
+            tileGroup.Children.Add(new GeometryModel3D
+            {
+                Material = materials.top,
+                BackMaterial = materials.top,
+                Geometry = UtilityWPF.GetSquare2D(pos.min, pos.max, tileZ),
+            });
+
+            // Sides
+            tileGroup.Children.Add(new GeometryModel3D
+            {
+                Material = materials.sides,
+                BackMaterial = materials.sides,
+                Geometry = GetCubeSides(pos.min, pos.max, tileZ),
+            });
+
+            models[index.X, index.Y] = tileGroup;
+            group.Children.Add(models[index.X, index.Y]);
         }
-        public static void AddItemGraphic(VectorInt index, ShardItem1 item, Model3DGroup group, Model3D[,] models)
+        public static void AddItemGraphic(VectorInt2 index, ShardItem1 item, Model3DGroup group, Model3D[,] models)
         {
             if (models[index.X, index.Y] != null)
             {
@@ -143,60 +162,169 @@ namespace Game.Bepu.Monolisk
 
         #region Private Methods
 
-        private static void AddTileGraphic_Cement(VectorInt index, Model3DGroup group, Model3D[,] models)
+        private static (Material top, Material sides) GetTileMaterials(ShardGroundType1 type)
         {
-            // diffuse: 777
-            // specular: 30602085, 3
+            //NOTE: the ground type enum is meant to be generic and will control more than just color (physics props, procedural decoration, etc)
+            //specific colors would need to be a combination of map type and ground type (water would look different between port and swamp)
 
-            var pos = GetTilePos(index.X, index.Y);
+            //NOTE: Water's specular should be tied pretty closely with the map's sky color
+
+
+            //TODO: Create baseline colors for most of these, then apply map type color settings over the defaults
+
 
             Random rand = StaticRandom.GetRandomForThread();
 
-            double tileZ = rand.NextPercent(TILE_Z, .12);
+            ColorHSV diffuseTop, specTop, diffuseSide, specSide;
+            double powTop, powSide;
 
-            Model3DGroup tileGroup = new Model3DGroup();
-
-            #region top
-
-            ColorHSV diffuse = new ColorHSV(0, 0, rand.Next(50 - 5, 50 + 5));
-            ColorHSV spec = new ColorHSV(36, rand.Next(278 - 5, 278 + 5), rand.Next(76 - 10, 76 + 10), rand.Next(52 - 5, 52 + 5));
-
-            MaterialGroup material = new MaterialGroup();
-            material.Children.Add(new DiffuseMaterial(new SolidColorBrush(diffuse.ToRGB())));
-            material.Children.Add(new SpecularMaterial(new SolidColorBrush(spec.ToRGB()), 3));
-
-            tileGroup.Children.Add(new GeometryModel3D
+            switch (type)
             {
-                Material = material,
-                BackMaterial = material,
-                Geometry = UtilityWPF.GetSquare2D(pos.min, pos.max, tileZ),
-            });
+                case ShardGroundType1.Cement:
+                    //diffuseTop = new ColorHSV(0, 0, rand.Next(50 - 5, 50 + 5));
+                    //specTop = new ColorHSV(36, rand.Next(278 - 5, 278 + 5), rand.Next(76 - 10, 76 + 10), rand.Next(52 - 5, 52 + 5));
 
-            #endregion
+                    //diffuseSide = new ColorHSV(0, 0, rand.Next(43 - 5, 43 + 5));
+                    //specSide = new ColorHSV(24, rand.Next(278 - 5, 278 + 5), rand.Next(76 - 10, 76 + 10), rand.Next(52 - 5, 52 + 5));
 
-            #region sides
+                    diffuseTop = rand.ColorHSV("808080", 0, 0, 5);
+                    //specTop = rand.ColorHSV("24602085", 5, 10, 5);
+                    specTop = rand.ColorHSV("24817A85", 5, 10, 5);
+                    powTop = 3;
 
-            diffuse = new ColorHSV(0, 0, rand.Next(43 - 5, 43 + 5));
-            spec = new ColorHSV(24, rand.Next(278 - 5, 278 + 5), rand.Next(76 - 10, 76 + 10), rand.Next(52 - 5, 52 + 5));
+                    diffuseSide = rand.ColorHSV("6E6E6E", 0, 0, 5);
+                    //specSide = rand.ColorHSV("18602085", 5, 10, 5);
+                    specSide = rand.ColorHSV("18817A85", 5, 10, 5);
+                    powSide = 3;
+                    break;
 
-            material = new MaterialGroup();
-            material.Children.Add(new DiffuseMaterial(new SolidColorBrush(diffuse.ToRGB())));
-            material.Children.Add(new SpecularMaterial(new SolidColorBrush(spec.ToRGB()), 3));
+                case ShardGroundType1.Brick_large:
+                    diffuseTop = rand.ColorHSV("707070", 0, 0, 5);
+                    specTop = rand.ColorHSV("24817A85", 5, 10, 5);
+                    powTop = 3;
 
-            tileGroup.Children.Add(new GeometryModel3D
-            {
-                Material = material,
-                BackMaterial = material,
-                Geometry = GetCubeSides(pos.min, pos.max, tileZ),
-            });
+                    diffuseSide = rand.ColorHSV("525252", 0, 0, 5);
+                    specSide = rand.ColorHSV("18817A85", 5, 10, 5);
+                    powSide = 3;
+                    break;
 
-            #endregion
+                case ShardGroundType1.Brick_small:
+                    diffuseTop = rand.ColorHSV("606060", 0, 0, 5);
+                    specTop = rand.ColorHSV("24817A85", 5, 10, 5);
+                    powTop = 3;
 
-            models[index.X, index.Y] = tileGroup;
-            group.Children.Add(models[index.X, index.Y]);
+                    diffuseSide = rand.ColorHSV("444", 0, 0, 5);
+                    specSide = rand.ColorHSV("18817A85", 5, 10, 5);
+                    powSide = 3;
+                    break;
+
+                case ShardGroundType1.Water_deep:
+                    diffuseTop = rand.ColorHSV("1E3A3B", 10, 15, 2);
+                    specTop = rand.ColorHSV("40A3945B", 5, 10, 5);
+                    powTop = 4;
+
+                    diffuseSide = rand.ColorHSV("042326", 10, 20, 3);
+                    specSide = rand.ColorHSV("307D7146", 5, 10, 5);
+                    powSide = 4;
+                    break;
+
+                case ShardGroundType1.Water_shallow:
+                    diffuseTop = rand.ColorHSV("1E313B", 10, 15, 2);
+                    specTop = rand.ColorHSV("60F0ECDD", 5, 3, 1);
+                    powTop = 2;
+
+                    diffuseSide = rand.ColorHSV("324C4C", 10, 10, 2);
+                    specSide = rand.ColorHSV("60ABA591", 7, 5, 8);
+                    powSide = 6;
+                    break;
+
+                case ShardGroundType1.Dirt:
+                    diffuseTop = rand.ColorHSV("4f4540", 15, 5, 2);
+                    specTop = rand.ColorHSV("30404040", 0, 0, 5);
+                    powTop = .5;
+
+                    diffuseSide = rand.ColorHSV("3D3532", 10, 10, 2);
+                    specSide = rand.ColorHSV("20404040", 0, 0, 3);
+                    powSide = .5;
+                    break;
+
+                case ShardGroundType1.Sand:
+                    diffuseTop = rand.ColorHSV("A1998F", 5, 4, 8);
+                    specTop = rand.ColorHSV("40808080", 0, 0, 5);
+                    powTop = 1;
+
+                    diffuseSide = rand.ColorHSV("878078", 5, 4, 8);
+                    specSide = rand.ColorHSV("38707070", 0, 0, 5);
+                    powSide = .5;
+                    break;
+
+                case ShardGroundType1.Rocks:
+                    diffuseTop = rand.ColorHSV("8C8984", 20, 4, 18);
+                    specTop = rand.ColorHSV("A0706E5A", 20, 12, 3, 20);
+                    powTop = 5;
+
+                    diffuseSide = rand.ColorHSV("73706C", 20, 2, 4);
+                    specSide = rand.ColorHSV("18807E69", 20, 5, 5);
+                    powSide = 2;
+                    break;
+
+                case ShardGroundType1.Snow:
+                    diffuseTop = rand.ColorHSV("F0F0F0", 0, 0, 3);
+                    specTop = rand.ColorHSV("70FFFFFF", 0, 0, 12, 10);
+                    powTop = 8;
+
+                    diffuseSide = rand.ColorHSV("E8E8E8", 0, 1, 4);
+                    specSide = rand.ColorHSV("90909090", 0, 0, 4);
+                    powSide = 4;
+                    break;
+
+                case ShardGroundType1.Ice:
+                    diffuseTop = rand.ColorHSV("C4D2DC", 0, 3, 5);
+                    specTop = rand.ColorHSV("B0BED9DE", 5, 2, 3);
+                    powTop = 12;
+
+                    diffuseSide = rand.ColorHSV("BCCAD4", 0, 1, 4);
+                    specSide = rand.ColorHSV("60BED9DE", 0, 0, 4);
+                    powSide = 6;
+                    break;
+
+                case ShardGroundType1.Wood_tight:
+                case ShardGroundType1.Wood_loose:
+                    diffuseTop = rand.ColorHSV("9D987D", 2, 4, 5);
+                    specTop = rand.ColorHSV("30262626", 0, 2, 3);
+                    powTop = 2;
+
+                    diffuseSide = rand.ColorHSV("8C8870", 2, 4, 5);
+                    specSide = rand.ColorHSV("20262626", 0, 2, 3);
+                    powSide = 1;
+                    break;
+
+                case ShardGroundType1.Tile:
+                    diffuseTop = rand.ColorHSV("53455A", 6, 12, 3);
+                    specTop = rand.ColorHSV("80B1AFC9", 0, 2, 3);
+                    powTop = 15;
+
+                    diffuseSide = rand.ColorHSV("4B3F52", 0, 0, 2);
+                    specSide = rand.ColorHSV("80B1AFC9", 0, 2, 3);
+                    powSide = 30;
+                    break;
+
+                default:
+                    throw new ApplicationException($"Unknown {nameof(ShardGroundType1)}: {type}");
+            }
+
+            MaterialGroup materialTop = new MaterialGroup();
+            materialTop.Children.Add(new DiffuseMaterial(new SolidColorBrush(diffuseTop.ToRGB())));
+            materialTop.Children.Add(new SpecularMaterial(new SolidColorBrush(specTop.ToRGB()), powTop));
+
+            MaterialGroup materialSide = new MaterialGroup();
+            materialSide.Children.Add(new DiffuseMaterial(new SolidColorBrush(diffuseSide.ToRGB())));
+            materialSide.Children.Add(new SpecularMaterial(new SolidColorBrush(specSide.ToRGB()), powSide));
+
+            return (materialTop, materialSide);
         }
 
-        private static void AddItemGraphic_StartLocation(VectorInt index, Model3DGroup group, Model3D[,] models)
+        private static void AddItemGraphic_StartLocation(VectorInt2 index, Model3DGroup group, Model3D[,] models)
         {
             var pos = GetTilePos(index.X, index.Y);
 
@@ -215,7 +343,7 @@ namespace Game.Bepu.Monolisk
             models[index.X, index.Y] = model;
             group.Children.Add(models[index.X, index.Y]);
         }
-        private static void AddItemGraphic_EndGate(VectorInt index, Model3DGroup group, Model3D[,] models)
+        private static void AddItemGraphic_EndGate(VectorInt2 index, Model3DGroup group, Model3D[,] models)
         {
             // This is a good start, but the endcaps cover the entire face
             //UtilityWPF.GetMultiRingedTube

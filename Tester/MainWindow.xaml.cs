@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Game.Bepu.Testers;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -39,6 +40,10 @@ namespace Game.Tester
             new Game.Bepu.Testers.BepuTester().Show();
         }
 
+        private void ColorPicker_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.ColorTools.ColorPickerWindow().Show();
+        }
         private void ColorManipulations_MouseUp(object sender, MouseButtonEventArgs e)
         {
             new Game.Bepu.Testers.ColorTools.ColorManipulationsWindow().Show();
@@ -51,6 +56,16 @@ namespace Game.Tester
         private void MonoliskPlayer1_MouseUp(object sender, MouseButtonEventArgs e)
         {
             new Game.Bepu.Monolisk.ShardPlayer1().Show();
+        }
+
+        private void AnalyzeVRPoints_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.AnalyzeVRPoints().Show();
+        }
+
+        private void GeneticSharp_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.GeneticSharpTester().Show();
         }
 
         #endregion

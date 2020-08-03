@@ -1055,26 +1055,6 @@ namespace Game.Core
         }
 
         /// <summary>
-        /// This can be used to iterate over line segments of a polygon
-        /// </summary>
-        /// <remarks>
-        /// If 4 is passed in, this will return:
-        ///     0,1
-        ///     1,2
-        ///     2,3
-        ///     3,0
-        /// </remarks>
-        public static IEnumerable<(int from, int to)> IterateEdges(int count)
-        {
-            for (int cntr = 0; cntr < count - 1; cntr++)
-            {
-                yield return (cntr, cntr + 1);
-            }
-
-            yield return (count - 1, 0);
-        }
-
-        /// <summary>
         /// This returns all combinations of the lists passed in.  This is a nested loop, which makes it easier to
         /// write linq statements against
         /// </summary>
@@ -1587,7 +1567,7 @@ namespace Game.Core
         /// <param name="removeIndices">indices that will be removed from the original list</param>
         /// <returns>
         /// map: an array the size of count.  Each element will be the index to the reduced array, or -1 for removed items
-        /// from_to: an array the same size as the reduced list that tells old an new index
+        /// from_to: an array the same size as the reduced list that tells old and new index
         /// </returns>
         public static (int[] map, (int from, int to)[] from_to) GetIndexMap(int count, IEnumerable<int> removeIndices)
         {

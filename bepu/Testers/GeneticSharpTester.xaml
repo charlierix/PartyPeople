@@ -1,0 +1,28 @@
+﻿<Window x:Class="Game.Bepu.Testers.GeneticSharpTester"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Game.Bepu.Testers"
+        mc:Ignorable="d"
+        Title="GeneticSharp Tester" ResizeMode="CanResizeWithGrip" Width="700" Height="500">
+    <Grid Margin="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="8"/>
+            <ColumnDefinition Width="1*"/>
+        </Grid.ColumnDefinitions>
+
+        <StackPanel Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Button Content="Max distance points in rectangle" Click="MaxEuclideanDistance_Click"/>
+
+            <Button Visibility="Collapsed" Content="Negative number" Margin="0,8,0,0" Click="NegativeNumber_Click"/>
+            <Button Content="Negative number (shifted)" Margin="0,8,0,0" Click="NegativeNumber_Shifted_Click"/>
+            <Button Content="Floating point" Click="FloatingPoint_Click"/>
+
+            <Button Content="FloatingPointChromosome2" Margin="0,8,0,0" Click="FloatingPointChromosome2_Click"/>
+        </StackPanel>
+
+        <TextBox Grid.Column="2" x:Name="txtLog" AcceptsReturn="True"/>
+    </Grid>
+</Window>
