@@ -1,6 +1,7 @@
 ﻿using Game.Core;
 using Game.Core.Threads;
 using Game.Math_WPF.Mathematics;
+using Game.Math_WPF.Mathematics.GeneticSharp;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
 using Game.ML;

@@ -104,6 +104,9 @@ namespace Game.ML
             });
         }
 
+
+
+        //TODO: Get rid of this.  GeneticSharp is much better
         /// <summary>
         /// This will create a bunch of random samples.  Then, score them, breed/mutate them, repeat until a satisfactory
         /// solution is found
@@ -121,6 +124,10 @@ namespace Game.ML
         {
             return CrossoverWorker.Crossover(parents, numSlices);
         }
+
+
+
+
 
         #region Private Methods
 

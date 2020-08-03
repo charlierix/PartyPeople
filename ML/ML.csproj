@@ -12,9 +12,9 @@
     <PackageReference Include="Accord.Math" Version="3.8.0" />
     <PackageReference Include="Accord.Statistics" Version="3.8.0" />
     <PackageReference Include="GeneticSharp" Version="2.6.0" />
-    <PackageReference Include="Microsoft.ML" Version="1.4.0" />
-    <PackageReference Include="Microsoft.ML.CpuMath" Version="1.4.0" />
-    <PackageReference Include="Microsoft.ML.DataView" Version="1.4.0" />
+    <PackageReference Include="Microsoft.ML" Version="1.5.1" />
+    <PackageReference Include="Microsoft.ML.CpuMath" Version="1.5.1" />
+    <PackageReference Include="Microsoft.ML.DataView" Version="1.5.1" />
     <PackageReference Include="NETStandard.Library" Version="2.0.3" />
   </ItemGroup>
 

@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Game.ML
+namespace Game.Math_WPF.Mathematics.GeneticSharp
 {
     public static class GeneticSharpUtil
     {

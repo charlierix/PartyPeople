@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Game.ML
+namespace Game.Math_WPF.Mathematics.GeneticSharp
 {
     /// <summary>
     /// Floating point chromosome with binary values (0 and 1).
