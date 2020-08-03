@@ -80,45 +80,4 @@ namespace Game.Math_WPF.Mathematics.GeneticSharp
             return Math.Max(desiredSignificantDigits - numInt, 0);
         }
     }
-
-    #region class: ErrorSelection
-
-    //WARNING: Even though this selects the ones with the lowest score, GeneticAlgorithm.BestChromosome is still getting set to the
-    //highest value in that set (probably somewhere in the population code?)
-    //
-    //So until that gets figured out, this class is useless
-
-    /// <summary>
-    /// Selects the chromosomes with the lowest error
-    /// </summary>
-    /// <remarks>
-    /// This is a copy of EliteSelection, just ordering low to high instead of high to low
-    /// </remarks>    
-    public sealed class ErrorSelection : SelectionBase
-    {
-        public ErrorSelection() :
-            base(2)
-        {
-        }
-
-        #region ISelection implementation
-
-        /// <summary>
-        /// Performs the selection of chromosomes from the generation specified.
-        /// </summary>
-        /// <param name="number">The number of chromosomes to select.</param>
-        /// <param name="generation">The generation where the selection will be made.</param>
-        /// <returns>The select chromosomes.</returns>
-        protected override IList<IChromosome> PerformSelectChromosomes(int number, Generation generation)
-        {
-            return generation.Chromosomes.
-                OrderBy(c => c.Fitness).       // the only change between this class and EliteSelection is the other uses OrderByDescending
-                Take(number).
-                ToList();
-        }
-
-        #endregion
-    }
-
-    #endregion
 }
