@@ -8062,6 +8062,11 @@ namespace Game.Math_WPF.WPF
 
         #region Public Methods
 
+        public string ToHex(bool includeAlpha = true, bool includePound = true)
+        {
+            return UtilityWPF.ColorToHex(ToRGB(), includeAlpha, includePound);
+        }
+
         public Color ToRGB()
         {
             return UtilityWPF.HSVtoRGB(this.A, this.H, this.S, this.V);

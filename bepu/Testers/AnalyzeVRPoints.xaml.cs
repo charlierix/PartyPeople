@@ -95,6 +95,20 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+        #region class: HandPlane
+
+        private class HandPlane
+        {
+            public string Name { get; set; }
+            public Snapshot[] Snapshots { get; set; }
+            public bool IsLeft { get; set; }
+            public Point3D[] Points { get; set; }
+            public ITriangle_wpf Plane { get; set; }
+            public string DotColor { get; set; } = "888";
+            public string PlaneColor { get; set; } = "888";
+        };
+
+        #endregion
 
         #region Declaration Section
 
@@ -209,24 +223,11 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                string folder = System.IO.Path.Combine(UtilityCore.GetOptionsFolder(), "VRFlight");
-
-                // Prompt for file
-                var dialog = new Microsoft.Win32.OpenFileDialog()
-                {
-                    InitialDirectory = folder,
-                    //Filter = "*.xaml|*.xml|*.*",
-                    Multiselect = true,
-                };
-
-                bool? result = dialog.ShowDialog();
-                if (result == null || result.Value == false)
-                {
+                string[] filenames = PromptForFilenames();
+                if (filenames == null || filenames.Length == 0)
                     return;
-                }
 
-                _filenames = dialog.FileNames;
-
+                _filenames = filenames;
                 LoadFile();
             }
             catch (Exception ex)
@@ -274,88 +275,6 @@ namespace Game.Bepu.Testers
                 };
 
                 UtilityML.DiscoverSolution_CrossoverMutate(delegates, options);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-        private void IsolateNeck2_Click(object sender, RoutedEventArgs e)
-        {
-            const double MULT = 10000d;
-            const double MAX = .5d;
-
-            try
-            {
-                if (_snapshots == null)
-                {
-                    MessageBox.Show("Need to load snapshots first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                lblNeckResults.Text = "working...";
-
-                //TODO: Figure out how to deal directly with fractions (how many bits to use)
-                int bits = GeneticSharpUtil.GetChromosomeBits((MAX * MULT).ToInt_Ceiling(), 0);
-
-                // Element0 = Neck Back
-                // Element1 = Neck Down
-                var chromosome = new FloatingPointChromosome(
-                    new double[] { 0, 0 },
-                    new double[] { MAX * MULT, MAX * MULT },
-                    new int[] { bits, bits },       // The total bits used to represent each number
-                    new int[] { 0, 0 });      // The number of fraction (scale or decimal) part of the number. In our case we will not use any
-
-                var population = new Population(72, 144, chromosome);
-
-                var fitness = new FuncFitness(c =>
-                {
-                    double[] values = ((FloatingPointChromosome)c).ToFloatingPoints();
-
-                    for (int cntr = 0; cntr < values.Length; cntr++)
-                        values[cntr] /= MULT;       // the values are stored as integers, because I haven't figured out how many bits to use for floating point yet
-
-                    return GetNeckDisplacementError(_snapshots, values);
-                });
-
-                //WARNING: This selection works, but population still favors high score within that returned set, haven't figured out how to change that yet
-                var selection = new ErrorSelection();       // the smaller the error, the better
-
-                var crossover = new UniformCrossover(0.5f);     // .5 will pull half from each parent
-
-                var mutation = new FlipBitMutation();       // FloatingPointChromosome inherits from BinaryChromosomeBase, which is a series of bits.  This mutator will flip random bits
-
-                var termination = new FitnessStagnationTermination(144);        // keeps going until it generates the same winner this many generations in a row
-
-                var ga = new GeneticAlgorithm(population, fitness, selection, crossover, mutation)
-                {
-                    Termination = termination,
-                };
-
-                double latestFitness = 0.0;
-                var winners = new List<(double, double[])>();
-
-                ga.GenerationRan += (s1, e1) =>
-                {
-                    var bestChromosome = ga.BestChromosome as FloatingPointChromosome;
-                    double bestFitness = bestChromosome.Fitness.Value;
-
-                    if (bestFitness != latestFitness)
-                    {
-                        latestFitness = bestFitness;
-                        winners.Add(
-                        (
-                            latestFitness,
-                            bestChromosome.ToFloatingPoints().
-                                Select(o => o / MULT).
-                                ToArray()
-                        ));
-                    }
-                };
-
-                ga.TerminationReached += (s2, e2) => ShowNeckResults(winners, 0);
-
-                ga.Start();
             }
             catch (Exception ex)
             {
@@ -485,6 +404,7 @@ namespace Game.Bepu.Testers
                     ToArray();
 
                 var planes = Enumerable.Range(0, 144).
+                    AsParallel().
                     Select(o =>
                     {
                         var plane = Math2D.GetPlane_Average(points);
@@ -614,9 +534,124 @@ namespace Game.Bepu.Testers
                     }
                 };
 
-                ga.TerminationReached += (s1, e1) => ShowWinningPlanes(winners, points);
-
                 ga.Start();
+
+                ShowWinningPlanes(winners, points);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void PlanesAcrossFiles_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string[] filenames = PromptForFilenames();
+                if (filenames == null || filenames.Length == 0)
+                    return;
+
+                if (!double.TryParse(txtNeckBack.Text, out double neckBack))
+                    neckBack = 0d;
+
+                if (!double.TryParse(txtNeckDown.Text, out double neckDown))
+                    neckDown = 0d;
+
+                #region get breakdowns
+
+                var snapshots = filenames.
+                    Select(o => new
+                    {
+                        filename = o,
+                        snapshots = LoadSnapshots(o),
+                    }).
+                    Where(o => o.snapshots != null && o.snapshots.Length > 3).
+                    ToArray();
+
+                // Get the plane for each hand of each snapshot set
+                var breakdowns = snapshots.
+                    SelectMany(o => new[]
+                    {
+                        new HandPlane()
+                        {
+                            Name = o.filename,
+                            Snapshots = o.snapshots,
+                            IsLeft = true,
+                            Points = o.snapshots.
+                                Select(p => p.Left_Pos).
+                                ToArray(),
+                        },
+                        new HandPlane()
+                        {
+                            Name = o.filename,
+                            Snapshots = o.snapshots,
+                            IsLeft = false,
+                            Points = o.snapshots.
+                                Select(p => p.Right_Pos).
+                                ToArray(),
+                        },
+                    }).
+                    AsParallel().
+                    Select(o => new HandPlane()
+                    {
+                        Name = o.Name,
+                        Snapshots = o.Snapshots,
+                        IsLeft = o.IsLeft,
+                        Points = o.Points,
+                        Plane = Math2D.GetPlane_Average(o.Points),
+                    }).
+                    ToArray();
+
+                #endregion
+
+                // Show everything together - no total average
+                ShowHandPlanes("left", breakdowns.Where(o => o.IsLeft).ToArray(), false);
+                ShowHandPlanes("right", breakdowns.Where(o => !o.IsLeft).ToArray(), false);
+
+                ShowHandPlanes("left", breakdowns.Where(o => o.IsLeft).ToArray(), true);
+                ShowHandPlanes("right", breakdowns.Where(o => !o.IsLeft).ToArray(), true);
+
+                // Show everything together - with total average
+                var summaryLeft = new HandPlane()
+                {
+                    Name = "Summary Left",
+                    PlaneColor = "F00",
+                    //Plane = Math2D.GetPlane_Average(breakdowns.Where(o => o.IsLeft).SelectMany(o => o.Points).ToArray())
+                    Plane = GetAveragePlane(breakdowns.Where(o => o.IsLeft).Select(o => o.Plane).ToArray()),
+                };
+
+                var summaryRight = new HandPlane()
+                {
+                    Name = "Summary Right",
+                    PlaneColor = "F00",
+                    //Plane = Math2D.GetPlane_Average(breakdowns.Where(o => !o.IsLeft).SelectMany(o => o.Points).ToArray())
+                    Plane = GetAveragePlane(breakdowns.Where(o => !o.IsLeft).Select(o => o.Plane).ToArray()),
+                };
+
+                ShowHandPlanes("left", breakdowns.Where(o => o.IsLeft).Concat(new[] { summaryLeft }).ToArray(), false);
+                ShowHandPlanes("right", breakdowns.Where(o => !o.IsLeft).Concat(new[] { summaryRight }).ToArray(), false);
+
+                // Each hand should be a perfect mirror, show how left and right trend differently (account for the mirroring)
+                AnalyzeMirrorPlanes(breakdowns, summaryLeft.Plane, summaryRight.Plane, neckBack, neckDown);
+
+                #region report
+
+                StringBuilder report = new StringBuilder();
+
+                report.AppendLine("Left Average:");
+                report.AppendLine($"pos: {summaryLeft.Plane.GetCenterPoint().ToStringSignificantDigits(4)}");
+                report.AppendLine($"norm: {summaryLeft.Plane.NormalUnit}");
+
+                report.AppendLine();
+
+                report.AppendLine("Right Average:");
+                report.AppendLine($"pos: {summaryRight.Plane.GetCenterPoint().ToStringSignificantDigits(4)}");
+                report.AppendLine($"norm: {summaryRight.Plane.NormalUnit}");
+
+                lblPlanesAcrossFiles.Text = report.ToString();
+
+                #endregion
             }
             catch (Exception ex)
             {
@@ -643,16 +678,14 @@ namespace Game.Bepu.Testers
                 Select(o => System.IO.Path.GetFileName(o)).
                 ToJoin("\r\n");
 
-
             var snapshots = new List<Snapshot>();
 
             foreach (string filename in _filenames)
             {
-                string jsonString = System.IO.File.ReadAllText(filename);
+                var snapshots1 = LoadSnapshots(filename);
 
-                SnapshotSet snapshot = JsonSerializer.Deserialize<SnapshotSet>(jsonString);
-
-                snapshots.AddRange(snapshot?.Snapshots?.Select(o => new Snapshot(o)));
+                if (snapshots1 != null)
+                    snapshots.AddRange(snapshots1);
             }
 
             Clear();
@@ -1029,6 +1062,238 @@ namespace Game.Bepu.Testers
 
                 window.Show();
             }
+        }
+
+        private static string[] PromptForFilenames()
+        {
+            string folder = System.IO.Path.Combine(UtilityCore.GetOptionsFolder(), "VRFlight");
+
+            // Prompt for file
+            var dialog = new Microsoft.Win32.OpenFileDialog()
+            {
+                InitialDirectory = folder,
+                //Filter = "*.xaml|*.xml|*.*",
+                Multiselect = true,
+            };
+
+            bool? result = dialog.ShowDialog();
+            if (result == null || result.Value == false)
+            {
+                return null;
+            }
+
+            return dialog.FileNames;
+        }
+
+        private static Snapshot[] LoadSnapshots(string filename)
+        {
+            string jsonString = System.IO.File.ReadAllText(filename);
+
+            SnapshotSet snapshot = JsonSerializer.Deserialize<SnapshotSet>(jsonString);
+
+            return snapshot?.Snapshots?.
+                Select(o => new Snapshot(o)).
+                ToArray();
+        }
+
+        private static void ShowHandPlanes(string title, HandPlane[] planes, bool randomColors)
+        {
+            if (randomColors)
+            {
+                planes = planes.
+                    Select(o =>
+                    {
+                        string color = StaticRandom.GetRandomForThread().ColorHSV().ToHex(false, false);
+                        return new HandPlane()
+                        {
+                            Name = o.Name,
+                            Snapshots = o.Snapshots,
+                            IsLeft = o.IsLeft,
+                            Points = o.Points,
+                            Plane = o.Plane,
+                            DotColor = color,
+                            PlaneColor = color,
+                        };
+                    }).
+                    ToArray();
+            }
+
+            var sizes = Debug3DWindow.GetDrawSizes(3);
+
+            Debug3DWindow window = new Debug3DWindow()
+            {
+                Title = title,
+            };
+
+            window.AddAxisLines(2, sizes.line);
+
+            foreach (var byDotColor in planes.ToLookup(o => o.DotColor))
+            {
+                window.AddDots(byDotColor.Where(o => o.Points != null && o.Points.Length > 0).SelectMany(o => o.Points), sizes.dot, UtilityWPF.ColorFromHex(byDotColor.Key));
+            }
+
+            foreach (HandPlane plane in planes)
+            {
+                window.AddPlane(plane.Plane, 2, UtilityWPF.ColorFromHex(plane.PlaneColor));
+            }
+
+            window.Show();
+        }
+
+        private static ITriangle_wpf GetAveragePlane(ITriangle_wpf[] planes)
+        {
+            Vector3D[] normals = planes.
+                Select(o => o.NormalUnit).
+                ToArray();
+
+            for (int cntr = 1; cntr < normals.Length; cntr++)
+            {
+                if (Vector3D.DotProduct(normals[0], normals[cntr]) < 0)
+                    normals[cntr] = -normals[cntr];
+            }
+
+            Vector3D averageNormal = Math3D.GetAverage(normals).ToUnit();
+
+            // Not sure if it's better to average the center points, or average the nearest points to origin
+            Point3D[] centersAbs = planes.
+                Select(o => o.GetCenterPoint()).
+                ToArray();
+
+            Point3D centerAbs = Math3D.GetCenter(centersAbs);
+
+
+
+            // The planes are almost identical, but not quite.  I trust the average center point more, because there's less chance of drift
+            //Point3D[] relativeOrigins = planes.
+            //    Select(o => Math3D.GetClosestPoint_Plane_Point(o, new Point3D())).
+            //    ToArray();
+
+            //Point3D centerRelativeOrigin = Math3D.GetCenter(relativeOrigins);
+
+
+            //var sizes = Debug3DWindow.GetDrawSizes(4);
+            //Debug3DWindow window = new Debug3DWindow();
+
+            //window.AddDots(centersAbs, sizes.dot, Colors.Black);
+            //window.AddDot(centerAbs, sizes.dot, Colors.Blue);
+            //window.AddPlane(Math3D.GetPlane(centerAbs, averageNormal), 1, Colors.Blue);
+
+            //window.AddDots(relativeOrigins, sizes.dot, Colors.White);
+            //window.AddDot(centerRelativeOrigin, sizes.dot, Colors.Aquamarine);
+            //window.AddPlane(Math3D.GetPlane(centerRelativeOrigin, averageNormal), 1, Colors.Aquamarine);
+
+            //window.Show();
+
+
+
+            return Math3D.GetPlane(centerAbs, averageNormal);
+        }
+
+        private static void AnalyzeMirrorPlanes(HandPlane[] hands, ITriangle_wpf avgLeft, ITriangle_wpf avgRight, double neckBack, double neckDown)
+        {
+            Point3D[] necks = hands.
+                SelectMany(o => o.Snapshots).
+                Select(o => o.GetNeckPosition(neckBack, neckDown)).
+                ToArray();
+
+            Point3D avgNeck = Math3D.GetCenter(necks);
+
+            Point3D leftPos = avgLeft.GetCenterPoint();
+            Point3D rightPos = avgRight.GetCenterPoint();
+
+
+            Vector3D leftToRight = rightPos - leftPos;
+
+            //Point3D center = leftPos + (leftToRight * .5);
+            Point3D center = avgNeck - new Vector3D(0, 1, 0);
+
+            Vector3D neckToCenter = center - avgNeck;
+
+            Vector3D handsCrossSpine = Vector3D.CrossProduct(leftToRight, neckToCenter);
+
+            var mirrorPlane = new Triangle_wpf(avgNeck, center, center + handsCrossSpine);
+
+            #region draw actual
+
+            var sizes = Debug3DWindow.GetDrawSizes(2);
+
+            Debug3DWindow window = new Debug3DWindow()
+            {
+                Title = "Mirror",
+            };
+
+            window.AddAxisLines(3, sizes.line);
+
+            window.AddDots(necks, sizes.dot / 4, Colors.White);
+            window.AddDot(avgNeck, sizes.dot, Colors.White);
+            window.AddPlane(mirrorPlane, 2, Colors.White, center: center);
+
+            window.AddPlane(avgLeft, 3, Colors.DarkOrange);
+            window.AddDot(leftPos, sizes.dot, Colors.DarkOrange);
+            window.AddLine(leftPos - avgLeft.NormalUnit, leftPos + avgLeft.NormalUnit, sizes.line, Colors.DarkOrange);
+
+            window.AddPlane(avgRight, 3, Colors.DarkCyan);
+            window.AddDot(rightPos, sizes.dot, Colors.DarkCyan);
+            window.AddLine(rightPos - avgRight.NormalUnit, rightPos + avgRight.NormalUnit, sizes.line, Colors.DarkCyan);
+
+            window.AddLine(avgNeck, center, sizes.line, Colors.Gray);
+            window.AddLine(leftPos, rightPos, sizes.line, Colors.Gray);
+
+            window.Show();
+
+            #endregion
+
+
+
+            // Figure out where right position would be if reflected off the white plane over to the left side (by definition, it's the same position, unless you compare with xz plane)
+            // Also reflect right's normal
+
+            // Then draw left and right on top of each other
+
+
+            Vector3D rightProjected = avgRight.NormalUnit.GetProjectedVector(mirrorPlane);
+
+            Quaternion rightToMirror = Math3D.GetRotation(avgRight.NormalUnit, rightProjected);
+
+            Vector3D rightNormalMirrored = rightToMirror.GetRotatedVector(avgRight.NormalUnit);       //TODO: Instead of applying the rotation twice, see if the quaternion can be multiplied by 2
+            rightNormalMirrored = rightToMirror.GetRotatedVector(rightNormalMirrored);
+
+            Point3D rightPosMirrored = Math3D.GetClosestPoint_Plane_Point(mirrorPlane, rightPos);
+            rightPosMirrored += rightPosMirrored - rightPos;
+
+            var planeRightMirror = Math3D.GetPlane(rightPosMirrored, rightNormalMirrored);
+
+
+            #region draw reflected
+
+            window = new Debug3DWindow()
+            {
+                Title = "Reflected",
+            };
+
+            window.AddAxisLines(3, sizes.line);
+
+            window.AddDot(avgNeck, sizes.dot, Colors.White);
+            window.AddPlane(mirrorPlane, 2, Colors.White, center: center);
+
+
+            window.AddPlane(avgLeft, 3, Colors.DarkOrange);
+            window.AddDot(leftPos, sizes.dot, Colors.DarkOrange);
+            window.AddLine(leftPos - avgLeft.NormalUnit, leftPos + avgLeft.NormalUnit, sizes.line, Colors.DarkOrange);
+
+            window.AddPlane(planeRightMirror, 3, Colors.DarkCyan);
+            window.AddDot(rightPosMirrored, sizes.dot, Colors.DarkCyan);
+            window.AddLine(rightPosMirrored - rightNormalMirrored, rightPosMirrored + rightNormalMirrored, sizes.line, Colors.DarkCyan);
+
+            window.AddLine(avgNeck, center, sizes.line, Colors.Gray);
+            window.AddLine(leftPos, Math3D.GetClosestPoint_Plane_Point(mirrorPlane, leftPos), sizes.line, Colors.Gray);
+            window.AddLine(rightPosMirrored, Math3D.GetClosestPoint_Plane_Point(mirrorPlane, rightPosMirrored), sizes.line, Colors.Gray);
+
+            window.Show();
+
+            #endregion
+
+
         }
 
         #endregion

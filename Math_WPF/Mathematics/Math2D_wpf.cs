@@ -1594,7 +1594,6 @@ namespace Game.Math_WPF.Mathematics
         #endregion
         #region class: AveragePlane_wpf
 
-        //TODO: When there are enough points, pull the random vertices from far away locations instead of pure random
         private static class AveragePlane_wpf
         {
             /// <remarks>
@@ -1629,13 +1628,19 @@ namespace Game.Math_WPF.Mathematics
                 // The plane will go through this center point
                 Point3D center = Math3D.GetCenter(points);
 
+                // Take a bunch of triangles and get the average normal
                 var retVal = Get_RandomTriangles(points, center, matchPolyNormalDirection);
 
+                // The above method works fine when all the points are separated from each other and pretty close to the plane.
+                // But if you have a lot of points clumped together, then tiny triangles can be chosen that don't line up with
+                // the plane, or other inaccuracies can crop up.  This uses a genetic algorithm and scores based on the sum of
+                // the point's distance from the plane.  It's slow (about a second to run) but is really accurate
                 return Improve_Genetic(retVal, points, center);
             }
 
             #region Private Methods - random triangles
 
+            //TODO: When there are enough points, pull the random vertices from far away locations instead of pure random
             private static ITriangle_wpf Get_RandomTriangles(Point3D[] points, Point3D center, bool matchPolyNormalDirection = false)
             {
                 // Get a bunch of sample up vectors
@@ -1950,26 +1955,19 @@ namespace Game.Math_WPF.Mathematics
                     Termination = termination,
                 };
 
-                ITriangle_wpf retVal = null;
+                ga.Start();
 
-                ga.TerminationReached += (s1, e1) =>
-                {
-                    var bestChromosome = ga.BestChromosome as FloatingPointChromosome2;
-                    double[] values = bestChromosome.ToFloatingPoints();
+                var bestChromosome = ga.BestChromosome as FloatingPointChromosome2;
+                double[] values = bestChromosome.ToFloatingPoints();
 
-                    var plane = Math3D.GetPlane(new Point3D(values[0], values[1], values[2]), new Vector3D(values[3], values[4], values[5]));
+                var plane = Math3D.GetPlane(new Point3D(values[0], values[1], values[2]), new Vector3D(values[3], values[4], values[5]));
 
-                    Point3D final_pos = Math3D.GetClosestPoint_Plane_Point(plane, center);      // the plane's probably drifted, force it to be near the center of the sample points
-                    Vector3D final_norm = plane.NormalUnit;
-                    if (Vector3D.DotProduct(initial_norm, final_norm) < 0)
-                        final_norm = -final_norm;       // the normal flipped, flip it back
+                Point3D final_pos = Math3D.GetClosestPoint_Plane_Point(plane, center);      // the plane's center probably drifted, force it to be near the center of the sample points
+                Vector3D final_norm = plane.NormalUnit;
+                if (Vector3D.DotProduct(initial_norm, final_norm) < 0)
+                    final_norm = -final_norm;       // the normal flipped, flip it back
 
-                    retVal = Math3D.GetPlane(final_pos, final_norm);
-                };
-
-                ga.Start();     // this won't return until its finished, which means termination event will already have fired before execution moves on
-
-                return retVal;
+                return Math3D.GetPlane(final_pos, final_norm);
             }
 
             #endregion

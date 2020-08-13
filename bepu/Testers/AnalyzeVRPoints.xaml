@@ -47,15 +47,21 @@
             <TextBox x:Name="txtNeckDown" ToolTip="Neck Down" Text=".085" TextChanged="Neck_TextChanged"/>
             <Button Content="load..." Click="Load_Click"/>
 
-            <Button Visibility="Collapsed" Content="Isolate Neck 1" Click="IsolateNeck1_Click"/>
-            <Button Visibility="Collapsed" Content="Isolate Neck 2" Click="IsolateNeck2_Click"/>
-            <Button Content="Isolate Neck" Margin="0,8,0,0" Click="IsolateNeck3_Click"/>
+            <Button Visibility="Collapsed" Content="isolate neck 1" Click="IsolateNeck1_Click"/>
+            <Button Content="isolate neck" Margin="0,8,0,0" Click="IsolateNeck3_Click"/>
             <TextBox x:Name="lblNeckResults" Style="{StaticResource displayBox}"/>
 
-            <Button Content="Calculate Plane 1" ToolTip="Finds the plane that the hands define" Margin="0,8,0,0" Click="CalculatePlane1_Click"/>
-            <Button Content="Calculate Plane 2" Click="CalculatePlane2_Click"/>
-            <Button Content="Calculate Plane 3" Click="CalculatePlane3_Click"/>
+            <Button Content="calculate plane 1" ToolTip="Finds the plane that the hands define" Margin="0,8,0,0" Click="CalculatePlane1_Click"/>
+            <Button Content="calculate plane 2" Click="CalculatePlane2_Click"/>
+            <Button Content="calculate plane 3" Click="CalculatePlane3_Click"/>
             <TextBox x:Name="lblPlane" Style="{StaticResource displayBox}"/>
+
+            <Button Margin="0,8,0,0" Click="PlanesAcrossFiles_Click">
+                <Button.Content>
+                    <TextBlock>average planes<LineBreak/>across files...</TextBlock>
+                </Button.Content>
+            </Button>
+            <TextBox x:Name="lblPlanesAcrossFiles" Style="{StaticResource displayBox}"/>
         </StackPanel>
 
         <Label x:Name="lblFilename" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
