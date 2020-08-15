@@ -5086,16 +5086,38 @@ namespace Game.Math_WPF.WPF
         /// </summary>
         public static Material GetUnlitMaterial(Color color)
         {
-            Color diffuse = Colors.Black;
-            diffuse.ScA = color.ScA;
+            var retVal = GetUnlitMaterial_Components(color);
 
-            MaterialGroup retVal = new MaterialGroup();
-            retVal.Children.Add(new DiffuseMaterial(new SolidColorBrush(diffuse)));
-            retVal.Children.Add(new EmissiveMaterial(new SolidColorBrush(color)));
+            retVal.final.Freeze();
 
-            retVal.Freeze();
+            return retVal.final;
+        }
+        /// <summary>
+        /// Use this overload if you intend to change the color later
+        /// </summary>
+        public static (Material final, DiffuseMaterial diffuse, EmissiveMaterial emissive) GetUnlitMaterial_Components(Color color)
+        {
+            var diffuseMat = new DiffuseMaterial();
+            var emissiveMat = new EmissiveMaterial();
 
-            return retVal;
+            UpdateUnlitColor(color, diffuseMat, emissiveMat);
+
+            MaterialGroup final = new MaterialGroup();
+            final.Children.Add(diffuseMat);
+            final.Children.Add(emissiveMat);
+
+            return (final, diffuseMat, emissiveMat);
+        }
+        /// <summary>
+        /// This changes the color of an unlit material that was built using GetUnlitMaterial_Components
+        /// </summary>
+        public static void UpdateUnlitColor(Color color, DiffuseMaterial diffuse, EmissiveMaterial emissive)
+        {
+            Color diffuseColor = Colors.Black;
+            diffuseColor.ScA = color.ScA;
+
+            diffuse.Brush = new SolidColorBrush(diffuseColor);
+            emissive.Brush = new SolidColorBrush(color);
         }
 
         #endregion

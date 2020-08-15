@@ -91,6 +91,7 @@
                 <Label Content="VR Utils" Style="{StaticResource subHeaderLabel}"/>
                 <ListBox>
                     <ListBoxItem Content="Analyze VR Points" MouseUp="AnalyzeVRPoints_MouseUp"/>
+                    <ListBoxItem Content="Analyze IKMesh Chains" MouseUp="AnalyzeIKMeshChains_MouseUp"/>
                 </ListBox>
             </StackPanel>
 

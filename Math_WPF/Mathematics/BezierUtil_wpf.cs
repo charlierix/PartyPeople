@@ -126,7 +126,8 @@ namespace Game.Math_WPF.Mathematics
         public static Point3D GetPoint(double percent, BezierSegment3D_wpf[] bezier)
         {
             //TODO: If the bezier is closed, make it circular
-            if (percent < 0) return bezier[0].EndPoint0;
+            if (percent < 0) 
+                return bezier[0].EndPoint0;
 
             double totalLength = bezier.Sum(o => o.Length_quick);
 
