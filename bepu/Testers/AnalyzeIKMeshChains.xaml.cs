@@ -142,7 +142,7 @@ namespace Game.Bepu.Testers
                 AddChains(deserialized.Chains);
                 AddTargets(deserialized.Chains);
 
-                // Do some post processing to fill in some properties
+                // Do post processing to fill in some properties
                 PopulateJointLinks(_joints, _chains);
                 PopulateJoints(_chains, _joints);
                 PopulateEndsInLoop(_chains);
@@ -422,66 +422,6 @@ namespace Game.Bepu.Testers
             }
         }
 
-        private void AnalyzeEndsInLoop_ORIG(ChainVisual clickedChain)
-        {
-            const double ZSTEP = 1.2;
-
-            if (!clickedChain.EndsInLoop)
-            {
-                ResetLines();
-                return;
-            }
-
-            var discards = new List<ChainVisual>();
-            var candidates = new List<ChainVisual>();
-
-            // First pass
-            foreach (var chain in _chains)
-            {
-                if (chain.Token == clickedChain.Token)
-                    continue;
-                else if (chain.TargetToken != clickedChain.TargetToken)
-                    discards.Add(chain);
-                //else if (chain.EndsInLoop)
-                //    discards.Add(chain);
-                else
-                    candidates.Add(chain);
-            }
-
-            var untouchedTokens = clickedChain.JointTokens.ToList();
-
-            int index = 0;
-            while (index < candidates.Count)
-            {
-                // Can't just look at standalone joints.  Need to make sure each link is accounted for (joint pairs)
-                var removed = untouchedTokens.RemoveWhere(o => candidates[index].JointTokens.Contains(o));
-
-                if (removed.Count() > 0)
-                {
-                    index++;
-                }
-                else
-                {
-                    discards.Add(candidates[index]);
-                    candidates.RemoveAt(index);
-                }
-            }
-
-            if (discards.Count > 0)
-                ColorAndMoveLines(discards, UtilityWPF.ColorFromHex(BASECOLOR), -.06, 0, false);
-
-            Color color = untouchedTokens.Count == 0 && candidates.Count > 0 ?
-                Colors.Chartreuse :
-                Colors.Red;
-
-            ColorAndMoveLines(new[] { clickedChain }, color, ZSTEP, 0, false);
-
-            if (candidates.Count > 0)
-            {
-                Color[] colors = UtilityWPF.GetRandomColors(candidates.Count, 100, 200);
-                ColorAndMoveLines(candidates, colors, ZSTEP * 2, ZSTEP, false);
-            }
-        }
         private void AnalyzeEndsInLoop(ChainVisual clickedChain)
         {
             const double ZSTEP = 1.2;
