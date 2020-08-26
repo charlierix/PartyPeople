@@ -1206,10 +1206,10 @@ namespace Game.Math_WPF.Mathematics
 
             var points = new[]
                 {
-                    Tuple.Create(valueTop, 1 - percentY),
-                    Tuple.Create(valueBottom, percentY),
-                    Tuple.Create(valueLeft, 1 - percentX),
-                    Tuple.Create(valueRight, percentX),
+                    (valueTop, 1 - percentY),
+                    (valueBottom, percentY),
+                    (valueLeft, 1 - percentX),
+                    (valueRight, percentX),
                 };
 
             return Math3D.GetCenter(points);

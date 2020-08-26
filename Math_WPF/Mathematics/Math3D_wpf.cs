@@ -5814,20 +5814,24 @@ namespace Game.Math_WPF.Mathematics
 
             return new Point3D(x * oneOverLen, y * oneOverLen, z * oneOverLen);
         }
+        public static Point3D GetCenter(params Point3D[] points)
+        {
+            return GetCenter((IEnumerable<Point3D>)points);
+        }
         /// <summary>
         /// This returns the center of mass of the points
         /// </summary>
-        public static Point3D GetCenter(Tuple<Point3D, double>[] pointsMasses)
+        public static Point3D GetCenter(params (Point3D position, double weight)[] pointsMasses)
         {
             if (pointsMasses == null || pointsMasses.Length == 0)
             {
                 return new Point3D(0, 0, 0);
             }
 
-            double totalMass = pointsMasses.Sum(o => o.Item2);
+            double totalMass = pointsMasses.Sum(o => o.weight);
             if (Math1D.IsNearZero(totalMass))
             {
-                return GetCenter(pointsMasses.Select(o => o.Item1).ToArray());
+                return GetCenter(pointsMasses.Select(o => o.position).ToArray());
             }
 
             double x = 0d;
@@ -5836,9 +5840,9 @@ namespace Game.Math_WPF.Mathematics
 
             foreach (var pointMass in pointsMasses)
             {
-                x += pointMass.Item1.X * pointMass.Item2;
-                y += pointMass.Item1.Y * pointMass.Item2;
-                z += pointMass.Item1.Z * pointMass.Item2;
+                x += pointMass.position.X * pointMass.weight;
+                y += pointMass.position.Y * pointMass.weight;
+                z += pointMass.position.Z * pointMass.weight;
             }
 
             double totalMassInverse = 1d / totalMass;
@@ -5881,20 +5885,24 @@ namespace Game.Math_WPF.Mathematics
 
             return new Vector3D(x * oneOverLen, y * oneOverLen, z * oneOverLen);
         }
+        public static Vector3D GetAverage(params Vector3D[] vectors)
+        {
+            return GetAverage((IEnumerable<Vector3D>)vectors);
+        }
         /// <summary>
         /// This is identical to GetCenter
         /// </summary>
-        public static Vector3D GetAverage(Tuple<Vector3D, double>[] weightedVectors)
+        public static Vector3D GetAverage(params (Vector3D vector, double weight)[] weightedVectors)
         {
             if (weightedVectors == null || weightedVectors.Length == 0)
             {
                 return new Vector3D(0, 0, 0);
             }
 
-            double totalWeight = weightedVectors.Sum(o => o.Item2);
+            double totalWeight = weightedVectors.Sum(o => o.weight);
             if (Math1D.IsNearZero(totalWeight))
             {
-                return GetAverage(weightedVectors.Select(o => o.Item1).ToArray());
+                return GetAverage(weightedVectors.Select(o => o.vector).ToArray());
             }
 
             double x = 0d;
@@ -5903,9 +5911,9 @@ namespace Game.Math_WPF.Mathematics
 
             foreach (var pointMass in weightedVectors)
             {
-                x += pointMass.Item1.X * pointMass.Item2;
-                y += pointMass.Item1.Y * pointMass.Item2;
-                z += pointMass.Item1.Z * pointMass.Item2;
+                x += pointMass.vector.X * pointMass.weight;
+                y += pointMass.vector.Y * pointMass.weight;
+                z += pointMass.vector.Z * pointMass.weight;
             }
 
             double totalWeightInverse = 1d / totalWeight;
@@ -5964,6 +5972,10 @@ namespace Game.Math_WPF.Mathematics
             double addDet = 1d / (double)count;
 
             return NormalizeQuaternion(x * addDet, y * addDet, z * addDet, w * addDet);
+        }
+        public static Quaternion GetAverage(params Quaternion[] quaternions)
+        {
+            return GetAverage((IEnumerable<Quaternion>)quaternions);
         }
 
         public static Vector3D GetSum(IEnumerable<Vector3D> vectors)
