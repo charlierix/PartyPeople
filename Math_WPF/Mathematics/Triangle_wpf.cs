@@ -36,9 +36,22 @@ namespace Game.Math_WPF.Mathematics
             //this.Point0 = point0;
             //this.Point1 = point1;
             //this.Point2 = point2;
+
             _point0 = point0;
             _point1 = point1;
             _point2 = point2;
+
+            OnPointChanged();
+        }
+        public Triangle_wpf(Vector3D normal, Point3D pointOnPlane)
+        {
+            Vector3D dir1 = Math3D.GetArbitraryOrhonganal(normal);
+            Vector3D dir2 = Vector3D.CrossProduct(dir1, normal);
+
+            _point0 = pointOnPlane + dir1;
+            _point1 = pointOnPlane;
+            _point2 = pointOnPlane + dir2;
+
             OnPointChanged();
         }
 

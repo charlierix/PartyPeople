@@ -664,6 +664,30 @@ namespace Game.Math_WPF.Mathematics
             return new System.Numerics.Quaternion((float)quaternion.X, (float)quaternion.Y, (float)quaternion.Z, (float)quaternion.W);
         }
 
+        public static Vector3D ToWorld(this Quaternion quaternion, Vector3D directionLocal)
+        {
+            Matrix3D matrix = new Matrix3D();
+            matrix.Rotate(quaternion);
+
+            return matrix.Transform(directionLocal);
+
+            //MatrixTransform3D transform = new MatrixTransform3D(matrix);
+
+            //return transform.Transform(directionLocal);
+        }
+        public static Vector3D FromWorld(this Quaternion quaternion, Vector3D directionWorld)
+        {
+            Matrix3D matrix = new Matrix3D();
+            matrix.Rotate(quaternion);
+            matrix.Invert();
+
+            return matrix.Transform(directionWorld);
+
+            //MatrixTransform3D transform = new MatrixTransform3D(matrix);
+
+            //return transform.Transform(directionWorld);
+        }
+
         #endregion
 
         #region Size

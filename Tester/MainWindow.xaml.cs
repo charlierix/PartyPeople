@@ -1,5 +1,4 @@
-﻿using Game.Bepu.Testers;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -33,11 +32,11 @@ namespace Game.Tester
 
         private void UnitTests_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            new Game.Bepu.Testers.UnitTests().Show();
+            new Bepu.Testers.UnitTests().Show();
         }
         private void Bepu_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            new Game.Bepu.Testers.BepuTester().Show();
+            new Bepu.Testers.BepuTester().Show();
         }
 
         private void ColorPicker_MouseUp(object sender, MouseButtonEventArgs e)
@@ -65,6 +64,10 @@ namespace Game.Tester
         private void AnalyzeIKMeshChains_MouseUp(object sender, MouseButtonEventArgs e)
         {
             new Game.Bepu.Testers.AnalyzeIKMeshChains().Show();
+        }
+        private void ChaseRotation_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Bepu.Testers.ChaseRotationWindow().Show();
         }
 
         private void GeneticSharp_MouseUp(object sender, MouseButtonEventArgs e)

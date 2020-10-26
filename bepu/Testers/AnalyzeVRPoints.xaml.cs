@@ -606,11 +606,11 @@ namespace Game.Bepu.Testers
                 #endregion
 
                 // Show everything together - no total average
-                ShowHandPlanes("left", breakdowns.Where(o => o.IsLeft).ToArray(), false);
-                ShowHandPlanes("right", breakdowns.Where(o => !o.IsLeft).ToArray(), false);
+                ShowHandPlanes("left - gray", breakdowns.Where(o => o.IsLeft).ToArray(), false);
+                ShowHandPlanes("right - gray", breakdowns.Where(o => !o.IsLeft).ToArray(), false);
 
-                ShowHandPlanes("left", breakdowns.Where(o => o.IsLeft).ToArray(), true);
-                ShowHandPlanes("right", breakdowns.Where(o => !o.IsLeft).ToArray(), true);
+                ShowHandPlanes("left - unique colors", breakdowns.Where(o => o.IsLeft).ToArray(), true);
+                ShowHandPlanes("right - unique colors", breakdowns.Where(o => !o.IsLeft).ToArray(), true);
 
                 // Show everything together - with total average
                 var summaryLeft = new HandPlane()
@@ -629,8 +629,8 @@ namespace Game.Bepu.Testers
                     Plane = GetAveragePlane(breakdowns.Where(o => !o.IsLeft).Select(o => o.Plane).ToArray()),
                 };
 
-                ShowHandPlanes("left", breakdowns.Where(o => o.IsLeft).Concat(new[] { summaryLeft }).ToArray(), false);
-                ShowHandPlanes("right", breakdowns.Where(o => !o.IsLeft).Concat(new[] { summaryRight }).ToArray(), false);
+                ShowHandPlanes("left - summary", breakdowns.Where(o => o.IsLeft).Concat(new[] { summaryLeft }).ToArray(), false);
+                ShowHandPlanes("right - summary", breakdowns.Where(o => !o.IsLeft).Concat(new[] { summaryRight }).ToArray(), false);
 
                 // Each hand should be a perfect mirror, show how left and right trend differently (account for the mirroring)
                 AnalyzeMirrorPlanes(breakdowns, summaryLeft.Plane, summaryRight.Plane, neckBack, neckDown);
