@@ -1,6 +1,8 @@
-﻿using Game.Math_WPF.Mathematics;
+﻿using Game.Core;
+using Game.Math_WPF.Mathematics;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Windows.Media.Media3D;
 
@@ -97,6 +99,7 @@ namespace GameItems
 
     #endregion
 
+    //TODO: Each tick, this should just calculate torque.  Hook to bepu and let the physics engine turn torque into angular velocity
     #region class: ChaseOrientation_Torques
 
     /// <summary>
@@ -106,12 +109,12 @@ namespace GameItems
     {
         #region Declaration Section
 
-        private readonly Vector3D _initialDirectionLocal;
+        public readonly Vector3D _initialDirectionLocal;
 
         /// <summary>
         /// If they are using a spring, this is the point to move to
         /// </summary>
-        private Vector3D? _desiredOrientation = null;
+        public Vector3D? _desiredOrientation = null;
 
         #endregion
 
@@ -186,10 +189,16 @@ namespace GameItems
 
         public void Tick(double elapsedSeconds)
         {
-            Quaternion deltaVelocity = GetDeltaVelocity(elapsedSeconds);
+            //Quaternion deltaVelocity = GetDeltaVelocity(elapsedSeconds);
 
+
+            Vector3D? torque = GetTorque();
+
+
+            //TODO: Account to elapsed time
             // Adjust velocity
-            AngularVelocity *= deltaVelocity;
+            //AngularVelocity *= deltaVelocity;
+            //AngularVelocity = deltaVelocity * AngularVelocity;
 
             // Rotate by velocity
             Orientation = Quaternion.Slerp(Orientation, Orientation.RotateBy(AngularVelocity), Math.Min(elapsedSeconds, MaxElapsedSeconds));
@@ -199,7 +208,7 @@ namespace GameItems
 
         #region Private Methods
 
-        private Quaternion GetDeltaVelocity(double elapsedSeconds)
+        private Quaternion GetDeltaVelocity_TOLOCAL(double elapsedSeconds)
         {
             if (_desiredOrientation == null)
                 return Quaternion.Identity;
@@ -209,20 +218,6 @@ namespace GameItems
             Quaternion rotation = Math3D.GetRotation(_initialDirectionLocal, desiredLocal);
             if (rotation.IsIdentity)
                 return Quaternion.Identity;
-
-
-            //Vector3D current = e.Body.DirectionToWorld(new Vector3D(0, 0, 1));
-            //Quaternion rotation = Math3D.GetRotation(current, _desiredOrientation.Value);
-
-            //if (rotation.IsIdentity)
-            //{
-            //    // Don't set anything.  If they are rotating along the allowed axis, then no problem.  If they try
-            //    // to rotate off that axis, another iteration of this method will rotate back
-            //    //e.Body.AngularVelocity = new Vector3D(0, 0, 0);
-            //    return;
-            //}
-
-
 
             var args = new ChaseOrientation_GetTorqueArgs(MomentInertia, AngularVelocity, rotation);
 
@@ -249,7 +244,6 @@ namespace GameItems
             if (torque == null)
                 return Quaternion.Identity;
 
-
             // Apply the torque
 
             // Limit if exceeds this.MaxForce
@@ -269,6 +263,142 @@ namespace GameItems
 
             return new Quaternion(rotation.Axis, accel);
         }
+        private Quaternion GetDeltaVelocity(double elapsedSeconds)
+        {
+            if (_desiredOrientation == null)
+                return Quaternion.Identity;
+
+            Quaternion rotation = Math3D.GetRotation(Orientation.ToWorld(_initialDirectionLocal), _desiredOrientation.Value);
+            if (rotation.IsIdentity)
+                return Quaternion.Identity;
+
+            var args = new ChaseOrientation_GetTorqueArgs(MomentInertia, AngularVelocity, rotation);
+
+            Vector3D? torque = null;
+
+            // Call each worker
+            foreach (var worker in Torques)
+            {
+                Vector3D? localForce = worker.GetTorque(args);
+
+                if (localForce == null)
+                    continue;
+
+                if (torque == null)
+                {
+                    torque = localForce;
+                }
+                else
+                {
+                    torque = torque.Value + localForce.Value;
+                }
+            }
+
+            if (torque == null)
+                return Quaternion.Identity;
+
+            // Apply the torque
+
+            // Limit if exceeds this.MaxForce
+            if (MaxTorque != null && torque.Value.LengthSquared > MaxTorque.Value * MaxTorque.Value)
+                torque = torque.Value.ToUnit() * MaxTorque.Value;
+
+            double accel = torque.Value.Length / MomentInertia;
+
+            // Limit acceleration
+            if (MaxAcceleration != null && accel > MaxAcceleration.Value)
+                accel = MaxAcceleration.Value;
+
+            accel *= Percent;
+
+            //e.Body.AddTorque(torque.Value);
+
+
+            // Shouldn't be using rotation's axis, that's just the rotation from current to desired
+            // Need to account for the direction that torque is pointing
+            //return new Quaternion(Orientation.FromWorld(rotation.Axis), accel);
+            //return new Quaternion(Orientation.FromWorld(torque.Value), accel);
+            return new Quaternion(torque.Value, accel);
+
+        }
+
+        private Vector3D? GetTorque()
+        {
+            if (_desiredOrientation == null)
+                return null;
+
+            Quaternion rotation = Math3D.GetRotation(Orientation.ToWorld(_initialDirectionLocal), _desiredOrientation.Value);
+            if (rotation.IsIdentity)
+                return null;
+
+            var args = new ChaseOrientation_GetTorqueArgs(MomentInertia, AngularVelocity, rotation);
+
+            Vector3D? torque = null;
+
+            // Call each worker
+            foreach (var worker in Torques)
+            {
+                Vector3D? localForce = worker.GetTorque(args);
+
+                if (localForce == null)
+                    continue;
+
+                if (torque == null)
+                {
+                    torque = localForce;
+                }
+                else
+                {
+                    torque = torque.Value + localForce.Value;
+                }
+            }
+
+            return torque;
+        }
+
+
+        private static Vector3D? GetDeltaVelocity(Vector3D? torque)
+        {
+            if (torque == null)
+                return null;
+
+            #region work, power
+
+            // I is moment of inertia of body
+            // w is angular velocity
+
+            // E rotational = 1/2Iω^2
+
+            // Work = torque*theta
+
+            // Power = torque*angularvelocity
+
+            #endregion
+
+            #region angular momentum
+
+            // angular_momentum = moment_inertial * angular_velocity
+
+            #endregion
+
+            #region angular acceleration
+
+            // torque = moment_inertial * angular_accel
+            // angular_accel = torque / moment_inertial
+
+            #endregion
+
+            //https://www.youtube.com/watch?v=Bq9cc7sSm_g
+
+            //https://courses.lumenlearning.com/boundless-physics/chapter/torque-and-angular-acceleration/
+
+            //https://courses.lumenlearning.com/boundless-physics/chapter/vector-nature-of-rotational-kinematics/
+
+            //https://courses.lumenlearning.com/boundless-physics/chapter/problem-solving-2/
+
+            return null;
+        }
+
 
         #endregion
 
@@ -293,10 +423,10 @@ namespace GameItems
             // Drag
             gradient = new[]        // this gradient is needed, because there needs to be no drag along the desired axis (otherwise, this drag will fight with the user's desire to rotate the ship)
             {
-                    new GradientEntry(0d, 0d),     // distance, %
-                    new GradientEntry(5d, 1d),
-                };
-            retVal.Add(new ChaseTorque(ChaseDirectionType.Drag_Velocity_Orth, .0739 * mult, gradient: gradient));
+                new GradientEntry(0d, 0d),     // distance, %
+                new GradientEntry(5d, 1d),
+            };
+            //retVal.Add(new ChaseTorque(ChaseDirectionType.Drag_Velocity_Orth, .0739 * mult, gradient: gradient));
 
             retVal.Add(new ChaseTorque(ChaseDirectionType.Drag_Velocity_AlongIfVelocityAway, .0408 * mult));
 

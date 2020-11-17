@@ -15,6 +15,10 @@
 
         <StackPanel Grid.Column="0">
             <Button Content="Reset" Click="Reset_Click"/>
+            <Button Content="Reset - const vel" Click="ResetConstantVelocity_Click"/>
+
+            <Button Content="unit test" Margin="0,16,0,0" Click="UnitTest_Click"/>
+            <Button Content="take snapshot" Click="TakeSnapshot_Click"/>
         </StackPanel>
 
         <Border Grid.Column="2" x:Name="grdViewPort" BorderThickness="2" BorderBrush="#918E89" CornerRadius="3">

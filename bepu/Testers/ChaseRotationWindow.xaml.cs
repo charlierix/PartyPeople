@@ -51,6 +51,7 @@ namespace Game.Bepu.Testers
         private DispatcherTimer _timer = null;
 
         private List<Visual3D> _debugVisuals = new List<Visual3D>();
+        private List<Visual3D> _debugLines = new List<Visual3D>();
 
         private QuaternionRotation3D _rotation = null;
 
@@ -117,7 +118,8 @@ namespace Game.Bepu.Testers
                 // Create N endpoint arms
 
 
-                Point3D pos = new Point3D(8, 8, 8);
+                //Point3D pos = new Point3D(8, 8, 8);
+                Point3D pos = new Point3D(8, 8, 0);
 
                 EndPoint endpoint = new EndPoint()
                 {
@@ -138,12 +140,200 @@ namespace Game.Bepu.Testers
 
 
                 // Chase Orientation
-                //_chaseOrientation = new ChaseOrientation_Velocity(_rotation.Quaternion, pos.ToVector());
                 _chaseOrientation = new ChaseOrientation_Torques(_rotation.Quaternion, 1, pos.ToVector())
                 {
                     Torques = ChaseOrientation_Torques.GetStandard(),
                 };
 
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void ResetConstantVelocity_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _viewport.Children.RemoveAll(_debugVisuals);
+                _debugVisuals.Clear();
+                _chaseOrientation = null;
+                _rotation = null;
+
+                // Create a visual
+                // Create a rotation
+                Visual3D visual;
+
+                _rotation = new QuaternionRotation3D();
+
+                visual = new ModelVisual3D()
+                {
+                    Content = GetModel(),
+                    Transform = new RotateTransform3D(_rotation),
+                };
+
+                _debugVisuals.Add(visual);
+                _viewport.Children.Add(visual);
+
+
+
+
+                _endPoints = new EndPoint[0];
+
+                // Chase Orientation
+                _chaseOrientation = new ChaseOrientation_Torques(_rotation.Quaternion, 1, new Vector3D(1, 0, 0))
+                {
+                    Torques = ChaseOrientation_Torques.GetStandard(),
+                };
+
+
+
+
+                _chaseOrientation.AngularVelocity = new Quaternion(new Vector3D(0, 0, 1), 48);
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void UnitTest_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void TakeSnapshot_Click_TOLOCAL(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var sizes = Debug3DWindow.GetDrawSizes(12);
+
+                Debug3DWindow window = new Debug3DWindow();
+
+                window.AddLine(new Point3D(), _chaseOrientation.Orientation.ToWorld(new Vector3D(4, 0, 0)).ToPoint(), sizes.line, Colors.Red);
+                window.AddLine(new Point3D(), _chaseOrientation.Orientation.ToWorld(new Vector3D(0, 4, 0)).ToPoint(), sizes.line, Colors.Green);
+                window.AddLine(new Point3D(), _chaseOrientation.Orientation.ToWorld(new Vector3D(0, 0, 4)).ToPoint(), sizes.line, Colors.Blue);
+
+
+                window.AddLine(new Point3D(), _chaseOrientation._initialDirectionLocal.ToPoint(), sizes.line, Colors.Gray);
+                window.AddLine(new Point3D(), _chaseOrientation.Orientation.FromWorld(_chaseOrientation._desiredOrientation.Value).ToPoint(), sizes.line, Colors.White);
+
+                //window.AddLine()
+
+
+                Quaternion rotation = Math3D.GetRotation(_chaseOrientation._initialDirectionLocal, _chaseOrientation.Orientation.FromWorld(_chaseOrientation._desiredOrientation.Value));
+                if (!rotation.IsIdentity)
+                {
+                    var args = new ChaseOrientation_GetTorqueArgs(_chaseOrientation.MomentInertia, _chaseOrientation.AngularVelocity, rotation);
+
+                    Vector3D? torque = null;
+
+                    // Call each worker
+                    foreach (var worker in _chaseOrientation.Torques)
+                    {
+                        Vector3D? localForce = worker.GetTorque(args);
+
+                        if (localForce == null)
+                            continue;
+
+
+                        window.AddLine(new Point3D(), localForce.Value.ToPoint(), sizes.line, worker.IsDrag ? Colors.Pink : Colors.Chartreuse);
+
+
+                        if (torque == null)
+                        {
+                            torque = localForce;
+                        }
+                        else
+                        {
+                            torque = torque.Value + localForce.Value;
+                        }
+                    }
+
+
+
+                    if (torque != null)
+                        window.AddLine(new Point3D(), torque.Value.ToPoint(), sizes.line, Colors.Magenta);
+
+
+
+
+
+                }
+
+
+
+
+
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void TakeSnapshot_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var sizes = Debug3DWindow.GetDrawSizes(12);
+
+                Debug3DWindow window = new Debug3DWindow();
+
+                window.AddLine(new Point3D(), _chaseOrientation.Orientation.ToWorld(new Vector3D(4, 0, 0)).ToPoint(), sizes.line, Colors.Red);
+                window.AddLine(new Point3D(), _chaseOrientation.Orientation.ToWorld(new Vector3D(0, 4, 0)).ToPoint(), sizes.line, Colors.Green);
+                window.AddLine(new Point3D(), _chaseOrientation.Orientation.ToWorld(new Vector3D(0, 0, 4)).ToPoint(), sizes.line, Colors.Blue);
+
+
+                window.AddLine(new Point3D(), _chaseOrientation._initialDirectionLocal.ToPoint(), sizes.line, Colors.Gray);
+                window.AddLine(new Point3D(), _chaseOrientation.Orientation.FromWorld(_chaseOrientation._desiredOrientation.Value).ToPoint(), sizes.line, Colors.White);
+
+                //window.AddLine()
+
+
+                Quaternion rotation = Math3D.GetRotation(_chaseOrientation._initialDirectionLocal, _chaseOrientation.Orientation.FromWorld(_chaseOrientation._desiredOrientation.Value));
+                if (!rotation.IsIdentity)
+                {
+                    var args = new ChaseOrientation_GetTorqueArgs(_chaseOrientation.MomentInertia, _chaseOrientation.AngularVelocity, rotation);
+
+                    Vector3D? torque = null;
+
+                    // Call each worker
+                    foreach (var worker in _chaseOrientation.Torques)
+                    {
+                        Vector3D? localForce = worker.GetTorque(args);
+
+                        if (localForce == null)
+                            continue;
+
+
+                        window.AddLine(new Point3D(), localForce.Value.ToPoint(), sizes.line, worker.IsDrag ? Colors.Pink : Colors.Chartreuse);
+
+
+                        if (torque == null)
+                        {
+                            torque = localForce;
+                        }
+                        else
+                        {
+                            torque = torque.Value + localForce.Value;
+                        }
+                    }
+
+                    if (torque != null)
+                        window.AddLine(new Point3D(), torque.Value.ToPoint(), sizes.line, Colors.Magenta);
+                }
+
+                window.Show();
             }
             catch (Exception ex)
             {
@@ -170,20 +360,16 @@ namespace Game.Bepu.Testers
                     endPoint.Transform.OffsetZ = endPoint.Grab.Position.Z;
                 }
 
-
-
-
                 if (_chaseOrientation != null && _endPoints.Length == 1)
                 {
                     _chaseOrientation.SetOrientation(_endPoints[0].Grab.Position.ToVector());
-
-                    _chaseOrientation.Tick(seconds);
-
-                    _rotation.Quaternion = _chaseOrientation.Orientation;
                 }
 
+                _chaseOrientation.Tick(seconds);
 
+                _rotation.Quaternion = _chaseOrientation.Orientation;
 
+                RefreshDebugLines();
             }
             catch (Exception ex)
             {
@@ -192,6 +378,103 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+
+        //TODO: The problem is possibly with how the angular velocity is transformed
+        //draw the vectors that are calculated in the constructor of ChaseOrientation_GetTorqueArgs
+
+        private void RefreshDebugLines()
+        {
+            _viewport.Children.RemoveAll(_debugLines);
+            _debugLines.Clear();
+
+            if (_chaseOrientation == null)
+                return;
+
+            var toWorld = new Func<Vector3D, Vector3D>(v => _chaseOrientation.Orientation.ToWorld(v));
+
+            var sizes = Debug3DWindow.GetDrawSizes(12);
+
+            Visual3D visual;
+
+            // Control Arms
+            visual = Debug3DWindow.GetLine(new Point3D(), toWorld(_chaseOrientation._initialDirectionLocal).ToPoint(), sizes.line, Colors.Gray);
+            _viewport.Children.Add(visual);
+            _debugLines.Add(visual);
+
+            Quaternion rotation = Quaternion.Identity;
+            if (_chaseOrientation._desiredOrientation != null)
+            {
+                visual = Debug3DWindow.GetLine(new Point3D(), toWorld(_chaseOrientation.Orientation.FromWorld(_chaseOrientation._desiredOrientation.Value)).ToPoint(), sizes.line, Colors.White);
+                _viewport.Children.Add(visual);
+                _debugLines.Add(visual);
+
+                //Quaternion rotation = Math3D.GetRotation(_chaseOrientation._initialDirectionLocal, _chaseOrientation.Orientation.FromWorld(_chaseOrientation._desiredOrientation.Value));
+                rotation = Math3D.GetRotation(_chaseOrientation.Orientation.ToWorld(_chaseOrientation._initialDirectionLocal), _chaseOrientation._desiredOrientation.Value);
+
+                #region show torques
+
+                if (!rotation.IsIdentity)
+                {
+                    var args = new ChaseOrientation_GetTorqueArgs(_chaseOrientation.MomentInertia, _chaseOrientation.AngularVelocity, rotation);
+
+                    Vector3D? torque = null;
+
+                    // Call each worker
+                    foreach (var worker in _chaseOrientation.Torques)
+                    {
+                        Vector3D? localForce = worker.GetTorque(args);
+
+                        if (localForce == null)
+                            continue;
+
+
+                        visual = Debug3DWindow.GetLine(new Point3D(), toWorld(localForce.Value).ToPoint(), sizes.line, worker.IsDrag ? Colors.Pink : Colors.Chartreuse);
+                        _viewport.Children.Add(visual);
+                        _debugLines.Add(visual);
+
+
+                        if (torque == null)
+                        {
+                            torque = localForce;
+                        }
+                        else
+                        {
+                            torque = torque.Value + localForce.Value;
+                        }
+                    }
+
+                    if (torque != null)
+                    {
+                        visual = Debug3DWindow.GetLine(new Point3D(), toWorld(torque.Value).ToPoint(), sizes.line, Colors.Magenta);
+                        _viewport.Children.Add(visual);
+                        _debugLines.Add(visual);
+                    }
+                }
+
+                #endregion
+            }
+
+
+            // The error seems to be with using the quaternion's axis as the angular velocity vector
+            // Or the angular velocity quaternion is calculated wrong
+            #region show velocites
+
+            var targs = new ChaseOrientation_GetTorqueArgs(_chaseOrientation.MomentInertia, _chaseOrientation.AngularVelocity, rotation);
+
+            visual = Debug3DWindow.GetLine(new Point3D(), (targs.AngVelocityUnit * targs.AngVelocityLength).ToPoint(), sizes.line, UtilityWPF.ColorFromHex("FFA229"));
+            _viewport.Children.Add(visual);
+            _debugLines.Add(visual);
+
+            visual = Debug3DWindow.GetLine(new Point3D(), (targs.AngVelocityAlongUnit * targs.AngVelocityAlongLength).ToPoint(), sizes.line, UtilityWPF.ColorFromHex("D9734E"));
+            _viewport.Children.Add(visual);
+            _debugLines.Add(visual);
+
+            visual = Debug3DWindow.GetLine(new Point3D(), (targs.AngVelocityOrthUnit * targs.AngVelocityOrthLength).ToPoint(), sizes.line, UtilityWPF.ColorFromHex("4FBDB2"));
+            _viewport.Children.Add(visual);
+            _debugLines.Add(visual);
+
+            #endregion
+        }
 
         #region Private Methods
 
