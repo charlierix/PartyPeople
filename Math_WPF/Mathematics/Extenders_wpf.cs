@@ -85,9 +85,11 @@ namespace Game.Math_WPF.Mathematics
             return vector.X.ToString("N" + significantDigits.ToString()) + ", " + vector.Y.ToString("N" + significantDigits.ToString());
         }
 
-        public static string ToStringSignificantDigits(this Vector vector, int significantDigits)
+        public static string ToStringSignificantDigits(this Vector vector, int significantDigits, bool shouldRound = true)
         {
-            return string.Format("{0}, {1}", vector.X.ToStringSignificantDigits(significantDigits), vector.Y.ToStringSignificantDigits(significantDigits));
+            return string.Format("{0}, {1}",
+                vector.X.ToStringSignificantDigits(significantDigits, shouldRound),
+                vector.Y.ToStringSignificantDigits(significantDigits, shouldRound));
         }
 
         /// <summary>
@@ -181,9 +183,11 @@ namespace Game.Math_WPF.Mathematics
             return point.X.ToString("N" + significantDigits.ToString()) + ", " + point.Y.ToString("N" + significantDigits.ToString());
         }
 
-        public static string ToStringSignificantDigits(this Point point, int significantDigits)
+        public static string ToStringSignificantDigits(this Point point, int significantDigits, bool shouldRound = true)
         {
-            return string.Format("{0}, {1}", point.X.ToStringSignificantDigits(significantDigits), point.Y.ToStringSignificantDigits(significantDigits));
+            return string.Format("{0}, {1}",
+                point.X.ToStringSignificantDigits(significantDigits, shouldRound),
+                point.Y.ToStringSignificantDigits(significantDigits, shouldRound));
         }
 
         #endregion
@@ -275,9 +279,12 @@ namespace Game.Math_WPF.Mathematics
             return vector.X.ToString("N" + significantDigits.ToString()) + ", " + vector.Y.ToString("N" + significantDigits.ToString()) + ", " + vector.Z.ToString("N" + significantDigits.ToString());
         }
 
-        public static string ToStringSignificantDigits(this Vector3D vector, int significantDigits)
+        public static string ToStringSignificantDigits(this Vector3D vector, int significantDigits, bool shouldRound = true)
         {
-            return string.Format("{0}, {1}, {2}", vector.X.ToStringSignificantDigits(significantDigits), vector.Y.ToStringSignificantDigits(significantDigits), vector.Z.ToStringSignificantDigits(significantDigits));
+            return string.Format("{0}, {1}, {2}",
+                vector.X.ToStringSignificantDigits(significantDigits, shouldRound),
+                vector.Y.ToStringSignificantDigits(significantDigits, shouldRound),
+                vector.Z.ToStringSignificantDigits(significantDigits, shouldRound));
         }
 
         /// <summary>
@@ -458,9 +465,12 @@ namespace Game.Math_WPF.Mathematics
             return point.X.ToString("N" + significantDigits.ToString()) + ", " + point.Y.ToString("N" + significantDigits.ToString()) + ", " + point.Z.ToString("N" + significantDigits.ToString());
         }
 
-        public static string ToStringSignificantDigits(this Point3D point, int significantDigits)
+        public static string ToStringSignificantDigits(this Point3D point, int significantDigits, bool shouldRound = true)
         {
-            return string.Format("{0}, {1}, {2}", point.X.ToStringSignificantDigits(significantDigits), point.Y.ToStringSignificantDigits(significantDigits), point.Z.ToStringSignificantDigits(significantDigits));
+            return string.Format("{0}, {1}, {2}",
+                point.X.ToStringSignificantDigits(significantDigits, shouldRound),
+                point.Y.ToStringSignificantDigits(significantDigits, shouldRound),
+                point.Z.ToStringSignificantDigits(significantDigits, shouldRound));
         }
 
         /// <summary>

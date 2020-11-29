@@ -96,8 +96,11 @@ namespace Game.Math_WPF.Mathematics
         /// This is useful for displaying a value in a textbox when you don't know the range (could be
         /// 1000001 or .1000001 or 10000.5 etc)
         /// </summary>
-        public static string ToStringSignificantDigits(this float value, int significantDigits)
+        public static string ToStringSignificantDigits(this float value, int significantDigits, bool shouldRound = true)
         {
+            if (shouldRound)
+                value = (float)Math.Round(value, significantDigits);
+
             int numDecimals = GetNumDecimals(value);
 
             if (numDecimals < 0)
@@ -159,8 +162,11 @@ namespace Game.Math_WPF.Mathematics
         /// This is useful for displaying a double value in a textbox when you don't know the range (could be
         /// 1000001 or .1000001 or 10000.5 etc)
         /// </summary>
-        public static string ToStringSignificantDigits(this double value, int significantDigits)
+        public static string ToStringSignificantDigits(this double value, int significantDigits, bool shouldRound = true)
         {
+            if (shouldRound)
+                value = Math.Round(value, significantDigits);
+
             int numDecimals = GetNumDecimals(value);
 
             if (numDecimals < 0)
@@ -181,8 +187,11 @@ namespace Game.Math_WPF.Mathematics
         /// This is useful for displaying a double value in a textbox when you don't know the range (could be
         /// 1000001 or .1000001 or 10000.5 etc)
         /// </summary>
-        public static string ToStringSignificantDigits(this decimal value, int significantDigits)
+        public static string ToStringSignificantDigits(this decimal value, int significantDigits, bool shouldRound = true)
         {
+            if (shouldRound)
+                value = Math.Round(value, significantDigits);
+
             int numDecimals = GetNumDecimals(value);
 
             if (numDecimals < 0)
@@ -287,9 +296,12 @@ namespace Game.Math_WPF.Mathematics
             return vector.X.ToString("N" + significantDigits.ToString()) + ", " + vector.Y.ToString("N" + significantDigits.ToString()) + ", " + vector.Z.ToString("N" + significantDigits.ToString());
         }
 
-        public static string ToStringSignificantDigits(this Vector3 vector, int significantDigits)
+        public static string ToStringSignificantDigits(this Vector3 vector, int significantDigits, bool shouldRound = true)
         {
-            return string.Format("{0}, {1}, {2}", vector.X.ToStringSignificantDigits(significantDigits), vector.Y.ToStringSignificantDigits(significantDigits), vector.Z.ToStringSignificantDigits(significantDigits));
+            return string.Format("{0}, {1}, {2}",
+                vector.X.ToStringSignificantDigits(significantDigits, shouldRound),
+                vector.Y.ToStringSignificantDigits(significantDigits, shouldRound),
+                vector.Z.ToStringSignificantDigits(significantDigits, shouldRound));
         }
 
         /// <summary>
@@ -439,7 +451,7 @@ namespace Game.Math_WPF.Mathematics
             return false;
         }
 
-        public static string ToStringSignificantDigits(this VectorND vector, int significantDigits)
+        public static string ToStringSignificantDigits(this VectorND vector, int significantDigits, bool shouldRound = true)
         {
             double[] arr = vector.VectorArray;
             if (arr == null)
@@ -448,7 +460,7 @@ namespace Game.Math_WPF.Mathematics
             }
 
             return arr.
-                Select(o => o.ToStringSignificantDigits(significantDigits)).
+                Select(o => o.ToStringSignificantDigits(significantDigits, shouldRound)).
                 ToJoin(", ");
         }
 
@@ -740,7 +752,7 @@ namespace Game.Math_WPF.Mathematics
         }
         private static string ToStringSignificantDigits_PossibleScientific_ToString(string textInvariant, string text, int significantDigits)
         {
-            Match match = Regex.Match(textInvariant, @"^(?<num>\d\.\d+)(?<exp>E(-|)\d+)$");
+            Match match = Regex.Match(textInvariant, @"^(?<num>(-|)\d\.\d+)(?<exp>E(-|)\d+)$");
             if (!match.Success)
             {
                 // Unknown
