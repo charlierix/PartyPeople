@@ -103,6 +103,13 @@
                     <ListBoxItem Content="Genetic Sharp" MouseUp="GeneticSharp_MouseUp"/>
                 </ListBox>
             </StackPanel>
+
+            <StackPanel>
+                <Label Content="Win Utils" Style="{StaticResource subHeaderLabel}"/>
+                <ListBox>
+                    <ListBoxItem Content="Find Distinct Strings" MouseUp="FindDistinctStrings_MouseUp"/>
+                </ListBox>
+            </StackPanel>
         </WrapPanel>
 
         <!-- TODO: Bottom links -->

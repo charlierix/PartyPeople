@@ -79,6 +79,11 @@ namespace Game.Tester
             new Game.Bepu.Testers.GeneticSharpTester().Show();
         }
 
+        private void FindDistinctStrings_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.FindDistinctStrings().Show();
+        }
+
         #endregion
     }
 }
