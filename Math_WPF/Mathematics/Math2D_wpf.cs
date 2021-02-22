@@ -2382,8 +2382,6 @@ namespace Game.Math_WPF.Mathematics
         }
 
         #endregion
-        #region class:
-        #endregion
 
         #region simple
 

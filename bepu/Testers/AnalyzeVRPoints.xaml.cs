@@ -53,14 +53,14 @@ namespace Game.Bepu.Testers
         {
             public Snapshot(RecordingSnapshot snap)
             {
-                Head_Pos = ToPoint(snap.Head_Pos);
-                Head_Rot = ToQuat(snap.Head_Orientation);
+                Head_Pos = Vec3.ToPoint(snap.Head_Pos);
+                Head_Rot = Vec4.ToQuat(snap.Head_Orientation);
 
-                Left_Pos = ToPoint(snap.Left_Pos);
-                Left_Rot = ToQuat(snap.Left_Orientation);
+                Left_Pos = Vec3.ToPoint(snap.Left_Pos);
+                Left_Rot = Vec4.ToQuat(snap.Left_Orientation);
 
-                Right_Pos = ToPoint(snap.Right_Pos);
-                Right_Rot = ToQuat(snap.Right_Orientation);
+                Right_Pos = Vec3.ToPoint(snap.Right_Pos);
+                Right_Rot = Vec4.ToQuat(snap.Right_Orientation);
             }
 
             public Point3D Head_Pos { get; }
@@ -82,15 +82,6 @@ namespace Game.Bepu.Testers
                 finalPos -= up * neckDown;
 
                 return finalPos;
-            }
-
-            private static Point3D ToPoint(Vec3 v)
-            {
-                return new Point3D(v.x, v.y, v.z);
-            }
-            private static Quaternion ToQuat(Vec4 v)
-            {
-                return new Quaternion(v.x, v.y, v.z, v.w);
             }
         }
 
@@ -1320,22 +1311,7 @@ namespace Game.Bepu.Testers
         public Vec4 Right_Orientation { get; set; }
     }
 
-    [Serializable]
-    public class Vec3
-    {
-        public float x { get; set; }
-        public float y { get; set; }
-        public float z { get; set; }
-    }
-
-    [Serializable]
-    public class Vec4
-    {
-        public float x { get; set; }
-        public float y { get; set; }
-        public float z { get; set; }
-        public float w { get; set; }
-    }
+    // The rest is in SerializedForUnity.cs
 
     #endregion
 }

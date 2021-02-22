@@ -69,6 +69,10 @@ namespace Game.Tester
         {
             new Bepu.Testers.ChaseRotationWindow().Show();
         }
+        private void PlanesThruBezier_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Bepu.Testers.PlanesThruBezier().Show();
+        }
 
         private void GeneticSharp_MouseUp(object sender, MouseButtonEventArgs e)
         {

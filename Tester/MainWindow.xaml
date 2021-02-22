@@ -93,6 +93,7 @@
                     <ListBoxItem Content="Analyze VR Points" MouseUp="AnalyzeVRPoints_MouseUp"/>
                     <ListBoxItem Content="Analyze IKMesh Chains" MouseUp="AnalyzeIKMeshChains_MouseUp"/>
                     <ListBoxItem Content="Chase Rotation" MouseUp="ChaseRotation_MouseUp"/>
+                    <ListBoxItem Content="Planes thru Bezier" MouseUp="PlanesThruBezier_MouseUp"/>
                 </ListBox>
             </StackPanel>
 
