@@ -324,7 +324,7 @@ namespace Game.Math_WPF.Mathematics
 
             if (!eitherDirection && length < 0)
             {
-                // It's in the oppositie direction, and that isn't allowed
+                // It's in the opposite direction, and that isn't allowed
                 return new Vector3D(0, 0, 0);
             }
 
