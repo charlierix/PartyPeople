@@ -972,6 +972,34 @@ namespace Game.Math_WPF.WPF.Controls3D
             }
         }
 
+        public static (double dot, double line) GetDrawSizes(IEnumerable<Vector3D> vectors, Point3D? aroundCenter = null)
+        {
+            if (aroundCenter != null)
+                return GetDrawSizes(Math.Sqrt(vectors.Max(o => (o.ToPoint() - aroundCenter.Value).LengthSquared)));
+            else
+                return GetDrawSizes(Math.Sqrt(vectors.Max(o => o.LengthSquared)));
+        }
+        public static (double dot, double line) GetDrawSizes(IEnumerable<Point3D> points, Point3D? aroundCenter = null)
+        {
+            if (aroundCenter != null)
+                return GetDrawSizes(Math.Sqrt(points.Max(o => (o - aroundCenter.Value).LengthSquared)));
+            else
+                return GetDrawSizes(Math.Sqrt(points.Max(o => o.ToVector().LengthSquared)));
+        }
+        public static (double dot, double line) GetDrawSizes(IEnumerable<Vector> vectors, Point? aroundCenter = null)
+        {
+            if (aroundCenter != null)
+                return GetDrawSizes(Math.Sqrt(vectors.Max(o => (o.ToPoint() - aroundCenter.Value).LengthSquared)));
+            else
+                return GetDrawSizes(Math.Sqrt(vectors.Max(o => o.LengthSquared)));
+        }
+        public static (double dot, double line) GetDrawSizes(IEnumerable<Point> points, Point? aroundCenter = null)
+        {
+            if (aroundCenter != null)
+                return GetDrawSizes(Math.Sqrt(points.Max(o => (o - aroundCenter.Value).LengthSquared)));
+            else
+                return GetDrawSizes(Math.Sqrt(points.Max(o => o.ToVector().LengthSquared)));
+        }
         public static (double dot, double line) GetDrawSizes(double maxRadius)
         {
             return

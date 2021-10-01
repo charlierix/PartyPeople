@@ -2088,7 +2088,7 @@ namespace Game.Math_WPF.WPF
 
             double h, s, v;
 
-            v = maxValue;       // this should be the average(min,max), not the max?
+            v = maxValue;
 
             #region Get Hue
 
