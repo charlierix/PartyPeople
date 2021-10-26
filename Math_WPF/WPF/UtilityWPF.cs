@@ -1898,31 +1898,39 @@ namespace Game.Math_WPF.WPF
         /// <summary>
         /// This returns random colors that are as far from each other as possible
         /// </summary>
-        public static Color[] GetRandomColors(int count, byte min, byte max)
+        /// <param name="existing">These are other colors that the returned colors should avoid.  If passed in, this list doesn't count toward the return count</param>
+        public static Color[] GetRandomColors(int count, byte min, byte max, Color[] existing = null)
         {
-            return GetRandomColors(count, 255, min, max);
+            return GetRandomColors(count, 255, min, max, existing);
         }
-        public static Color[] GetRandomColors(int count, byte alpha, byte min, byte max)
+        public static Color[] GetRandomColors(int count, byte alpha, byte min, byte max, Color[] existing = null)
         {
-            return GetRandomColors(count, alpha, min, max, min, max, min, max);
+            return GetRandomColors(count, alpha, min, max, min, max, min, max, existing);
         }
-        public static Color[] GetRandomColors(int count, byte alpha, byte minRed, byte maxRed, byte minGreen, byte maxGreen, byte minBlue, byte maxBlue)
+        public static Color[] GetRandomColors(int count, byte alpha, byte minRed, byte maxRed, byte minGreen, byte maxGreen, byte minBlue, byte maxBlue, Color[] existing = null)
         {
             if (count < 1)
-            {
                 return new Color[0];
-            }
 
-            Color staticColor = GetRandomColor(alpha, minRed, maxRed, minGreen, maxGreen, minBlue, maxBlue);
+            VectorND[] existingStatic = null;
 
-            if (count == 1)
+            if (existing != null && existing.Length > 0)
             {
-                return new[] { staticColor };
+                existingStatic = existing.
+                    Select(o => new double[] { o.R, o.G, o.B }.ToVectorND()).
+                    ToArray();
+            }
+            else
+            {
+                Color staticColor = GetRandomColor(alpha, minRed, maxRed, minGreen, maxGreen, minBlue, maxBlue);
+
+                if (count == 1)
+                    return new[] { staticColor };
+
+                existingStatic = new[] { new double[] { staticColor.R, staticColor.G, staticColor.B }.ToVectorND() };
             }
 
             var aabb = (new double[] { minRed, minGreen, minBlue }.ToVectorND(), new double[] { maxRed, maxGreen, maxBlue }.ToVectorND());
-
-            VectorND[] existingStatic = new[] { new double[] { staticColor.R, staticColor.G, staticColor.B }.ToVectorND() };
 
             // Treat each RGB value as a 3D vector.  Now inject the items in a cube defined by aabb.  Each point
             // pushes the others away, so the returned items are as far from each other as possible
@@ -3528,7 +3536,6 @@ namespace Game.Math_WPF.WPF
             retVal.Normals.Add(orth1);
 
             #endregion
-
 
             //retVal.Freeze();
             return retVal;

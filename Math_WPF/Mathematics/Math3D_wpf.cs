@@ -7591,8 +7591,6 @@ namespace Game.Math_WPF.Mathematics
         }
         private static Vector3D? GetIntersection_Plane_Line(Vector3D normal, Vector3D[] line, double originDistance, EdgeType edgeType)
         {
-            Vector3D result = new Vector3D();
-
             // Here comes the confuMath.Sing part.  We need to find the 3D point that is actually
             // on the plane.  Here are some steps to do that:
 
@@ -7660,12 +7658,12 @@ namespace Game.Math_WPF.Mathematics
             // Now, like we said above, we times the dist by the vector, then add our arbitrary point.
             // This essentially moves the point along the vector to a certain distance.  This now gives
             // us the intersection point.  Yay!
-
-            result.X = line[0].X + (lineDir.X * dist);
-            result.Y = line[0].Y + (lineDir.Y * dist);
-            result.Z = line[0].Z + (lineDir.Z * dist);
-
-            return result;                              // Return the intersection point
+            return new Vector3D()       // Return the intersection point
+            {
+                X = line[0].X + (lineDir.X * dist),
+                Y = line[0].Y + (lineDir.Y * dist),
+                Z = line[0].Z + (lineDir.Z * dist),
+            };
         }
 
         public static Point3D[] GetIntersection_Face_Sphere(Face3D_wpf face, Point3D sphereCenter, double sphereRadius)
