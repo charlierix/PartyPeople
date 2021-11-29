@@ -3992,7 +3992,7 @@ namespace Game.Math_WPF.WPF
 
             if (rotateTransform != null)
             {
-                // This is in case they wanted oriented other than along the x axis
+                // This is in case they want it oriented other than along the x axis
                 transform.Children.Add(rotateTransform);
             }
 
@@ -4048,8 +4048,8 @@ namespace Game.Math_WPF.WPF
 
                 //NOTE: The normals are backward from what you'd think
 
-                GetCylinder_AlongXSprtEndCap(ref pointOffset, retVal, points, new Vector3D(0, 0, 1), radius, radius, -halfHeight, transform);
-                GetCylinder_AlongXSprtEndCap(ref pointOffset, retVal, points, new Vector3D(0, 0, -1), radius, radius, halfHeight, transform);
+                GetCylinder_AlongX_EndCap(ref pointOffset, retVal, points, new Vector3D(0, 0, 1), radius, radius, -halfHeight, transform);
+                GetCylinder_AlongX_EndCap(ref pointOffset, retVal, points, new Vector3D(0, 0, -1), radius, radius, halfHeight, transform);
             }
 
             #endregion
@@ -4058,7 +4058,7 @@ namespace Game.Math_WPF.WPF
             //retVal.Freeze();
             return retVal;
         }
-        private static void GetCylinder_AlongXSprtEndCap(ref int pointOffset, MeshGeometry3D geometry, Point[] points, Vector3D normal, double radiusX, double radiusY, double z, Transform3D transform)
+        private static void GetCylinder_AlongX_EndCap(ref int pointOffset, MeshGeometry3D geometry, Point[] points, Vector3D normal, double radiusX, double radiusY, double z, Transform3D transform)
         {
             //NOTE: This expects the cylinder's height to be along z, but will transform the points before commiting them to the geometry
             //TODO: This was copied from GetMultiRingedTubeSprtEndCap, make a good generic method
@@ -4111,7 +4111,7 @@ namespace Game.Math_WPF.WPF
             pointOffset += points.Length;
         }
 
-        public static MeshGeometry3D GetCone_AlongX(int numSegments, double radius, double height)
+        public static MeshGeometry3D GetCone_AlongX(int numSegments, double radius, double height, RotateTransform3D rotateTransform = null)
         {
             // This is a copy of GetCylinder_AlongX
             //TODO: This is so close to GetMultiRingedTube, the only difference is the multi ring tube has "hard" faces, and this has "soft" faces (this one shares points and normals, so the lighting is smoother)
@@ -4125,7 +4125,14 @@ namespace Game.Math_WPF.WPF
 
             #region Initial calculations
 
-            Transform3D transform = new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), 90d));
+            Transform3DGroup transform = new Transform3DGroup();
+            transform.Children.Add(new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), 90d)));
+
+            if (rotateTransform != null)
+            {
+                // This is in case they want it oriented other than along the x axis
+                transform.Children.Add(rotateTransform);
+            }
 
             double halfHeight = height / 2d;
 
@@ -4186,7 +4193,7 @@ namespace Game.Math_WPF.WPF
 
             //NOTE: The normals are backward from what you'd think
 
-            GetCylinder_AlongXSprtEndCap(ref pointOffset, retVal, points, new Vector3D(0, 0, 1), radius, radius, -halfHeight, transform);
+            GetCylinder_AlongX_EndCap(ref pointOffset, retVal, points, new Vector3D(0, 0, 1), radius, radius, -halfHeight, transform);
             //GetCylinder_AlongXSprtEndCap(ref pointOffset, retVal, points, new Vector3D(0, 0, -1), radius, halfHeight, transform);
 
             // Exit Function
@@ -4200,7 +4207,7 @@ namespace Game.Math_WPF.WPF
         /// be less than diameter)
         /// </summary>
         /// <param name="numSegmentsPhi">This is the number of segments for one dome</param>
-        public static MeshGeometry3D GetCapsule_AlongZ(int numSegmentsTheta, int numSegmentsPhi, double radius, double height)
+        public static MeshGeometry3D GetCapsule_AlongZ(int numSegmentsTheta, int numSegmentsPhi, double radius, double height, RotateTransform3D rotateTransform = null)
         {
             //NOTE: All the other geometries in this class are along the x axis, so I want to follow suit, but I think best along the z axis.  So I'll transform the points before commiting them to the geometry
             //TODO: This is so close to GetMultiRingedTube, the only difference is the multi ring tube has "hard" faces, and this has "soft" faces (this one shares points and normals, so the lighting is smoother)
@@ -4220,7 +4227,14 @@ namespace Game.Math_WPF.WPF
 
             #region Initial calculations
 
-            Transform3D transform = Transform3D.Identity; //new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), 90d));
+            Transform3DGroup transform = new Transform3DGroup();
+            //transform.Children.Add(new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), 90d)));
+
+            if (rotateTransform != null)
+            {
+                // This is in case they want it oriented other than along the z axis
+                transform.Children.Add(rotateTransform);
+            }
 
             double halfHeight = (height - (radius * 2d)) / 2d;
             //double deltaTheta = 2d * Math.PI / numSegmentsTheta;

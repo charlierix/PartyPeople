@@ -252,12 +252,12 @@ namespace Game.Math_WPF.WPF.Controls3D
             };
         }
 
-        public void AddEllipse(Point3D position, Vector3D radius, Color color, bool isShiny = true, bool isHiRes = false)
+        public void AddEllipse(Point3D position, Vector3D radius, Color color, bool isShiny = true, bool isHiRes = false, Quaternion? rotation = null)
         {
             Visuals3D.Add(
-                GetEllipse(position, radius, color, isShiny, isHiRes));
+                GetEllipse(position, radius, color, isShiny, isHiRes, rotation));
         }
-        public static Visual3D GetEllipse(Point3D position, Vector3D radius, Color color, bool isShiny = true, bool isHiRes = false)
+        public static Visual3D GetEllipse(Point3D position, Vector3D radius, Color color, bool isShiny = true, bool isHiRes = false, Quaternion? rotation = null)
         {
             Material material = GetMaterial(isShiny, color);
 
@@ -267,7 +267,12 @@ namespace Game.Math_WPF.WPF.Controls3D
             geometry.Geometry = UtilityWPF.GetSphere_Ico(1, isHiRes ? 3 : 1, true);
 
             Transform3DGroup transform = new Transform3DGroup();
+
             transform.Children.Add(new ScaleTransform3D(radius));
+
+            if (rotation != null && rotation != Quaternion.Identity)
+                transform.Children.Add(new RotateTransform3D(new QuaternionRotation3D(rotation.Value)));
+
             transform.Children.Add(new TranslateTransform3D(position.ToVector()));
 
             geometry.Transform = transform;
@@ -1002,6 +1007,9 @@ namespace Game.Math_WPF.WPF.Controls3D
         }
         public static (double dot, double line) GetDrawSizes(double maxRadius)
         {
+            if (maxRadius.IsNearZero())
+                maxRadius = 1;
+
             return
             (
                 maxRadius * .0075,
