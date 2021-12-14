@@ -452,6 +452,38 @@ namespace Game.Math_WPF.WPF.Controls3D
             };
         }
 
+        /// <summary>
+        /// Angles are in degrees.  Zero angle is 1,0 (90 degrees is 0,1)
+        /// direction_x and y are the directions (out from center) in world space
+        /// </summary>
+        public void AddArc(Point3D center, Vector3D direction_x, Vector3D direction_y, double radius, double fromAngle, double toAngle, double thickness, Color color, bool isShiny = true)
+        {
+            Visuals3D.Add(
+                GetArc(center, direction_x, direction_y, radius, fromAngle, toAngle, thickness, color, isShiny));
+        }
+        public static Visual3D GetArc(Point3D center, Vector3D direction_x, Vector3D direction_y, double radius, double fromAngle, double toAngle, double thickness, Color color, bool isShiny = true)
+        {
+            Material material = GetMaterial(isShiny, color);
+
+            GeometryModel3D geometry = new GeometryModel3D();
+            geometry.Material = material;
+            geometry.BackMaterial = material;
+
+            geometry.Geometry = UtilityWPF.GetTorusArc(30, 7, thickness / 2, radius, fromAngle, toAngle);
+
+            Transform3DGroup transform = new Transform3DGroup();
+
+            transform.Children.Add(new RotateTransform3D(new QuaternionRotation3D(Math3D.GetRotation(new Vector3D(1, 0, 0), new Vector3D(0, 1, 0), direction_x, direction_y))));
+            transform.Children.Add(new TranslateTransform3D(center.ToVector()));
+
+            geometry.Transform = transform;
+
+            return new ModelVisual3D
+            {
+                Content = geometry
+            };
+        }
+
         public void AddTriangle(ITriangle_wpf triangle, Color? faceColor = null, Color? edgeColor = null, double? edgeThickness = null, bool isShinyFaces = true)
         {
             TriangleIndexed_wpf indexed = new TriangleIndexed_wpf(0, 1, 2, new[] { triangle.Point0, triangle.Point1, triangle.Point2 });

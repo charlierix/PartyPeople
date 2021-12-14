@@ -68,6 +68,7 @@
                 <ListBox>
                     <ListBoxItem Content="Unit Tests" MouseUp="UnitTests_MouseUp"/>
                     <ListBoxItem Content="Bepu" MouseUp="Bepu_MouseUp"/>
+                    <ListBoxItem Content="Drawing" MouseUp="Drawing_MouseUp"/>
                 </ListBox>
             </StackPanel>
 

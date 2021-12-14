@@ -5694,15 +5694,16 @@ namespace Game.Math_WPF.Mathematics
             Vector3D toNormalUnit = Vector3D.CrossProduct(to1, to2).ToUnit(true);
 
             if (IsInvalid(fromNormalUnit) || IsInvalid(toNormalUnit))     // if the normals are invalid, then the two directions are colinear (or one is zero length, or invalid)
-            {
-                //TODO: May want to throw an exception instead
-                return Quaternion.Identity;
-            }
+                return Quaternion.Identity;     //TODO: May want to throw an exception instead
 
-            // Detect Parallel
-            if (Math1D.IsNearValue(Math.Abs(Vector3D.DotProduct(fromNormalUnit, toNormalUnit)), 1d))
+            // Detect special cases
+            double dot = Vector3D.DotProduct(fromNormalUnit, toNormalUnit);
+            if (dot.IsNearValue(1d))
+                return GetRotation(from1, to1);     // simple rotation
+            else if (dot.IsNearValue(-1d))
             {
-                return Math3D.GetRotation(from1, to1);
+                Quaternion quat180 = new Quaternion(fromNormalUnit, 180);
+                return GetRotation(from1, to1).RotateBy(quat180);
             }
 
             // Figure out how to rotate the planes onto each other

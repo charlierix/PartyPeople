@@ -38,6 +38,10 @@ namespace Game.Tester
         {
             new Bepu.Testers.BepuTester().Show();
         }
+        private void Drawing_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Bepu.Testers.BasicDrawingTests().Show();
+        }
 
         private void ColorPicker_MouseUp(object sender, MouseButtonEventArgs e)
         {

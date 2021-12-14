@@ -2873,7 +2873,6 @@ namespace Game.Math_WPF.WPF
 
             BitmapStreamInfo info = new BitmapStreamInfo(bytes, bitmap.PixelWidth, bitmap.PixelHeight, stride, bitmap.Format, outOfBoundsColor);
 
-            // Exit Function
             if (convertToColors)
             {
                 return new BitmapCustomCachedColors(info, convertToColors_IsColor);
@@ -3937,7 +3936,6 @@ namespace Game.Math_WPF.WPF
                 retVal.TriangleIndices.Add(i);
             }
 
-            // Exit Function
             //retVal.Freeze();
             return retVal;
         }
@@ -4054,7 +4052,6 @@ namespace Game.Math_WPF.WPF
 
             #endregion
 
-            // Exit Function
             //retVal.Freeze();
             return retVal;
         }
@@ -4196,7 +4193,6 @@ namespace Game.Math_WPF.WPF
             GetCylinder_AlongX_EndCap(ref pointOffset, retVal, points, new Vector3D(0, 0, 1), radius, radius, -halfHeight, transform);
             //GetCylinder_AlongXSprtEndCap(ref pointOffset, retVal, points, new Vector3D(0, 0, -1), radius, halfHeight, transform);
 
-            // Exit Function
             //retVal.Freeze();
             return retVal;
         }
@@ -4309,7 +4305,6 @@ namespace Game.Math_WPF.WPF
 
             #endregion
 
-            // Exit Function
             //retVal.Freeze();
             return retVal;
         }
@@ -4330,13 +4325,13 @@ namespace Game.Math_WPF.WPF
             // spine.
             int cp = 0; // Index of last added point.
 
-            for (int i = 0; i < spineSegments; ++i)
+            for (int i = 0; i < spineSegments; i++)
             {
                 double spineParam = ((double)i) / ((double)spineSegments);
                 double spineAngle = Math.PI * 2 * spineParam;
                 Vector3D spineVector = new Vector3D(Math.Cos(spineAngle), Math.Sin(spineAngle), 0);
 
-                for (int j = 0; j < fleshSegments; ++j)
+                for (int j = 0; j < fleshSegments; j++)
                 {
                     double fleshParam = ((double)j) / ((double)fleshSegments);
                     double fleshAngle = Math.PI * 2 * fleshParam;
@@ -4375,13 +4370,144 @@ namespace Game.Math_WPF.WPF
                     retVal.TriangleIndices.Add((ushort)a);
                     retVal.TriangleIndices.Add((ushort)c);
                     retVal.TriangleIndices.Add((ushort)d);
-                    ++cp;
+                    cp++;
                 }
             }
 
-            // Exit Function
             //retVal.Freeze();
             return retVal;
+        }
+
+        /// <summary>
+        /// Same as GetTorus, but with start/stop angles (in degrees)
+        /// </summary>
+        /// <param name="spineSegments_fullCircle">
+        /// Actual spine segment count is calculated.  Doing it this way so the caller doesn't have to do
+        /// any calculations and can get consistent density of spine segments, regardless of the angles
+        /// passed in
+        /// </param>
+        public static MeshGeometry3D GetTorusArc(int spineSegments_fullCircle, int fleshSegments, double innerRadius, double outerRadius, double fromAngle, double toAngle)
+        {
+            if (toAngle < fromAngle)
+                return GetTorusArc(spineSegments_fullCircle, fleshSegments, innerRadius, outerRadius, toAngle, fromAngle);
+
+            if (toAngle - fromAngle >= 360)
+                return GetTorus(spineSegments_fullCircle, fleshSegments, innerRadius, outerRadius);     // not sure why they would do this, but it's easy enough to handle
+
+            MeshGeometry3D retVal = new MeshGeometry3D();
+
+            // The spine is the circle around the hole in the torus, the flesh is a set of circles around the spine
+            int cp = 0;     // Index of last added point
+
+            double percent_circle = Math.Abs(toAngle - fromAngle) / 360d;
+            int actual_spine_segments = Math.Max(1, (spineSegments_fullCircle * percent_circle).ToInt_Ceiling());
+
+            Point first_point, last_point;
+
+            for (int i = 0; i < actual_spine_segments; i++)
+            {
+                double spineParam = ((double)i) / ((double)actual_spine_segments);
+                double spineAngle = UtilityMath.GetScaledValue(fromAngle, toAngle, 0, actual_spine_segments - 1, i);
+
+                last_point = new Point(Math.Cos(Math1D.DegreesToRadians(spineAngle)), Math.Sin(Math1D.DegreesToRadians(spineAngle)));
+                if (i == 0)
+                    first_point = last_point;
+
+                Vector3D spineVector = new Vector3D(last_point.X, last_point.Y, 0);
+
+                for (int j = 0; j < fleshSegments; j++)
+                {
+                    double fleshParam = ((double)j) / ((double)fleshSegments);
+                    double fleshAngle = Math.PI * 2 * fleshParam;
+                    Vector3D fleshVector = spineVector * Math.Cos(fleshAngle) + new Vector3D(0, 0, Math.Sin(fleshAngle));
+                    Point3D p = new Point3D(0, 0, 0) + outerRadius * spineVector + innerRadius * fleshVector;
+
+                    retVal.Positions.Add(p);
+                    retVal.Normals.Add(-fleshVector);
+                    retVal.TextureCoordinates.Add(new Point(spineParam, fleshParam));
+
+                    // Now add a quad that has it's upper-right corner at the point we just added.
+                    // i.e. cp . cp-1 . cp-1-_fleshSegments . cp-_fleshSegments
+                    int a = cp;
+                    int b = cp - 1;
+                    int c = cp - 1 - fleshSegments;
+                    int d = cp - fleshSegments;
+
+                    // Wrap around, point to indices that have yet to be created
+                    if (j == 0)
+                    {
+                        b += fleshSegments;
+                        c += fleshSegments;
+                    }
+
+                    if (i != 0)     // zero would wrap back, which is useful for a full torus, but invalid for an arc
+                    {
+                        retVal.TriangleIndices.Add((ushort)a);
+                        retVal.TriangleIndices.Add((ushort)b);
+                        retVal.TriangleIndices.Add((ushort)c);
+
+                        retVal.TriangleIndices.Add((ushort)a);
+                        retVal.TriangleIndices.Add((ushort)c);
+                        retVal.TriangleIndices.Add((ushort)d);
+                    }
+
+                    cp++;
+                }
+            }
+
+            //TODO: Have an option for dome endcaps
+
+            int point_count = retVal.Positions.Count;       // saving this, because the end caps add points
+
+            GetTorusArc_FlatCap(retVal, 0, fleshSegments - 1, new Vector3D(first_point.Y, -first_point.X, 0));
+            GetTorusArc_FlatCap(retVal, point_count - fleshSegments, point_count - 1, new Vector3D(-last_point.Y, last_point.X, 0));
+
+            //retVal.Freeze();
+            return retVal;
+        }
+        private static void GetTorusArc_FlatCap(MeshGeometry3D retVal, int index_from, int index_to, Vector3D normal)
+        {
+            // Copied from GetCircle2D
+
+            for (int i = index_from; i <= index_to; i++)
+            {
+                retVal.Positions.Add(retVal.Positions[i].ToVector().ToPoint());
+                retVal.Normals.Add(normal);
+            }
+
+            int new_from = retVal.Positions.Count - 1 - (index_to - index_from);        // positions and normals should be the same size
+            //int new_to = retVal.Positions.Count - 1;
+
+            // Start with 0,1,2
+            retVal.TriangleIndices.Add(new_from + 0);
+            retVal.TriangleIndices.Add(new_from + 1);
+            retVal.TriangleIndices.Add(new_from + 2);
+
+            int lowerIndex = 2;
+            int upperIndex = index_to - index_from;
+            int lastUsedIndex = 0;
+            bool shouldBumpLower = true;
+
+            // Do the rest of the triangles
+            while (lowerIndex < upperIndex)
+            {
+                retVal.TriangleIndices.Add(new_from + lowerIndex);
+                retVal.TriangleIndices.Add(new_from + upperIndex);
+                retVal.TriangleIndices.Add(new_from + lastUsedIndex);
+
+                if (shouldBumpLower)
+                {
+                    lastUsedIndex = lowerIndex;
+                    lowerIndex++;
+                }
+                else
+                {
+                    lastUsedIndex = upperIndex;
+                    upperIndex--;
+                }
+
+                shouldBumpLower = !shouldBumpLower;
+            }
         }
 
         public static MeshGeometry3D GetRing(int numSides, double innerRadius, double outerRadius, double height, Transform3D transform = null, bool includeInnerRingFaces = true, bool includeOuterRingFaces = true)
@@ -4532,7 +4658,6 @@ namespace Game.Math_WPF.WPF
 
             #endregion
 
-            // Exit Function
             return retVal;
         }
         private static void GetRing_Cap(ref int pointOffset, MeshGeometry3D geometry, Transform3D transform, Point[] points, int numSides, double innerRadius, double outerRadius)
@@ -4931,7 +5056,6 @@ namespace Game.Math_WPF.WPF
                 GetMultiRingedTubeSprtEndCap_ORIG(ref pointOffset, retVal, numSides, points, rings[rings.Count - 1], false, curZ);
             }
 
-            // Exit Function
             //retVal.Freeze();
             return retVal;
         }
@@ -4965,7 +5089,6 @@ namespace Game.Math_WPF.WPF
                 index++;
             }
 
-            // Exit Function
             //retVal.Freeze();
             return retVal;
         }
@@ -4993,7 +5116,6 @@ namespace Game.Math_WPF.WPF
                 retVal.TriangleIndices.Add(triangle.Index2);
             }
 
-            // Exit Function
             //retVal.Freeze();
             return retVal;
         }
@@ -5098,7 +5220,6 @@ namespace Game.Math_WPF.WPF
                 transform.Transform(points);
             }
 
-            // Exit Function
             return points;
         }
 
@@ -5344,7 +5465,6 @@ namespace Game.Math_WPF.WPF
             // The distance between the two 2D points is the size of the circle on screen
             double length2D = (new Point(point2D_rad.X, point2D_rad.Y) - retVal).Length;
 
-            // Exit Function
             isInFront = point2D.Z + length2D > 0d;
             return Tuple.Create(retVal, length2D);
         }
@@ -5401,7 +5521,6 @@ namespace Game.Math_WPF.WPF
                 y = screen.WorkingArea.Top;		// doing this second so the top is always visible when the window is too tall for the monitor
             }
 
-            // Exit Function
             return new Point(x, y);
         }
 
@@ -5810,7 +5929,6 @@ namespace Game.Math_WPF.WPF
                 retVal[cntr] = new Point(x, y);
             }
 
-            // Exit Function
             return retVal;
         }
         private static void GetMultiRingedTubeSprtEndCap_ORIG(ref int pointOffset, MeshGeometry3D geometry, int numSides, Point[] points, TubeRingDefinition_ORIG ring, bool isFirst, double z)
@@ -6495,7 +6613,6 @@ namespace Game.Math_WPF.WPF
 
             #endregion
 
-            // Exit Function
             return retVal.ToArray();
         }
         private static TriangleIndexed_wpf[] GetTrianglesFromMesh_Deduped(MeshGeometry3D[] meshes, Transform3D[] transforms = null)
@@ -6579,7 +6696,6 @@ namespace Game.Math_WPF.WPF
 
             #endregion
 
-            // Exit Function
             return retVal.ToArray();
         }
 
@@ -7590,7 +7706,6 @@ namespace Game.Math_WPF.WPF
                 #endregion
             }
 
-            // Exit Function
             return retVal;
         }
         public byte[][] GetColors_Byte(int x, int y, int width, int height)
@@ -7727,7 +7842,6 @@ namespace Game.Math_WPF.WPF
                 #endregion
             }
 
-            // Exit Function
             return retVal;
         }
 
