@@ -10,10 +10,14 @@
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
             <Button Content="Torus" Click="Torus_Click"/>
 
-            <Slider x:Name="trkArcFrom" Minimum="0" Maximum="360" Value="0" MinWidth="120" Margin="0,8,0,0"/>
+            <Slider x:Name="trkArcFrom" Minimum="0" Maximum="360" Value="0" MinWidth="120" Margin="0,16,0,0"/>
             <Slider x:Name="trkArcTo" Minimum="0" Maximum="360" Value="90" Margin="0,8,0,0"/>
             <Button Visibility="Collapsed" Content="Torus Arc - pre" Click="TorusArc3_Click"/>
             <Button Content="Torus Arc" Click="TorusArc_Click"/>
+
+            <Slider x:Name="trkRadiusX" Minimum="0" Maximum="3" Value="1" MinWidth="120" Margin="0,16,0,0"/>
+            <Slider x:Name="trkRadiusY" Minimum="0" Maximum="3" Value="1" Margin="0,8,0,0"/>
+            <Button Content="Torus Ellipse" Click="TorusEllipse_Click"/>
         </StackPanel>
     </Grid>
 </Window>

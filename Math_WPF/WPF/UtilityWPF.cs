@@ -4339,7 +4339,76 @@ namespace Game.Math_WPF.WPF
                     Point3D p = new Point3D(0, 0, 0) + outerRadius * spineVector + innerRadius * fleshVector;
 
                     retVal.Positions.Add(p);
-                    retVal.Normals.Add(-fleshVector);
+                    retVal.Normals.Add(fleshVector);
+                    retVal.TextureCoordinates.Add(new Point(spineParam, fleshParam));
+
+                    // Now add a quad that has it's upper-right corner at the point we just added.
+                    // i.e. cp . cp-1 . cp-1-_fleshSegments . cp-_fleshSegments
+                    int a = cp;
+                    int b = cp - 1;
+                    int c = cp - (int)1 - fleshSegments;
+                    int d = cp - fleshSegments;
+
+                    // The next two if statements handle the wrapping around of the torus.  For either i = 0 or j = 0
+                    // the created quad references vertices that haven't been created yet.
+                    if (j == 0)
+                    {
+                        b += fleshSegments;
+                        c += fleshSegments;
+                    }
+
+                    if (i == 0)
+                    {
+                        c += fleshSegments * spineSegments;
+                        d += fleshSegments * spineSegments;
+                    }
+
+                    retVal.TriangleIndices.Add((ushort)a);
+                    retVal.TriangleIndices.Add((ushort)b);
+                    retVal.TriangleIndices.Add((ushort)c);
+
+                    retVal.TriangleIndices.Add((ushort)a);
+                    retVal.TriangleIndices.Add((ushort)c);
+                    retVal.TriangleIndices.Add((ushort)d);
+                    cp++;
+                }
+            }
+
+            //retVal.Freeze();
+            return retVal;
+        }
+
+        public static MeshGeometry3D GetTorusEllipse(int spineSegments, int fleshSegments, double innerRadius, double outerRadiusX, double outerRadiusY)
+        {
+            MeshGeometry3D retVal = new MeshGeometry3D();
+
+            // The spine is the circle around the hole in the
+            // torus, the flesh is a set of circles around the
+            // spine.
+            int cp = 0; // Index of last added point.
+
+            for (int i = 0; i < spineSegments; i++)
+            {
+                double spineParam = ((double)i) / ((double)spineSegments);
+                double spineAngle = Math.PI * 2 * spineParam;
+                Vector3D spineVector = new Vector3D(Math.Cos(spineAngle), Math.Sin(spineAngle), 0);
+
+                for (int j = 0; j < fleshSegments; j++)
+                {
+                    double fleshParam = ((double)j) / ((double)fleshSegments);
+                    double fleshAngle = Math.PI * 2 * fleshParam;
+
+
+                    //TODO: This is just a stretched copy of the circular torus function.  It's fine as long as the ellipse isn't
+                    //too eccentric and the inner radius is small.  The proper way is for this to be perpendicular to the curve at
+                    //the current point (instead of a stretched direction toward the center)
+                    Vector3D fleshVector = spineVector * Math.Cos(fleshAngle) + new Vector3D(0, 0, Math.Sin(fleshAngle));
+
+
+                    Point3D p = new Point3D(spineVector.X * outerRadiusX, spineVector.Y * outerRadiusY, 0) + fleshVector * innerRadius;
+
+                    retVal.Positions.Add(p);
+                    retVal.Normals.Add(fleshVector);
                     retVal.TextureCoordinates.Add(new Point(spineParam, fleshParam));
 
                     // Now add a quad that has it's upper-right corner at the point we just added.
@@ -4423,7 +4492,7 @@ namespace Game.Math_WPF.WPF
                     Point3D p = new Point3D(0, 0, 0) + outerRadius * spineVector + innerRadius * fleshVector;
 
                     retVal.Positions.Add(p);
-                    retVal.Normals.Add(-fleshVector);
+                    retVal.Normals.Add(fleshVector);
                     retVal.TextureCoordinates.Add(new Point(spineParam, fleshParam));
 
                     // Now add a quad that has it's upper-right corner at the point we just added.

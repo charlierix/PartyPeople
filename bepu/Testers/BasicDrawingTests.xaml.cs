@@ -237,6 +237,31 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void TorusEllipse_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var window = new Debug3DWindow();
+
+                var sizes = Debug3DWindow.GetDrawSizes(1);
+
+                window.AddText($"radius x: {Math.Round(trkRadiusX.Value)}", color: "00C");
+                window.AddText($"radius y: {Math.Round(trkRadiusY.Value)}", color: "00C");
+
+                window.AddAxisLines(1, sizes.line);
+
+                // This should be a merge of TorusArc1_Click and UtilityWPF.GetTorus (not worrying about end caps yet)
+                var mesh = UtilityWPF.GetTorusEllipse(30, 7, 0.2, trkRadiusX.Value, trkRadiusY.Value);
+                window.AddMesh(mesh, Colors.Gray);
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #region INTERMEDIATE
 
         //private void TorusArc1_Click(object sender, RoutedEventArgs e)

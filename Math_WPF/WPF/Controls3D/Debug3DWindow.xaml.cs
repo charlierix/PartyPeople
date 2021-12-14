@@ -252,12 +252,12 @@ namespace Game.Math_WPF.WPF.Controls3D
             };
         }
 
-        public void AddEllipse(Point3D position, Vector3D radius, Color color, bool isShiny = true, bool isHiRes = false, Quaternion? rotation = null)
+        public void AddEllipsoid(Point3D position, Vector3D radius, Color color, bool isShiny = true, bool isHiRes = false, Quaternion? rotation = null)
         {
             Visuals3D.Add(
-                GetEllipse(position, radius, color, isShiny, isHiRes, rotation));
+                GetEllipsoid(position, radius, color, isShiny, isHiRes, rotation));
         }
-        public static Visual3D GetEllipse(Point3D position, Vector3D radius, Color color, bool isShiny = true, bool isHiRes = false, Quaternion? rotation = null)
+        public static Visual3D GetEllipsoid(Point3D position, Vector3D radius, Color color, bool isShiny = true, bool isHiRes = false, Quaternion? rotation = null)
         {
             Material material = GetMaterial(isShiny, color);
 
@@ -443,6 +443,34 @@ namespace Game.Math_WPF.WPF.Controls3D
                 // Now that it's positioned correctly in 2D, transform the whole thing into 3D (to line up with the 3D plane that was passed in)
                 transform.Children.Add(transform2D.From2D_BackTo3D);
             }
+
+            geometry.Transform = transform;
+
+            return new ModelVisual3D
+            {
+                Content = geometry
+            };
+        }
+
+        public void AddEllipse(Point3D center, Vector3D direction_x, Vector3D direction_y, double radiusX, double radiusY, double thickness, Color color, bool isShiny = true)
+        {
+            Visuals3D.Add(
+                GetEllipse(center, direction_x, direction_y, radiusX, radiusY, thickness, color, isShiny));
+        }
+        public static Visual3D GetEllipse(Point3D center, Vector3D direction_x, Vector3D direction_y, double radiusX, double radiusY, double thickness, Color color, bool isShiny = true)
+        {
+            Material material = GetMaterial(isShiny, color);
+
+            GeometryModel3D geometry = new GeometryModel3D();
+            geometry.Material = material;
+            geometry.BackMaterial = material;
+
+            geometry.Geometry = UtilityWPF.GetTorusEllipse(30, 7, thickness / 2, radiusX, radiusY);
+
+            Transform3DGroup transform = new Transform3DGroup();
+
+            transform.Children.Add(new RotateTransform3D(new QuaternionRotation3D(Math3D.GetRotation(new Vector3D(1, 0, 0), new Vector3D(0, 1, 0), direction_x, direction_y))));
+            transform.Children.Add(new TranslateTransform3D(center.ToVector()));
 
             geometry.Transform = transform;
 
