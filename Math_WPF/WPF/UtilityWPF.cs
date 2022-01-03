@@ -4943,6 +4943,9 @@ namespace Game.Math_WPF.WPF
         /// </remarks>
         public static Model3D GetText3D(string text, FontFamily font, Material faceMaterial, Material edgeMaterial, double height, double depth = 0, FontStyle? style = null, FontWeight? weight = null, FontStretch? stretch = null, TextAlignment alignment = TextAlignment.Center)
         {
+            if (string.IsNullOrWhiteSpace(text))
+                throw new ArgumentException("Text3D doesn't support pure whitespace (there must be text)");
+
             style = style ?? FontStyles.Normal;
             weight = weight ?? FontWeights.Normal;
             stretch = stretch ?? FontStretches.Normal;

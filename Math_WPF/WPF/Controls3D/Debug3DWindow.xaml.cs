@@ -651,6 +651,9 @@ namespace Game.Math_WPF.WPF.Controls3D
         /// <param name="textDirection">The direction of the vector that points along the text (default is 1,0,0)</param>
         public void AddText3D(string text, Point3D position, Vector3D normal, double height, Color color, bool isShiny, Vector3D? textDirection = null, double? depth = null, FontFamily font = null, FontStyle? style = null, FontWeight? weight = null, FontStretch? stretch = null)
         {
+            if (string.IsNullOrWhiteSpace(text))
+                return;
+
             this.Visuals3D.Add(
                 GetText3D(text, position, normal, height, color, isShiny, textDirection, depth, font ?? this.FontFamily, style, weight, stretch));
         }
