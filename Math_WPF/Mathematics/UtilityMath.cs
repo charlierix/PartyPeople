@@ -80,6 +80,15 @@ namespace Game.Math_WPF.Mathematics
             return retVal;
         }
 
+        public static double LERP(double minReturn, double maxReturn, double percent)
+        {
+            return GetScaledValue(minReturn, maxReturn, 0, 1, percent);
+        }
+        public static double LERP_Capped(double minReturn, double maxReturn, double percent)
+        {
+            return GetScaledValue_Capped(minReturn, maxReturn, 0, 1, percent);
+        }
+
         /// <summary>
         /// Makes sure the returned value is between min and max
         /// </summary>
