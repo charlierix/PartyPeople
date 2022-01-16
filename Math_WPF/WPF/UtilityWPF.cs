@@ -3102,12 +3102,12 @@ namespace Game.Math_WPF.WPF
             return m;
         }
         /// <summary>
-        ///     Computes the effective view matrix for the given
-        ///     camera.
+        /// Computes the effective view matrix for the given camera
         /// </summary>
         public static Matrix3D GetViewMatrix(Camera camera)
         {
-            if (camera == null) throw new ArgumentNullException("camera");
+            if (camera == null)
+                throw new ArgumentNullException("camera");
 
             ProjectionCamera projectionCamera = camera as ProjectionCamera;
 

@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 
 namespace Game.Math_WPF.WPF
 {
@@ -99,6 +100,25 @@ namespace Game.Math_WPF.WPF
                     rand.NextDrift(color.V, driftV)
                 );
             }
+        }
+
+        #endregion
+
+        #region RotateTransform3D
+
+        public static Quaternion ToQuaternion(this RotateTransform3D transform)
+        {
+            if (transform.Rotation == null)
+                throw new ArgumentException("transform.Rotation shouldn't be null");
+
+            else if (transform.Rotation is AxisAngleRotation3D aaRot)
+                return new Quaternion(aaRot.Axis, aaRot.Angle);
+
+            else if (transform.Rotation is QuaternionRotation3D quat_rot)
+                return quat_rot.Quaternion;
+
+            else
+                throw new ArgumentException("Unexpected type for transform.Rotation: " + transform.Rotation.GetType().ToString());
         }
 
         #endregion
