@@ -5747,9 +5747,7 @@ namespace Game.Math_WPF.Mathematics
             // Get the angle
             double angle = Vector3D.AngleBetween(from, to);
             if (angle.IsNearZero() || Math1D.IsInvalid(angle))
-            {
                 return Quaternion.Identity;
-            }
 
             // Get a vector that is orthogonal to both
             Vector3D axis = Vector3D.CrossProduct(from, to);

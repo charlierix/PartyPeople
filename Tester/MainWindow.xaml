@@ -69,6 +69,7 @@
                     <ListBoxItem Content="Unit Tests" MouseUp="UnitTests_MouseUp"/>
                     <ListBoxItem Content="Bepu" MouseUp="Bepu_MouseUp"/>
                     <ListBoxItem Content="Drawing" MouseUp="Drawing_MouseUp"/>
+                    <ListBoxItem Content="Trackball Grabber" MouseUp="TrackballGrabber_MouseUp"/>
                 </ListBox>
             </StackPanel>
 
@@ -77,6 +78,13 @@
                 <ListBox>
                     <ListBoxItem Content="Color Picker" MouseUp="ColorPicker_MouseUp"/>
                     <ListBoxItem Content="Color Manipulations" MouseUp="ColorManipulations_MouseUp"/>
+                </ListBox>
+            </StackPanel>
+
+            <StackPanel>
+                <Label Content="Win Utils" Style="{StaticResource subHeaderLabel}"/>
+                <ListBox>
+                    <ListBoxItem Content="Find Distinct Strings" MouseUp="FindDistinctStrings_MouseUp"/>
                 </ListBox>
             </StackPanel>
 
@@ -102,13 +110,6 @@
                 <Label Content="Machine Learning" Style="{StaticResource subHeaderLabel}"/>
                 <ListBox>
                     <ListBoxItem Content="Genetic Sharp" MouseUp="GeneticSharp_MouseUp"/>
-                </ListBox>
-            </StackPanel>
-
-            <StackPanel>
-                <Label Content="Win Utils" Style="{StaticResource subHeaderLabel}"/>
-                <ListBox>
-                    <ListBoxItem Content="Find Distinct Strings" MouseUp="FindDistinctStrings_MouseUp"/>
                 </ListBox>
             </StackPanel>
         </WrapPanel>

@@ -12,13 +12,13 @@ namespace Game.Math_WPF.Mathematics
 
         public DoubleVector_wpf(Vector3D standard, Vector3D orthogonalToStandard)
         {
-            this.Standard = standard;
-            this.Orth = orthogonalToStandard;
+            Standard = standard;
+            Orth = orthogonalToStandard;
         }
         public DoubleVector_wpf(double standardX, double standardY, double standardZ, double orthogonalX, double orthogonalY, double orthogonalZ)
         {
-            this.Standard = new Vector3D(standardX, standardY, standardZ);
-            this.Orth = new Vector3D(orthogonalX, orthogonalY, orthogonalZ);
+            Standard = new Vector3D(standardX, standardY, standardZ);
+            Orth = new Vector3D(orthogonalX, orthogonalY, orthogonalZ);
         }
 
         public Quaternion GetRotation(DoubleVector_wpf destination)

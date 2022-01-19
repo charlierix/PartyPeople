@@ -42,6 +42,10 @@ namespace Game.Tester
         {
             new Bepu.Testers.BasicDrawingTests().Show();
         }
+        private void TrackballGrabber_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Bepu.Testers.TrackballGrabberTester().Show();
+        }
 
         private void ColorPicker_MouseUp(object sender, MouseButtonEventArgs e)
         {

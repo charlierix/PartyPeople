@@ -1,8 +1,6 @@
 ﻿using Game.Math_WPF.Mathematics;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,16 +10,13 @@ using System.Windows.Media.Media3D;
 
 namespace Game.Math_WPF.WPF.Controls3D
 {
-    /// <summary>
-    /// This will superimpose a trackball when the user mouses over the viewport, and lets them rotate it (raising an event for other objects
-    /// to get the new orientation)
-    /// </summary>
-    /// <remarks>
-    /// Makes a REAL glass button  :)
-    /// 
-    /// Parts of this were copied from the TrackBallRoam class
-    /// </remarks>
-    public class TrackballGrabber : IDisposable
+
+    // v1 was physically changing the camera's position.  Then setting lights in reverse.  That is the wrong way to work
+    // with 3D, and fails when trying to use custom default directions
+
+    // This should leave the camera and lights alone, and instead just apply a rotate transform to the 3d models (arrows)
+
+    public class TrackballGrabber
     {
         #region Events
 
@@ -39,14 +34,24 @@ namespace Game.Math_WPF.WPF.Controls3D
         private const double GUIDELINE_THICKNESS = 0.02;
         private const double GUIDELINE_LENGTH = 0.75;
 
-        private FrameworkElement _eventSource = null;
-        private Viewport3D _viewport = null;
-        private PerspectiveCamera _camera = null;
+        private readonly Vector3D _factoryDirection = new Vector3D(-1, 0, 0);
 
-        private ModelVisual3D _sphereModel = null;
-        private MaterialGroup _sphereMaterials = null;
-        private Material _sphereMaterialHover = null;
-        private ModelVisual3D _hoverLight = null;
+        private readonly FrameworkElement _eventSource;
+        private readonly Viewport3D _viewport;
+        private readonly PerspectiveCamera _camera;
+
+        private readonly Visual3D[] _permanentVisuals;
+        private readonly Visual3D[] _hoverVisuals;
+
+        private readonly DoubleVector_wpf _default_direction;
+
+        private readonly RotateTransform3D _transform;
+        private readonly QuaternionRotation3D _transform_quat;
+
+        private readonly ModelVisual3D _sphereModel = null;
+        private readonly MaterialGroup _sphereMaterials = null;
+        private readonly Material _sphereMaterialHover = null;
+        private readonly ModelVisual3D _hoverLight = null;
 
         private bool _isMouseDown = false;
 
@@ -57,36 +62,53 @@ namespace Game.Math_WPF.WPF.Controls3D
 
         #region Constructor
 
-        public TrackballGrabber(FrameworkElement eventSource, Viewport3D viewport, double sphereRadius, Color hoverLightColor)
+        /// <param name="eventSource">The parent of the Viewport3D.  Be sure that its background is non null, transparent is ok</param>
+        /// <param name="viewport">The viewport that will be drawn on</param>
+        /// <param name="permanentVisuals">These always show.  NOTE: This class sets the transform property with a rotate.  So make sure the visual will rotate about the origin</param>
+        /// <param name="hoverVisuals">These are visuals that are only visible when the mouse is over the control.  Their transform is also set by this contructor</param>
+        /// <param name="hoverLightColor">An extra light that shows during mouse over</param>
+        /// <param name="default_direction">The direction that it will initially be pointing</param>
+        public TrackballGrabber(FrameworkElement eventSource, Viewport3D viewport, Visual3D[] permanentVisuals, Visual3D[] hoverVisuals, double sphereRadius, Color hoverLightColor, DoubleVector_wpf default_direction)
         {
             if (viewport.Camera == null || !(viewport.Camera is PerspectiveCamera))
-            {
                 throw new ArgumentException("This class requires a perspective camera to be tied to the viewport");
-            }
+
+            _transform_quat = new QuaternionRotation3D(Quaternion.Identity);
+            _transform = new RotateTransform3D(_transform_quat);
 
             _eventSource = eventSource;
             _viewport = viewport;
             _camera = (PerspectiveCamera)viewport.Camera;
 
-            this.SyncedLights = new List<Model3D>();
+            _permanentVisuals = permanentVisuals ?? new Visual3D[0];
+            foreach(Visual3D visual in _permanentVisuals)
+            {
+                visual.Transform = _transform;
+                _viewport.Children.Add(visual);
+            }
 
-            this.HoverVisuals = new ObservableCollection<Visual3D>();
-            this.HoverVisuals.CollectionChanged += HoverVisuals_CollectionChanged;
+            _hoverVisuals = hoverVisuals ?? new Visual3D[0];
+            foreach (Visual3D visual in _hoverVisuals)
+            {
+                visual.Transform = _transform;
+            }
 
-            _eventSource.MouseEnter += new System.Windows.Input.MouseEventHandler(EventSource_MouseEnter);
-            _eventSource.MouseLeave += new System.Windows.Input.MouseEventHandler(EventSource_MouseLeave);
-            _eventSource.MouseDown += new System.Windows.Input.MouseButtonEventHandler(EventSource_MouseDown);
-            _eventSource.MouseUp += new System.Windows.Input.MouseButtonEventHandler(EventSource_MouseUp);
-            _eventSource.MouseMove += new System.Windows.Input.MouseEventHandler(EventSource_MouseMove);
+            _default_direction = default_direction;
 
-            #region Sphere
+            _eventSource.MouseEnter += new MouseEventHandler(EventSource_MouseEnter);
+            _eventSource.MouseLeave += new MouseEventHandler(EventSource_MouseLeave);
+            _eventSource.MouseDown += new MouseButtonEventHandler(EventSource_MouseDown);
+            _eventSource.MouseUp += new MouseButtonEventHandler(EventSource_MouseUp);
+            _eventSource.MouseMove += new MouseEventHandler(EventSource_MouseMove);
+
+            #region sphere
 
             // Material
             _sphereMaterials = new MaterialGroup();
-            _sphereMaterials.Children.Add(new DiffuseMaterial(new SolidColorBrush(Color.FromArgb(25, 255, 255, 255))));
+            _sphereMaterials.Children.Add(new DiffuseMaterial(UtilityWPF.BrushFromHex("18FFFFFF")));
 
             // This gets added/removed on mouse enter/leave
-            _sphereMaterialHover = new SpecularMaterial(new SolidColorBrush(Color.FromArgb(64, 128, 128, 128)), 33d);
+            _sphereMaterialHover = new SpecularMaterial(UtilityWPF.BrushFromHex("40808080"), 33d);
 
             // Geometry Model
             GeometryModel3D geometry = new GeometryModel3D();
@@ -102,9 +124,8 @@ namespace Game.Math_WPF.WPF.Controls3D
             _viewport.Children.Add(_sphereModel);
 
             #endregion
-            #region Hover Light
+            #region hover light
 
-            // Light
             PointLight hoverLight = new PointLight();
             hoverLight.Color = hoverLightColor;
             hoverLight.Range = sphereRadius * 10;
@@ -117,83 +138,12 @@ namespace Game.Math_WPF.WPF.Controls3D
 
         #endregion
 
-        #region IDisposable Members
-
-        public void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                if (_viewport != null)
-                {
-                    if (_sphereModel != null)
-                    {
-                        _viewport.Children.Remove(_sphereModel);
-                        _sphereModel = null;
-                    }
-
-                    _viewport = null;
-                }
-            }
-        }
-
-        #endregion
-
         #region Public Properties
 
-        private Quaternion _quaternion = new Quaternion();
-        private RotateTransform3D _transform = new RotateTransform3D();
-        public RotateTransform3D Transform
+        public DoubleVector_wpf Direction
         {
-            get
-            {
-                return _transform;
-            }
-            set
-            {
-                // Calculate the difference between the current transform and the one passed in
-                Quaternion quatDelta = _transform.ToQuaternion().ToUnit() * value.ToQuaternion().ToUnit();
-                quatDelta = new Quaternion(quatDelta.Axis, quatDelta.Angle * -1d);		// negating, because the camera will be spun opposite of the model
-
-                RotateTransform3D deltaTransform = new RotateTransform3D(new QuaternionRotation3D(quatDelta));
-
-                // Rotate the camera by that amount
-                _camera.Position = deltaTransform.Transform(_camera.Position);
-                _camera.UpDirection = deltaTransform.Transform(_camera.UpDirection);
-                _camera.LookDirection = deltaTransform.Transform(_camera.LookDirection);
-
-                // Store the new transform
-                _transform = value;
-                _quaternion = _transform.ToQuaternion().ToUnit();		// _transform is the final, but the OrbitCamera method calculates based on _quaternion
-
-                // Inform the world of the change
-                OnRotationChanged();
-            }
-        }
-
-        /// <summary>
-        /// This control moves the camera around, so any visuals will appear to rotate when the control
-        /// is rotated, but the lights will need to move opposite to appear stationary.  Add those lights
-        /// to this property, and this control will keep them updated
-        /// </summary>
-        public List<Model3D> SyncedLights
-        {
-            get;
-            private set;
-        }
-
-        /// <summary>
-        /// These are only visible when the mouse is over the trackball
-        /// </summary>
-        public ObservableCollection<Visual3D> HoverVisuals
-        {
-            get;
-            private set;
+            get => new DoubleVector_wpf(_transform.Transform(_default_direction.Standard), _transform.Transform(_default_direction.Orth));
+            set => _transform_quat.Quaternion = Math3D.GetRotation(_default_direction, value);
         }
 
         #endregion
@@ -222,11 +172,6 @@ namespace Game.Math_WPF.WPF.Controls3D
         {
             Transform3D transform = GetTransform(axis, positiveDirection);
 
-            //ScreenSpaceLines3D retVal = new ScreenSpaceLines3D(true);
-            //retVal.Thickness = 1d;
-            //retVal.Color = color;
-            //retVal.AddLine(new Point3D(0, 0, 0), transform.Transform(new Point3D(.75d, 0, 0)));
-
             var retVal = new BillboardLine3DSet(false);
             retVal.Color = color;
             retVal.BeginAddingLines();
@@ -239,11 +184,6 @@ namespace Game.Math_WPF.WPF.Controls3D
         {
             Transform3D transform = GetTransform(axis, true);
 
-            //ScreenSpaceLines3D retVal = new ScreenSpaceLines3D(true);
-            //retVal.Thickness = 1d;
-            //retVal.Color = color;
-            //retVal.AddLine(transform.Transform(new Point3D(-.75d, 0, 0)), transform.Transform(new Point3D(.75d, 0, 0)));
-
             var retVal = new BillboardLine3DSet(false);
             retVal.Color = color;
             retVal.BeginAddingLines();
@@ -254,211 +194,104 @@ namespace Game.Math_WPF.WPF.Controls3D
         }
 
         #endregion
-        #region Protected Methods
-
-        protected virtual void OnRotationChanged()
-        {
-            // Keep the lights opposite of the camera's transform so they appear stationary
-            if (this.SyncedLights.Count > 0)
-            {
-                Matrix3D transformMatrix = _transform.Value;
-                transformMatrix.Invert();
-
-                foreach (Model3D light in this.SyncedLights)
-                {
-                    light.Transform = new MatrixTransform3D(transformMatrix);
-                }
-            }
-
-            // TODO:  If this control no longer rotates the camera, then visuals will need to be rotated instead
-            //foreach (Visual3D visual in this.SyncedVisuals)
-            //{
-            //    visual.Transform = _transform;
-            //}
-
-            // Inform the world
-            if (this.RotationChanged != null)
-            {
-                this.RotationChanged(this, new EventArgs());
-            }
-        }
-
-        #endregion
 
         #region Event Listeners
 
-        private void EventSource_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+        private void EventSource_MouseEnter(object sender, MouseEventArgs e)
         {
             _sphereMaterials.Children.Add(_sphereMaterialHover);
             _viewport.Children.Add(_hoverLight);
 
             _viewport.Children.Remove(_sphereModel);
 
-            foreach (Visual3D visual in this.HoverVisuals)
+            foreach (Visual3D visual in _hoverVisuals)
             {
                 _viewport.Children.Add(visual);
-
-                //if (visual is ScreenSpaceLines3D)
-                //{
-                //    //TODO: This is a hack, but screenspace lines wouldn't show after being added back to the viewport.  This should be fixed in that
-                //    //class, but I didn't know if there was an event that fires when added to the viewport
-                //    ((ScreenSpaceLines3D)visual).RebuildGeometry();
-                //}
             }
 
             _viewport.Children.Add(_sphereModel);       // this must always be added last, because it's semitransparent
         }
-        private void EventSource_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+        private void EventSource_MouseLeave(object sender, MouseEventArgs e)
         {
             _sphereMaterials.Children.Remove(_sphereMaterialHover);
             _viewport.Children.Remove(_hoverLight);
 
-            foreach (Visual3D visual in this.HoverVisuals)
+            foreach (Visual3D visual in _hoverVisuals)
             {
                 if (_viewport.Children.Contains(visual))
-                {
                     _viewport.Children.Remove(visual);
-                }
             }
         }
 
-        private void EventSource_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void EventSource_MouseDown(object sender, MouseButtonEventArgs e)
         {
             _isMouseDown = true;
 
             _viewport.Children.Remove(_hoverLight);
 
-            if (this.CapturingMouse != null)
-            {
-                // Give the listener a chance to make other controls under _eventSource non hit testable
-                this.CapturingMouse(this, new EventArgs());
-            }
+            CapturingMouse?.Invoke(this, new EventArgs());      // Give the listener a chance to make other controls under _eventSource non hit testable
 
             // By capturing the mouse, mouse events will still come in even when they are moving the mouse
             // outside the element/form
-            Mouse.Capture(_eventSource, CaptureMode.SubTree);		// I had a case where I used the grid as the event source.  If they clicked one of the 3D objects, the scene would jerk.  But by saying subtree, I still get the event
+            Mouse.Capture(_eventSource, CaptureMode.SubTree);		// there was a case where grid was the event source.  If they clicked one of the 3D objects, the scene would jerk.  But by saying subtree, the event still fires
 
             _previousPosition2D = e.GetPosition(_eventSource);
             _previousPosition3D = ProjectToTrackball(_eventSource.ActualWidth, _eventSource.ActualHeight, _previousPosition2D);
         }
-        private void EventSource_MouseUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        private void EventSource_MouseUp(object sender, MouseButtonEventArgs e)
         {
             _isMouseDown = false;
 
             Mouse.Capture(_eventSource, CaptureMode.None);
 
-            if (this.ReleasedMouse != null)
-            {
-                // Let the listener make children of _eventSource hit testable again
-                this.ReleasedMouse(this, new EventArgs());
-            }
+            ReleasedMouse?.Invoke(this, new EventArgs());       // Let the listener make children of _eventSource hit testable again
 
-            if (_eventSource.IsMouseOver && !_viewport.Children.Contains(_hoverLight))		// I ran into a case where I click down outside the viewport, then released over (the light was already on from the mouse enter)
-            {
+            if (_eventSource.IsMouseOver && !_viewport.Children.Contains(_hoverLight))		// ran into a case where they click down outside the viewport, then released over (the light was already on from the mouse enter)
                 _viewport.Children.Add(_hoverLight);
-            }
         }
 
-        private void EventSource_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        private void EventSource_MouseMove(object sender, MouseEventArgs e)
         {
             if (!_isMouseDown)
-            {
                 return;
-            }
 
             Point currentPosition = e.GetPosition(_eventSource);
 
             // Avoid any zero axis conditions
             if (currentPosition == _previousPosition2D)
-            {
                 return;
-            }
 
             // Project the 2D position onto a sphere
             Vector3D currentPosition3D = ProjectToTrackball(_eventSource.ActualWidth, _eventSource.ActualHeight, currentPosition);
 
-            OrbitCamera(currentPosition, currentPosition3D);
+            OrbitCamera(currentPosition3D);
 
             _previousPosition2D = currentPosition;
             _previousPosition3D = currentPosition3D;
-        }
-
-        private void HoverVisuals_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            if (e.OldItems != null)
-            {
-                foreach (Visual3D removedVisual in e.OldItems)
-                {
-                    if (_viewport.Children.Contains(removedVisual))
-                    {
-                        _viewport.Children.Remove(removedVisual);
-                    }
-                }
-            }
         }
 
         #endregion
 
         #region Private Methods
 
-        private void OrbitCamera(Point currentPosition, Vector3D currentPosition3D)
+        private void OrbitCamera(Vector3D currentPosition3D)
         {
-            #region Get Mouse Movement - Spherical
-
-            // Figure out a rotation axis and angle
-            Vector3D axis = Vector3D.CrossProduct(_previousPosition3D, currentPosition3D);
-            double angle = Vector3D.AngleBetween(_previousPosition3D, currentPosition3D);
-
-            // Quaterion will throw if this happens - sometimes we can get 3D positions that are very similar, so we
-            // avoid the throw by doing this check and just ignoring the event 
-            if (axis.Length == 0)
-            {
+            Quaternion delta = Math3D.GetRotation(_previousPosition3D, currentPosition3D);
+            if (delta.IsIdentity)
                 return;
-            }
 
             // Now need to rotate the axis into the camera's coords
-            // Get the camera's current view matrix.
-            Matrix3D viewMatrix = UtilityWPF.GetViewMatrix(_camera);
+            Matrix3D viewMatrix = _transform.Value;
             viewMatrix.Invert();
 
-            // Transform the trackball rotation axis relative to the camera orientation.
-            axis = viewMatrix.Transform(axis);
+            // Transform the trackball rotation axis relative to the camera orientation
+            Vector3D axis = viewMatrix.Transform(delta.Axis);
 
-            Quaternion deltaRotation = new Quaternion(axis, -angle);
-            Quaternion deltaRotationExternal = new Quaternion(axis, angle);
+            delta = new Quaternion(axis, delta.Angle);
 
-            #endregion
+            _transform_quat.Quaternion = (_transform_quat.Quaternion * delta).ToUnit();     // tounit is probably unnecessary, it just feels safer
 
-            // This can't be calculated each mose move.  It causes a wobble when the look direction isn't pointed directly at the origin
-            //if (_orbitRadius == null)
-            //{
-            //    _orbitRadius = OnGetOrbitRadius();
-            //}
-
-            // Figure out the offset in world coords
-            Vector3D lookLine = _camera.LookDirection;
-            lookLine.Normalize();
-            lookLine = lookLine * _camera.Position.ToVector().Length;		//_orbitRadius.Value;		// the camera is always pointed to the origin, so this shortcut works
-
-            Point3D orbitPointWorld = _camera.Position + lookLine;
-
-            // Get the opposite of the look line (the line from the orbit center to the camera's position)
-            Vector3D lookLineOpposite = lookLine * -1d;
-
-            // Rotate
-            Vector3D[] vectors = new Vector3D[] { lookLineOpposite, _camera.UpDirection, _camera.LookDirection };
-
-            deltaRotation.GetRotatedVector(vectors);
-
-            // Apply the changes
-            _camera.Position = orbitPointWorld + vectors[0];
-            _camera.UpDirection = vectors[1];
-            _camera.LookDirection = vectors[2];
-
-            _quaternion = _quaternion.ToUnit() * deltaRotationExternal.ToUnit();
-            _transform = new RotateTransform3D(new QuaternionRotation3D(_quaternion));
-
-            OnRotationChanged();
+            RotationChanged?.Invoke(this, new EventArgs());
         }
 
         private static Vector3D ProjectToTrackball(double width, double height, Point point)
@@ -489,16 +322,13 @@ namespace Game.Math_WPF.WPF.Controls3D
             }
             else
             {
-                // NOTE:  The wrap logic above should make it so this never happens
+                // NOTE: The wrap logic above should make it so this never happens
                 z = 0d;
             }
 
             if (shouldInvertZ)
-            {
                 z *= -1d;
-            }
 
-            // Exit Function
             return new Vector3D(x, y, z);
         }
         /// <summary>
@@ -529,9 +359,7 @@ namespace Game.Math_WPF.WPF.Controls3D
                 retVal = 4d - abs;
 
                 if (!isNeg)
-                {
                     retVal *= -1d;
-                }
             }
             else if (abs > 1d)
             {
@@ -541,72 +369,75 @@ namespace Game.Math_WPF.WPF.Controls3D
                 retVal = 2d - abs;
 
                 if (isNeg)
-                {
                     retVal *= -1d;
-                }
 
                 shouldInvertZ = true;
             }
 
-            // Exit Function
             return retVal;
         }
 
         private static Model3D GetArrow(Axis axis, bool positiveDirection, DiffuseMaterial diffuse, SpecularMaterial specular, double cylinderRadius, double cylinderHeight, double coneRadius, double coneHeight, double coneOffset)
         {
-            // Material
             MaterialGroup materials = new MaterialGroup();
             materials.Children.Add(diffuse);
             materials.Children.Add(specular);
 
             Model3DGroup retVal = new Model3DGroup();
 
+            Transform3D final_rotate = GetTransform(axis, positiveDirection);
+
             #region cylinder
 
-            // Geometry Model
             GeometryModel3D geometry = new GeometryModel3D();
             geometry.Material = materials;
             geometry.BackMaterial = materials;
             geometry.Geometry = UtilityWPF.GetCylinder_AlongX(20, cylinderRadius, cylinderHeight);
 
-            geometry.Transform = new TranslateTransform3D(new Vector3D(cylinderHeight / 2d, 0, 0));
+            var cylinder_transform = new Transform3DGroup();
+            cylinder_transform.Children.Add(new TranslateTransform3D(new Vector3D(cylinderHeight / 2d, 0, 0)));
+            cylinder_transform.Children.Add(final_rotate);
+
+            geometry.Transform = cylinder_transform;
 
             retVal.Children.Add(geometry);
 
             #endregion
             #region cone
 
-            // Geometry Model
             geometry = new GeometryModel3D();
             geometry.Material = materials;
             geometry.BackMaterial = materials;
             geometry.Geometry = UtilityWPF.GetCone_AlongX(10, coneRadius, coneHeight);
 
-            geometry.Transform = new TranslateTransform3D(new Vector3D(coneOffset, 0, 0));
+            var cone_transform = new Transform3DGroup();
+            cone_transform.Children.Add(new TranslateTransform3D(new Vector3D(coneOffset, 0, 0)));
+            cone_transform.Children.Add(final_rotate);
+
+            geometry.Transform = cone_transform;
 
             retVal.Children.Add(geometry);
 
             #endregion
             #region cap
 
-            // Geometry Model
             geometry = new GeometryModel3D();
             geometry.Material = materials;
             geometry.BackMaterial = materials;
             geometry.Geometry = UtilityWPF.GetSphere_LatLon(20, cylinderRadius);
 
+            geometry.Transform = final_rotate;
+
             retVal.Children.Add(geometry);
 
             #endregion
 
-            retVal.Transform = GetTransform(axis, positiveDirection);
+            //retVal.Transform = GetTransform(axis, positiveDirection);
 
-            // Exit Function
             return retVal;
         }
         private static Model3D GetDoubleArrow(Axis axis, DiffuseMaterial diffuse, SpecularMaterial specular, double cylinderRadius, double cylinderHeight, double coneRadius, double coneHeight, double coneOffset)
         {
-            // Material
             MaterialGroup materials = new MaterialGroup();
             materials.Children.Add(diffuse);
             materials.Children.Add(specular);
@@ -615,7 +446,6 @@ namespace Game.Math_WPF.WPF.Controls3D
 
             #region cylinder
 
-            // Geometry Model
             GeometryModel3D geometry = new GeometryModel3D();
             geometry.Material = materials;
             geometry.BackMaterial = materials;
@@ -626,7 +456,6 @@ namespace Game.Math_WPF.WPF.Controls3D
             #endregion
             #region cone +
 
-            // Geometry Model
             geometry = new GeometryModel3D();
             geometry.Material = materials;
             geometry.BackMaterial = materials;
@@ -643,7 +472,6 @@ namespace Game.Math_WPF.WPF.Controls3D
             #endregion
             #region cone -
 
-            // Geometry Model
             geometry = new GeometryModel3D();
             geometry.Material = materials;
             geometry.BackMaterial = materials;
@@ -661,7 +489,6 @@ namespace Game.Math_WPF.WPF.Controls3D
 
             retVal.Transform = GetTransform(axis, true);
 
-            // Exit Function
             return retVal;
         }
 
@@ -676,14 +503,9 @@ namespace Game.Math_WPF.WPF.Controls3D
             {
                 case Axis.X:
                     if (positiveDirection)
-                    {
-                        // It's already built along positive X
-                        return Transform3D.Identity;
-                    }
+                        return Transform3D.Identity;        // It's already built along positive X
                     else
-                    {
                         desiredVector = new Vector3D(-1, 0, 0);
-                    }
                     break;
 
                 case Axis.Y:
@@ -695,7 +517,7 @@ namespace Game.Math_WPF.WPF.Controls3D
                     break;
 
                 default:
-                    throw new ApplicationException("Unknown Axis: " + axis.ToString());
+                    throw new ApplicationException($"Unknown Axis: {axis}");
             }
 
             return new RotateTransform3D(new QuaternionRotation3D(Math3D.GetRotation(new Vector3D(1, 0, 0), desiredVector)));
