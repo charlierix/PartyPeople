@@ -16,7 +16,9 @@
         <Button Grid.Row="0" Content="reset" HorizontalAlignment="Center" Click="Reset_Click"/>
 
         <Border Grid.Row="2" Grid.Column="0" Background="Transparent" Margin="18">
-            <Grid Name="grdFlowRotateViewport" Background="Transparent" MinWidth="180" MinHeight="180">
+            
+            <!-- +Z -->
+            <!--<Grid Name="grdFlowRotateViewport" Background="Transparent" MinWidth="180" MinHeight="180">
                 <Viewport3D Name="_viewportFlowRotate" IsHitTestVisible="False">
                     <Viewport3D.Camera>
                         <PerspectiveCamera x:Name="_cameraFlowRotate" Position="0,0,3" LookDirection="0,0,-1" UpDirection="0,1,0" FieldOfView="45"/>
@@ -25,13 +27,50 @@
                         <ModelVisual3D.Content>
                             <Model3DGroup>
                                 <AmbientLight Color="DimGray" />
-                                <DirectionalLight x:Name="_lightFlow1" Color="White" Direction="1,-1,-1" />
-                                <!--<DirectionalLight x:Name="_lightFlow2" Color="#303030" Direction="-1,1,1" />-->
+                                <DirectionalLight x:Name="_lightFlow" Color="White" Direction="1,-1,-1" />
+                            </Model3DGroup>
+                        </ModelVisual3D.Content>
+                    </ModelVisual3D>
+                </Viewport3D>
+            </Grid>-->
+
+
+            <!-- -Z -->
+            <!--<Grid Name="grdFlowRotateViewport" Background="Transparent" MinWidth="180" MinHeight="180">
+                <Viewport3D Name="_viewportFlowRotate" IsHitTestVisible="False">
+                    <Viewport3D.Camera>
+                        <PerspectiveCamera x:Name="_cameraFlowRotate" Position="0,0,-3" LookDirection="0,0,1" UpDirection="0,1,0" FieldOfView="45"/>
+                    </Viewport3D.Camera>
+                    <ModelVisual3D>
+                        <ModelVisual3D.Content>
+                            <Model3DGroup>
+                                <AmbientLight Color="DimGray" />
+                                <DirectionalLight x:Name="_lightFlow" Color="White" Direction="1,-1,-1" />
+                            </Model3DGroup>
+                        </ModelVisual3D.Content>
+                    </ModelVisual3D>
+                </Viewport3D>
+            </Grid>-->
+
+
+            <!-- -Y -->
+            <Grid Name="grdFlowRotateViewport" Background="Transparent" MinWidth="180" MinHeight="180">
+                <Viewport3D Name="_viewportFlowRotate" IsHitTestVisible="False">
+                    <Viewport3D.Camera>
+                        <PerspectiveCamera x:Name="_cameraFlowRotate" Position="0,-3,0" LookDirection="0,1,0" UpDirection="0,0,1" FieldOfView="45"/>
+                    </Viewport3D.Camera>
+                    <ModelVisual3D>
+                        <ModelVisual3D.Content>
+                            <Model3DGroup>
+                                <AmbientLight Color="DimGray" />
+                                <DirectionalLight x:Name="_lightFlow" Color="White" Direction="1,-1,-1" />
                             </Model3DGroup>
                         </ModelVisual3D.Content>
                     </ModelVisual3D>
                 </Viewport3D>
             </Grid>
+
+
         </Border>
 
     </Grid>

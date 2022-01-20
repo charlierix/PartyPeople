@@ -53,8 +53,6 @@ namespace Game.Bepu.Testers
 
         private readonly ItemColors _colors = new ItemColors();
 
-        private readonly DoubleVector_wpf _default_direction = new DoubleVector_wpf(new Vector3D(0, 0, 1), new Vector3D(0, 1, 0));
-
         private TrackballGrabber _trackball = null;
 
         public TrackballGrabberTester()
@@ -66,7 +64,14 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                SetupFlowTrackball();
+                //foreach (var axis_line in Debug3DWindow.GetAxisLines(1, 0.05))
+                //{
+                //    _viewportFlowRotate.Children.Add(axis_line);
+                //}
+
+                //SetupFlowTrackball_Z_UP();
+                //SetupFlowTrackball_Z_DOWN();
+                SetupFlowTrackball_Y_DOWN();
             }
             catch (Exception ex)
             {
@@ -91,7 +96,7 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                _trackball.Direction = _default_direction;
+                _trackball.ResetToDefault();
             }
             catch (Exception ex)
             {
@@ -99,8 +104,11 @@ namespace Game.Bepu.Testers
             }
         }
 
-        private void SetupFlowTrackball()
+        private void SetupFlowTrackball_Z_UP()
         {
+            //var default_direction = new DoubleVector_wpf(new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
+            var default_direction = new DoubleVector_wpf(new Vector3D(0, 0, -1), new Vector3D(0, -1, 0));
+
             // Big purple arrow
             var permanentVisuals = new List<Visual3D>();
             permanentVisuals.Add(new ModelVisual3D() { Content = TrackballGrabber.GetMajorArrow(Axis.Z, true, _colors.TrackballAxisMajor, _colors.TrackballAxisSpecular) });
@@ -112,7 +120,47 @@ namespace Game.Bepu.Testers
             hoverVisuals.Add(TrackballGrabber.GetGuideLineDouble(Axis.Y, _colors.TrackballAxisLine));
 
             // Create the trackball
-            _trackball = new TrackballGrabber(grdFlowRotateViewport, _viewportFlowRotate, permanentVisuals.ToArray(), hoverVisuals.ToArray(), 1d, _colors.TrackballGrabberHoverLight, _default_direction);
+            _trackball = new TrackballGrabber(grdFlowRotateViewport, _viewportFlowRotate, permanentVisuals.ToArray(), hoverVisuals.ToArray(), 1d, _colors.TrackballGrabberHoverLight, default_direction);
+
+            _trackball.RotationChanged += new EventHandler(FlowOrientationTrackball_RotationChanged);
+        }
+
+        private void SetupFlowTrackball_Z_DOWN()
+        {
+            var default_direction = new DoubleVector_wpf(new Vector3D(0, 0, 1), new Vector3D(0, 1, 0));
+
+            // Big purple arrow
+            var permanentVisuals = new List<Visual3D>();
+            permanentVisuals.Add(new ModelVisual3D() { Content = TrackballGrabber.GetMajorArrow(Axis.Z, false, _colors.TrackballAxisMajor, _colors.TrackballAxisSpecular) });
+
+            // Faint lines
+            var hoverVisuals = new List<Visual3D>();
+            hoverVisuals.Add(TrackballGrabber.GetGuideLine(Axis.Z, true, _colors.TrackballAxisLine));
+            hoverVisuals.Add(TrackballGrabber.GetGuideLineDouble(Axis.X, _colors.TrackballAxisLine));
+            hoverVisuals.Add(TrackballGrabber.GetGuideLineDouble(Axis.Y, _colors.TrackballAxisLine));
+
+            // Create the trackball
+            _trackball = new TrackballGrabber(grdFlowRotateViewport, _viewportFlowRotate, permanentVisuals.ToArray(), hoverVisuals.ToArray(), 1d, _colors.TrackballGrabberHoverLight, default_direction);
+
+            _trackball.RotationChanged += new EventHandler(FlowOrientationTrackball_RotationChanged);
+        }
+
+        private void SetupFlowTrackball_Y_DOWN()
+        {
+            var default_direction = new DoubleVector_wpf(new Vector3D(0, -1, 0), new Vector3D(0, 0, 1));
+
+            // Big purple arrow
+            var permanentVisuals = new List<Visual3D>();
+            permanentVisuals.Add(new ModelVisual3D() { Content = TrackballGrabber.GetMajorArrow(Axis.Y, false, _colors.TrackballAxisMajor, _colors.TrackballAxisSpecular) });
+
+            // Faint lines
+            var hoverVisuals = new List<Visual3D>();
+            hoverVisuals.Add(TrackballGrabber.GetGuideLine(Axis.Y, true, _colors.TrackballAxisLine));
+            hoverVisuals.Add(TrackballGrabber.GetGuideLineDouble(Axis.X, _colors.TrackballAxisLine));
+            hoverVisuals.Add(TrackballGrabber.GetGuideLineDouble(Axis.Z, _colors.TrackballAxisLine));
+
+            // Create the trackball
+            _trackball = new TrackballGrabber(grdFlowRotateViewport, _viewportFlowRotate, permanentVisuals.ToArray(), hoverVisuals.ToArray(), 1d, _colors.TrackballGrabberHoverLight, default_direction);
 
             _trackball.RotationChanged += new EventHandler(FlowOrientationTrackball_RotationChanged);
         }

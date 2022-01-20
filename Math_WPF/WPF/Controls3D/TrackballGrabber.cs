@@ -34,11 +34,14 @@ namespace Game.Math_WPF.WPF.Controls3D
         private const double GUIDELINE_THICKNESS = 0.02;
         private const double GUIDELINE_LENGTH = 0.75;
 
-        private readonly Vector3D _factoryDirection = new Vector3D(-1, 0, 0);
-
         private readonly FrameworkElement _eventSource;
         private readonly Viewport3D _viewport;
         private readonly PerspectiveCamera _camera;
+
+        /// <summary>
+        /// This is used to rotate mouse drags into the sphere's coords
+        /// </summary>
+        private readonly RotateTransform3D _project2Dto3DRotation;
 
         private readonly Visual3D[] _permanentVisuals;
         private readonly Visual3D[] _hoverVisuals;
@@ -81,7 +84,7 @@ namespace Game.Math_WPF.WPF.Controls3D
             _camera = (PerspectiveCamera)viewport.Camera;
 
             _permanentVisuals = permanentVisuals ?? new Visual3D[0];
-            foreach(Visual3D visual in _permanentVisuals)
+            foreach (Visual3D visual in _permanentVisuals)
             {
                 visual.Transform = _transform;
                 _viewport.Children.Add(visual);
@@ -94,6 +97,20 @@ namespace Game.Math_WPF.WPF.Controls3D
             }
 
             _default_direction = default_direction;
+
+
+            //This is nuts.  Time to draw absolutely everything with Debug3DWindow
+            //_project2Dto3DRotation = new RotateTransform3D(new QuaternionRotation3D(Math3D.GetRotation(new DoubleVector_wpf(new Vector3D(0, 0, -1), new Vector3D(0, 1, 0)), default_direction)));
+
+            //_project2Dto3DRotation = new RotateTransform3D(new QuaternionRotation3D(Math3D.GetRotation(new DoubleVector_wpf(_camera.LookDirection, _camera.UpDirection), new DoubleVector_wpf(new Vector3D(0, 0, -1), new Vector3D(0, 1, 0)))));
+            //_project2Dto3DRotation = new RotateTransform3D(new QuaternionRotation3D(Math3D.GetRotation(new DoubleVector_wpf(_camera.LookDirection, _camera.UpDirection), new DoubleVector_wpf(new Vector3D(0, 0, 1), new Vector3D(0, 1, 0)))));
+
+
+            // This works for a 90 degree flip, maybe not all variants.  I think 180s are getting miscalculated (might
+            // even be a problem in Math3D.GetRotation).  It works for the case I need it for, so I'm stopping here,
+            // letting my future self to try to make it work universally
+            _project2Dto3DRotation = new RotateTransform3D(new QuaternionRotation3D(Math3D.GetRotation(new DoubleVector_wpf(new Vector3D(0, 0, -1), new Vector3D(0, 1, 0)), new DoubleVector_wpf(_camera.LookDirection, _camera.UpDirection))));
+
 
             _eventSource.MouseEnter += new MouseEventHandler(EventSource_MouseEnter);
             _eventSource.MouseLeave += new MouseEventHandler(EventSource_MouseLeave);
@@ -143,12 +160,17 @@ namespace Game.Math_WPF.WPF.Controls3D
         public DoubleVector_wpf Direction
         {
             get => new DoubleVector_wpf(_transform.Transform(_default_direction.Standard), _transform.Transform(_default_direction.Orth));
-            set => _transform_quat.Quaternion = Math3D.GetRotation(_default_direction, value);
+            //set => _transform_quat.Quaternion = Math3D.GetRotation(_default_direction, value);        // this isn't working correctly.  It causes mouse drags to be wrong after this
         }
 
         #endregion
 
         #region Public Methods
+
+        public void ResetToDefault()
+        {
+            _transform_quat.Quaternion = Quaternion.Identity;
+        }
 
         public static Model3D GetMajorArrow(Axis axis, bool positiveDirection, DiffuseMaterial diffuse, SpecularMaterial specular)
         {
@@ -237,6 +259,7 @@ namespace Game.Math_WPF.WPF.Controls3D
 
             _previousPosition2D = e.GetPosition(_eventSource);
             _previousPosition3D = ProjectToTrackball(_eventSource.ActualWidth, _eventSource.ActualHeight, _previousPosition2D);
+            _previousPosition3D = _project2Dto3DRotation.Transform(_previousPosition3D);
         }
         private void EventSource_MouseUp(object sender, MouseButtonEventArgs e)
         {
@@ -263,6 +286,7 @@ namespace Game.Math_WPF.WPF.Controls3D
 
             // Project the 2D position onto a sphere
             Vector3D currentPosition3D = ProjectToTrackball(_eventSource.ActualWidth, _eventSource.ActualHeight, currentPosition);
+            currentPosition3D = _project2Dto3DRotation.Transform(currentPosition3D);
 
             OrbitCamera(currentPosition3D);
 
@@ -280,18 +304,36 @@ namespace Game.Math_WPF.WPF.Controls3D
             if (delta.IsIdentity)
                 return;
 
+            // The adjustment at this point is too late.  The correct place is when projecting 2D mouse point to 3D
+            //delta = AdjustDelta3(delta, _default_direction);
+
+            //_transform_quat.Quaternion = (_transform_quat.Quaternion * delta).ToUnit();     // tounit is probably unnecessary, it just feels safer
+            _transform_quat.Quaternion = (delta * _transform_quat.Quaternion).ToUnit();
+
+            RotationChanged?.Invoke(this, new EventArgs());
+        }
+
+        private static Quaternion AdjustDelta1(Quaternion delta, RotateTransform3D transform)
+        {
             // Now need to rotate the axis into the camera's coords
-            Matrix3D viewMatrix = _transform.Value;
+            Matrix3D viewMatrix = transform.Value;
             viewMatrix.Invert();
 
             // Transform the trackball rotation axis relative to the camera orientation
             Vector3D axis = viewMatrix.Transform(delta.Axis);
 
-            delta = new Quaternion(axis, delta.Angle);
+            return new Quaternion(axis, delta.Angle);
+        }
+        private static Quaternion AdjustDelta2(Quaternion delta, DoubleVector_wpf default_direction)
+        {
+            //NOPE
 
-            _transform_quat.Quaternion = (_transform_quat.Quaternion * delta).ToUnit();     // tounit is probably unnecessary, it just feels safer
+            var local_direction = new DoubleVector_wpf(new Vector3D(0, 0, 1), new Vector3D(0, 1, 0));
 
-            RotationChanged?.Invoke(this, new EventArgs());
+            Quaternion to_local = Math3D.GetRotation(default_direction, local_direction);
+
+            //return delta.RotateBy(to_local);
+            return to_local.RotateBy(delta);
         }
 
         private static Vector3D ProjectToTrackball(double width, double height, Point point)
