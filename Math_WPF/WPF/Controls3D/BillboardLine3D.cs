@@ -949,9 +949,7 @@ namespace Game.Math_WPF.WPF.Controls3D
         public void EndAddingLines()
         {
             if (_lineCount == null)
-            {
                 throw new InvalidOperationException("Must call BeginAddingLines before calling EndAddingLines");
-            }
 
             for (int cntr = _geometry.Children.Count - 1; cntr >= _lineCount.Value; cntr--)
             {
