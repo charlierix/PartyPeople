@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Game.Bepu.Testers"
         mc:Ignorable="d"
-        Title="BepuTester" ResizeMode="CanResizeWithGrip" Width="900" Height="800" Closed="Window_Closed">
+        Title="Bepu Tester" ResizeMode="CanResizeWithGrip" Width="900" Height="800" Closed="Window_Closed">
     <Window.Resources>
         <Style x:Key="expanderStackPanel" TargetType="StackPanel">
             <Setter Property="Margin" Value="6"/>

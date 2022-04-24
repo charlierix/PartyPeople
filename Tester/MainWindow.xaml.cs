@@ -17,18 +17,12 @@ namespace Game.Tester
 {
     public partial class MainWindow : Window
     {
-        #region Constructor
-
         public MainWindow()
         {
             InitializeComponent();
 
             Background = SystemColors.ControlBrush;
         }
-
-        #endregion
-
-        #region Event Listeners
 
         private void UnitTests_MouseUp(object sender, MouseButtonEventArgs e)
         {
@@ -92,6 +86,9 @@ namespace Game.Tester
             new Game.Bepu.Testers.FindDistinctStrings().Show();
         }
 
-        #endregion
+        private void Pendulum_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.Pendulum().Show();
+        }
     }
 }

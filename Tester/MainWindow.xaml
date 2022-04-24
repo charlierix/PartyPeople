@@ -112,6 +112,13 @@
                     <ListBoxItem Content="Genetic Sharp" MouseUp="GeneticSharp_MouseUp"/>
                 </ListBox>
             </StackPanel>
+
+            <StackPanel>
+                <Label Content="Misc" Style="{StaticResource subHeaderLabel}"/>
+                <ListBox>
+                    <ListBoxItem Content="Pendulum" MouseUp="Pendulum_MouseUp"/>
+                </ListBox>
+            </StackPanel>
         </WrapPanel>
 
         <!-- TODO: Bottom links -->
