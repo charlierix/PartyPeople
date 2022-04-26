@@ -117,6 +117,7 @@
                 <Label Content="Misc" Style="{StaticResource subHeaderLabel}"/>
                 <ListBox>
                     <ListBoxItem Content="Pendulum" MouseUp="Pendulum_MouseUp"/>
+                    <ListBoxItem Content="Even Distribution" MouseUp="Distribution_MouseUp"/>
                 </ListBox>
             </StackPanel>
         </WrapPanel>

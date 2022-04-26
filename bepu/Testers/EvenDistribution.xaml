@@ -1,11 +1,11 @@
-﻿<Window x:Class="Game.Bepu.Testers.Pendulum"
+﻿<Window x:Class="Game.Bepu.Testers.EvenDistribution"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Game.Bepu.Testers"
         mc:Ignorable="d"
-        Title="Pendulum" ResizeMode="CanResizeWithGrip" Width="900" Height="800">
+        Title="Even Distribution" ResizeMode="CanResizeWithGrip" Width="900" Height="800">
     <Window.Resources>
         <Style x:Key="expanderStackPanel" TargetType="StackPanel">
             <Setter Property="Margin" Value="6"/>
@@ -37,6 +37,14 @@
             <Setter Property="Margin" Value="0,2"/>
         </Style>
 
+        <Style TargetType="TextBox">
+            <Setter Property="Margin" Value="0,2"/>
+        </Style>
+
+        <Style TargetType="Label">
+            <Setter Property="Margin" Value="0,2,0,-3"/>
+        </Style>
+
         <Style TargetType="ScrollViewer">
             <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
             <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
@@ -45,13 +53,13 @@
         <BooleanToVisibilityConverter x:Key="boolToVis" />
     </Window.Resources>
 
-    <Grid Background="#E2E3DC">
+    <Grid Background="#E2E2DD">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="auto"/>
             <ColumnDefinition Width="1*"/>
         </Grid.ColumnDefinitions>
 
-        <Grid Grid.Column="0" Margin="6,6,0,6">
+        <Grid Grid.Column="0" Margin="7,7,0,7">
             <Grid.RowDefinitions>
                 <RowDefinition Height="1*"/>
                 <RowDefinition Height="4"/>
@@ -60,25 +68,49 @@
 
             <ScrollViewer Grid.Row="0">
                 <StackPanel>
-                    <Expander Header="Single Pendulum" IsExpanded="True">
+                    <Expander Header="Cube" IsExpanded="False">
                         <StackPanel Style="{StaticResource expanderStackPanel}">
 
-                            <Label Content="Gravity"/>
-                            <Slider Name="trkGravity" Minimum="1" Maximum="33" Value="16"/>
 
-                            <Label Content="Rope Length"/>
-                            <Slider Name="trkRopeLength" Minimum="1" Maximum="72" Value="18" ValueChanged="trkRopeLength_ValueChanged"/>
+                        </StackPanel>
+                    </Expander>
 
-                            <Label Content="Starting Angle"/>
-                            <Slider Name="trkStartAngle" Minimum="0" Maximum="90" Value="30" ValueChanged="trkStartAngle_ValueChanged"/>
+                    <Expander Header="Sphere" IsExpanded="False">
+                        <StackPanel Style="{StaticResource expanderStackPanel}">
 
-                            <Button Content="At Origin" Margin="0,8,0,2" Click="AtOrigin_Click"/>
 
-                            <CheckBox x:Name="chkMoveAnchor_OnlyAbove" Content="Only Above" Margin="0,8,0,2"/>
-                            <CheckBox x:Name="chkMoveAnchor_InFrontVelocity" Content="Only in front of velocity"/>
-                            <CheckBox x:Name="chkMoveAnchor_BehindVelocity" Content="Only behind velocity"/>
+                        </StackPanel>
+                    </Expander>
 
-                            <Button Content="Move Anchor" Click="MoveAnchor_Click"/>
+                    <Expander Header="Circle" IsExpanded="False">
+                        <StackPanel Style="{StaticResource expanderStackPanel}">
+
+
+                        </StackPanel>
+                    </Expander>
+
+                    <Expander Header="Cone" IsExpanded="True">
+                        <StackPanel Style="{StaticResource expanderStackPanel}" TextBox.TextChanged="Cone_TextChanged">
+
+                            <Label Content="count"/>
+                            <TextBox x:Name="txtCone_Count" Text="144"/>
+
+                            <Label Content="angle"/>
+                            <TextBox x:Name="txtCone_Angle" Text="45"/>
+
+                            <Label Content="height"/>
+                            <TextBox x:Name="txtCone_HeightMin" Text="0"/>
+                            <TextBox x:Name="txtCone_HeightMax" Text="12"/>
+
+                            <Label Content="dot size mult"/>
+                            <TextBox x:Name="txtCone_DotSizeMult" Text="1"/>
+
+                            <CheckBox x:Name="chkCone_IsStatic" Content="static points" Margin="0,16,0,2"/>
+                            <Button Content="Add Points" Click="ConeAddPoints_Click"/>
+
+                            <Label Content="iterations" Margin="0,12,0,-3"/>
+                            <TextBox x:Name="txtCone_Iterations" Text="12"/>
+                            <Button Content="Iterate" Click="ConeIterate_Click"/>
 
                         </StackPanel>
                     </Expander>
@@ -89,15 +121,15 @@
         </Grid>
 
         <!-- Viewport -->
-        <Border Grid.Column="1" Name="grdViewPort" Background="#EDEEEC" BorderThickness="1" BorderBrush="#18000000" CornerRadius="3" Margin="9">
+        <Border Grid.Column="1" Name="grdViewPort" Background="#A6ADA0" BorderThickness="1" BorderBrush="#1C000000" CornerRadius="3" Margin="11">
             <Border.Effect>
-                <DropShadowEffect Color="#B9BD9D" BlurRadius="12" Opacity=".15" Direction="0" ShadowDepth="0" />
+                <DropShadowEffect Color="#697554" BlurRadius="18" Opacity=".3" Direction="0" ShadowDepth="0" />
             </Border.Effect>
 
             <Viewport3D Name="_viewport" IsHitTestVisible="False">
                 <!-- Camera -->
                 <Viewport3D.Camera>
-                    <PerspectiveCamera x:Name="_camera" Position="0,-36,-12" LookDirection="0,1,0" UpDirection="0,0,1" FieldOfView="45"/>
+                    <PerspectiveCamera x:Name="_camera" Position="0,0,-24" LookDirection="0,0,1" UpDirection="0,1,0" FieldOfView="45"/>
                 </Viewport3D.Camera>
                 <!-- Lights -->
                 <ModelVisual3D>

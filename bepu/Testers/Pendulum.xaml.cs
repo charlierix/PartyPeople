@@ -60,7 +60,6 @@ namespace Game.Bepu.Testers
         {
             InitializeComponent();
 
-            // Trackball
             _trackball = new TrackBallRoam(_camera);
             _trackball.EventSource = grdViewPort;       //NOTE:  If this control doesn't have a background color set, the trackball won't see events (I think transparent is ok, just not null)
             _trackball.AllowZoomOnMouseWheel = true;
@@ -141,19 +140,19 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                if(_ball == null)
+                if (_ball == null)
                 {
                     MessageBox.Show("Need to create a ball first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
-                else if(chkMoveAnchor_InFrontVelocity.IsChecked.Value && chkMoveAnchor_BehindVelocity.IsChecked.Value)
+                else if (chkMoveAnchor_InFrontVelocity.IsChecked.Value && chkMoveAnchor_BehindVelocity.IsChecked.Value)
                 {
                     MessageBox.Show("Can't have both InFront/Behind constraints at the same time", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 Vector3D arm;
-                while(true)
+                while (true)
                 {
                     arm = Math3D.GetRandomVector_Spherical_Shell(_ball.RopeLength);
 

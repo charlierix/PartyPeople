@@ -90,5 +90,9 @@ namespace Game.Tester
         {
             new Game.Bepu.Testers.Pendulum().Show();
         }
+        private void Distribution_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.EvenDistribution().Show();
+        }
     }
 }

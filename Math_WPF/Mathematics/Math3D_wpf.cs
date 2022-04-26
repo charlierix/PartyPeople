@@ -883,7 +883,7 @@ namespace Game.Math_WPF.Mathematics
             private static Dot[] GetDots_Cone(int movableCount, Vector3D[] staticPoints, Vector3D axis, double angle, double heightMin, double heightMax, double[] movableRepulseMultipliers, double[] staticRepulseMultipliers)
             {
                 // Seed the movable ones with random locations (that's the best that can be done right now)
-                Vector3D[] movable = GetRandomVectors_Cone(movableCount, axis, 0d, angle, heightMin, heightMax);
+                Vector3D[] movable = GetRandomVectors_ConeShell(movableCount, axis, 0d, angle, heightMin, heightMax);
 
                 // Call the other overload
                 return GetDots_Cone(movable, staticPoints, movableRepulseMultipliers, staticRepulseMultipliers);
@@ -1251,7 +1251,7 @@ namespace Game.Math_WPF.Mathematics
                 {
                     if (heightMin > 0)
                     {
-                        dot.Position = GetRandomVector_Cone(axisUnit, 0d, angle, heightMin, heightMax);
+                        dot.Position = GetRandomVector_ConeShell(axisUnit, 0d, angle, heightMin, heightMax);
                     }
 
                     return;
@@ -5714,10 +5714,10 @@ namespace Game.Math_WPF.Mathematics
                 //NOTE: It's not just Quaternion.Multiply.  A group transform with two rotate transforms fails the same way
                 //Here is a test case: from1=(-1, 0, 0), from2=(0, 0, 1), to1=(1, 0, 0), to2=(0, 1, 0)
                 return GetRotation(
-                    GetRandomVector_Cone(from1, ANGLEMIN, ANGLEMAX, 1, 1),
-                    GetRandomVector_Cone(from2, ANGLEMIN, ANGLEMAX, 1, 1),
-                    GetRandomVector_Cone(to1, ANGLEMIN, ANGLEMAX, 1, 1),
-                    GetRandomVector_Cone(to2, ANGLEMIN, ANGLEMAX, 1, 1));
+                    GetRandomVector_ConeShell(from1, ANGLEMIN, ANGLEMAX, 1, 1),
+                    GetRandomVector_ConeShell(from2, ANGLEMIN, ANGLEMAX, 1, 1),
+                    GetRandomVector_ConeShell(to1, ANGLEMIN, ANGLEMAX, 1, 1),
+                    GetRandomVector_ConeShell(to2, ANGLEMIN, ANGLEMAX, 1, 1));
             }
 
             // Rotate from onto to
@@ -5729,10 +5729,10 @@ namespace Game.Math_WPF.Mathematics
             {
                 // Quaternion.Multiply fails with 90s and 180s.  Randomize things slightly and try again
                 return GetRotation(
-                    GetRandomVector_Cone(from1, ANGLEMIN, ANGLEMAX, 1, 1),
-                    GetRandomVector_Cone(from2, ANGLEMIN, ANGLEMAX, 1, 1),
-                    GetRandomVector_Cone(to1, ANGLEMIN, ANGLEMAX, 1, 1),
-                    GetRandomVector_Cone(to2, ANGLEMIN, ANGLEMAX, 1, 1));
+                    GetRandomVector_ConeShell(from1, ANGLEMIN, ANGLEMAX, 1, 1),
+                    GetRandomVector_ConeShell(from2, ANGLEMIN, ANGLEMAX, 1, 1),
+                    GetRandomVector_ConeShell(to1, ANGLEMIN, ANGLEMAX, 1, 1),
+                    GetRandomVector_ConeShell(to2, ANGLEMIN, ANGLEMAX, 1, 1));
             }
 
             // Just to be safe
@@ -8369,11 +8369,11 @@ namespace Game.Math_WPF.Mathematics
 
         //NOTE: The angle is off the axis, not angle of cone, so 90 will create a hemisphere, 180 will make a full sphere
         //TODO: The points are initially concentrating near the origin.  This is because there is less volume at the tip.  The sphere method had to do sqrt to even things out
-        public static Vector3D[] GetRandomVectors_Cone_EvenDist(int returnCount, Vector3D axis, double angle, double heightMin, double heightMax, double[] movableRepulseMultipliers = null, Vector3D[] existingStaticPoints = null, double[] staticRepulseMultipliers = null, double stopRadiusPercent = .004, int stopIterationCount = 1000)
+        public static Vector3D[] GetRandomVectors_ConeShell_EvenDist(int returnCount, Vector3D axis, double angle, double heightMin, double heightMax, double[] movableRepulseMultipliers = null, Vector3D[] existingStaticPoints = null, double[] staticRepulseMultipliers = null, double stopRadiusPercent = .004, int stopIterationCount = 1000)
         {
             return EvenDistribution_wpf.GetRandomVectors_Cone_EvenDist(returnCount, axis, angle, heightMin, heightMax, movableRepulseMultipliers, existingStaticPoints, staticRepulseMultipliers, stopRadiusPercent, stopIterationCount);
         }
-        public static Vector3D[] GetRandomVectors_Cone_EvenDist(Vector3D[] movable, Vector3D axis, double angle, double heightMin, double heightMax, double[] movableRepulseMultipliers = null, Vector3D[] existingStaticPoints = null, double[] staticRepulseMultipliers = null, double stopRadiusPercent = .004, int stopIterationCount = 1000)
+        public static Vector3D[] GetRandomVectors_ConeShell_EvenDist(Vector3D[] movable, Vector3D axis, double angle, double heightMin, double heightMax, double[] movableRepulseMultipliers = null, Vector3D[] existingStaticPoints = null, double[] staticRepulseMultipliers = null, double stopRadiusPercent = .004, int stopIterationCount = 1000)
         {
             return EvenDistribution_wpf.GetRandomVectors_Cone_EvenDist(movable, axis, angle, heightMin, heightMax, movableRepulseMultipliers, existingStaticPoints, staticRepulseMultipliers, stopRadiusPercent, stopIterationCount);
         }
@@ -8382,11 +8382,11 @@ namespace Game.Math_WPF.Mathematics
         //{
         //    return GetRandomVector_Cone(axis, 0d, maxAngle);
         //}
-        public static Vector3D GetRandomVector_Cone(Vector3D axis, double minAngle, double maxAngle, double minRadius, double maxRadius)
+        public static Vector3D GetRandomVector_ConeShell(Vector3D axis, double minAngle, double maxAngle, double minRadius, double maxRadius)
         {
-            return GetRandomVectors_Cone(1, axis, minAngle, maxAngle, minRadius, maxRadius)[0];
+            return GetRandomVectors_ConeShell(1, axis, minAngle, maxAngle, minRadius, maxRadius)[0];
         }
-        public static Vector3D[] GetRandomVectors_Cone(int count, Vector3D axis, double minAngle, double maxAngle, double minRadius, double maxRadius)
+        public static Vector3D[] GetRandomVectors_ConeShell(int count, Vector3D axis, double minAngle, double maxAngle, double minRadius, double maxRadius)
         {
             Random rand = StaticRandom.GetRandomForThread();
 
