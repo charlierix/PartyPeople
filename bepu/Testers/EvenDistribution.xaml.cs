@@ -32,6 +32,22 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+        #region class: CubeProps
+
+        private class CubeProps
+        {
+            public int Count { get; set; }
+
+            public double SizeX { get; set; }
+            public double SizeY { get; set; }
+            public double SizeZ { get; set; }
+
+            public double DotSizeMult { get; set; }
+
+            public int Iterations { get; set; }
+        }
+
+        #endregion
         #region class: ConeProps
 
         private class ConeProps
@@ -153,6 +169,20 @@ namespace Game.Bepu.Testers
 
         #region Events Listeners
 
+        private void Cube_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                if (!_initialized)
+                    return;
+
+                GetCubeProps();     // using this to set/clear the error effect
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private void Cone_TextChanged(object sender, TextChangedEventArgs e)
         {
             try
@@ -160,7 +190,7 @@ namespace Game.Bepu.Testers
                 if (!_initialized)
                     return;
 
-                GetConeProps();     // useing this to set/clear the error effect
+                GetConeProps();     // using this to set/clear the error effect
             }
             catch (Exception ex)
             {
@@ -168,6 +198,37 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void CubeAddPoints_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                CubeProps props = GetCubeProps();
+                if (props == null)
+                {
+                    MessageBox.Show("Couldn't parse properties", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                Vector3D min = new Vector3D(-props.SizeX / 2, -props.SizeY / 2, -props.SizeZ / 2);
+                Vector3D max = new Vector3D(props.SizeX / 2, props.SizeY / 2, props.SizeZ / 2);
+
+                var points = Enumerable.Range(0, props.Count).
+                    Select(o => Math3D.GetRandomVector(min, max)).
+                    ToArray();
+
+                for (int i = 0; i < props.Count; i++)
+                {
+                    Dot dot = GetDot(chkCube_IsStatic.IsChecked.Value, points[i].ToPoint(), props.DotSizeMult);
+
+                    _viewport.Children.Add(dot.Visual);
+                    _dots.Add(dot);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private void ConeAddPoints_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -179,7 +240,8 @@ namespace Game.Bepu.Testers
                     return;
                 }
 
-                var points = Math3D.GetRandomVectors_ConeShell(props.Count, new Vector3D(0, 1, 0), -props.Angle, props.Angle, props.HeightMin, props.HeightMax);
+                //var points = Math3D.GetRandomVectors_ConeShell(props.Count, new Vector3D(0, 1, 0), -props.Angle, props.Angle, props.HeightMin, props.HeightMax);
+                var points = Math3D.GetRandomVectors_ConeShell(props.Count, new Vector3D(0, 1, 0), 0, props.Angle, props.HeightMin, props.HeightMax);
 
                 for (int i = 0; i < props.Count; i++)
                 {
@@ -187,6 +249,55 @@ namespace Game.Bepu.Testers
 
                     _viewport.Children.Add(dot.Visual);
                     _dots.Add(dot);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void CubeIterate_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_dots.Count == 0)
+                {
+                    MessageBox.Show("Need to add points first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                CubeProps props = GetCubeProps();
+                if (props == null)
+                {
+                    MessageBox.Show("Couldn't parse properties", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var split = Dots_Movable_Static.Split(_dots.ToArray());
+
+                VectorND min = new VectorND(-props.SizeX / 2, -props.SizeY / 2, -props.SizeZ / 2);
+                VectorND max = new VectorND(props.SizeX / 2, props.SizeY / 2, props.SizeZ / 2);
+
+                VectorND[] movable = split.Movable.
+                    Select(o => o.ToVectorND()).
+                    ToArray();
+
+                VectorND[] existing_static = null;
+                if (split.Static != null)
+                {
+                    existing_static = split.Static.
+                        Select(o => o.ToVectorND()).
+                        ToArray();
+                }
+
+                var vectors = MathND.GetRandomVectors_Cube_EventDist(movable, (min, max), split.Movable_Mults, existing_static, split.Static_Mults, 0, props.Iterations);
+
+                for (int i = 0; i < vectors.Length; i++)
+                {
+                    _dots[split.Movable_Indices[i]].Transform.OffsetX = vectors[i][0];
+                    _dots[split.Movable_Indices[i]].Transform.OffsetY = vectors[i][1];
+                    _dots[split.Movable_Indices[i]].Transform.OffsetZ = vectors[i][2];
                 }
             }
             catch (Exception ex)
@@ -213,7 +324,7 @@ namespace Game.Bepu.Testers
 
                 var split = Dots_Movable_Static.Split(_dots.ToArray());
 
-                var vectors = Math3D.GetRandomVectors_ConeShell_EvenDist(split.Movable, new Vector3D(0, 1, 0), props.Angle, props.HeightMin, props.HeightMax, split.Movable_Mults, split.Static, split.Static_Mults, 0, props.Count);
+                var vectors = Math3D.GetRandomVectors_ConeShell_EvenDist(split.Movable, new Vector3D(0, 1, 0), props.Angle, props.HeightMin, props.HeightMax, split.Movable_Mults, split.Static, split.Static_Mults, 0, props.Iterations);
 
                 for (int i = 0; i < vectors.Length; i++)
                 {
@@ -245,9 +356,48 @@ namespace Game.Bepu.Testers
 
         #region Private Methods
 
-        /// <summary>
-        /// This gets stats as well as sets/clear error effect
-        /// </summary>
+        // These get stats as well as set/clear error effects
+        private CubeProps GetCubeProps()
+        {
+            var retVal = new CubeProps();
+
+            bool hadError = false;
+
+            // Count
+            var count = ParseTextBox_Int(txtCube_Count, _errorEffect);
+            hadError |= count.hadError;
+            retVal.Count = count.cast;
+
+            // SizeX
+            var sizeX = ParseTextBox_Float(txtCube_SizeX, _errorEffect);
+            hadError |= sizeX.hadError;
+            retVal.SizeX = sizeX.cast;
+
+            // SizeY
+            var sizeY = ParseTextBox_Float(txtCube_SizeY, _errorEffect);
+            hadError |= sizeY.hadError;
+            retVal.SizeY = sizeY.cast;
+
+            // SizeZ
+            var sizeZ = ParseTextBox_Float(txtCube_SizeZ, _errorEffect);
+            hadError |= sizeZ.hadError;
+            retVal.SizeZ = sizeZ.cast;
+
+            // DotSizeMult
+            var mult = ParseTextBox_Float(txtCube_DotSizeMult, _errorEffect);
+            hadError |= mult.hadError;
+            retVal.DotSizeMult = mult.cast;
+
+            // Iterations
+            var iter = ParseTextBox_Int(txtCube_Iterations, _errorEffect);
+            hadError |= iter.hadError;
+            retVal.Iterations = iter.cast;
+
+            if (hadError)
+                return null;
+            else
+                return retVal;
+        }
         private ConeProps GetConeProps()
         {
             var retVal = new ConeProps();
@@ -255,81 +405,72 @@ namespace Game.Bepu.Testers
             bool hadError = false;
 
             // Count
-            if (int.TryParse(txtCone_Count.Text, out int val_int))
-            {
-                retVal.Count = val_int;
-                txtCone_Count.Effect = null;
-            }
-            else
-            {
-                hadError = true;
-                txtCone_Count.Effect = _errorEffect;
-            }
+            var count = ParseTextBox_Int(txtCone_Count, _errorEffect);
+            hadError |= count.hadError;
+            retVal.Count = count.cast;
 
             // Angle
-            if (double.TryParse(txtCone_Angle.Text, out double val_float))
-            {
-                retVal.Angle = val_float;
-                txtCone_Angle.Effect = null;
-            }
-            else
-            {
-                hadError = true;
-                txtCone_Angle.Effect = _errorEffect;
-            }
+            var angle = ParseTextBox_Float(txtCone_Angle, _errorEffect);
+            hadError |= angle.hadError;
+            retVal.Angle = angle.cast;
 
             // HeightMin
-            if (double.TryParse(txtCone_HeightMin.Text, out val_float))
-            {
-                retVal.HeightMin = val_float;
-                txtCone_HeightMin.Effect = null;
-            }
-            else
-            {
-                hadError = true;
-                txtCone_HeightMin.Effect = _errorEffect;
-            }
+            var heightMin = ParseTextBox_Float(txtCone_HeightMin, _errorEffect);
+            hadError |= heightMin.hadError;
+            retVal.HeightMin = heightMin.cast;
 
             // HeightMax
-            if (double.TryParse(txtCone_HeightMax.Text, out val_float))
-            {
-                retVal.HeightMax = val_float;
-                txtCone_HeightMax.Effect = null;
-            }
-            else
-            {
-                hadError = true;
-                txtCone_HeightMax.Effect = _errorEffect;
-            }
+            var heightMax = ParseTextBox_Float(txtCone_HeightMax, _errorEffect);
+            hadError |= heightMax.hadError;
+            retVal.HeightMax = heightMax.cast;
 
             // DotSizeMult
-            if (double.TryParse(txtCone_DotSizeMult.Text, out val_float))
-            {
-                retVal.DotSizeMult = val_float;
-                txtCone_DotSizeMult.Effect = null;
-            }
-            else
-            {
-                hadError = true;
-                txtCone_DotSizeMult.Effect = _errorEffect;
-            }
+            var mult = ParseTextBox_Float(txtCone_DotSizeMult, _errorEffect);
+            hadError |= mult.hadError;
+            retVal.DotSizeMult = mult.cast;
 
             // Iterations
-            if (int.TryParse(txtCone_Iterations.Text, out val_int))
-            {
-                retVal.Iterations = val_int;
-                txtCone_Iterations.Effect = null;
-            }
-            else
-            {
-                hadError = true;
-                txtCone_Iterations.Effect = _errorEffect;
-            }
+            var iter = ParseTextBox_Int(txtCone_Iterations, _errorEffect);
+            hadError |= iter.hadError;
+            retVal.Iterations = iter.cast;
 
             if (hadError)
                 return null;
             else
                 return retVal;
+        }
+
+        private static (bool hadError, int cast) ParseTextBox_Int(TextBox textbox, Effect effect)
+        {
+            bool hadError = false;
+
+            if (int.TryParse(textbox.Text, out int val_int))
+            {
+                textbox.Effect = null;
+            }
+            else
+            {
+                hadError = true;
+                textbox.Effect = effect;
+            }
+
+            return (hadError, val_int);
+        }
+        private static (bool hadError, double cast) ParseTextBox_Float(TextBox textbox, Effect effect)
+        {
+            bool hadError = false;
+
+            if (double.TryParse(textbox.Text, out double val_float))
+            {
+                textbox.Effect = null;
+            }
+            else
+            {
+                hadError = true;
+                textbox.Effect = effect;
+            }
+
+            return (hadError, val_float);
         }
 
         private static Dot GetDot(bool isStatic, Point3D position, double sizeMult)

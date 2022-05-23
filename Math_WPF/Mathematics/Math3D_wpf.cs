@@ -594,9 +594,7 @@ namespace Game.Math_WPF.Mathematics
                 {
                     double amountMoved = MoveStep_Cone(dots, MOVEPERCENT, axisUnit, orthUnit, angle, maxDotProduct, heightMin, heightMax, heightMinSquared, heightMaxSquared, minDistance);
                     if (amountMoved < stopAmount)
-                    {
                         break;
-                    }
                 }
 
                 //NOTE: The movable dots are always the front of the list, so the returned array will be the same positions as the initial movable array
@@ -610,10 +608,7 @@ namespace Game.Math_WPF.Mathematics
             {
                 double areaMin = GetConeSurfaceArea(heightMin, angle);
                 if (heightMin.IsNearValue(heightMax))
-                {
-                    // Both radii are the same, so just return the surface area
-                    return areaMin;
-                }
+                    return areaMin;     // Both radii are the same, so just return the surface area
 
                 // The volume of a cone is SurfaceArea/3 * R
                 // https://www.mathalino.com/reviewer/solid-mensuration-solid-geometry/spherical-sector
@@ -636,17 +631,13 @@ namespace Game.Math_WPF.Mathematics
                 double hemisphere = 2 * Math.PI * radius * radius;
 
                 if (angle.IsNearValue(0))
-                {
                     return 0;
-                }
+
                 else if (angle.IsNearValue(90))
-                {
                     return hemisphere;
-                }
+
                 else if (angle.IsNearValue(180))
-                {
                     return hemisphere + hemisphere;
-                }
 
                 double offset = 0;
                 double h = 0;
@@ -725,34 +716,25 @@ namespace Game.Math_WPF.Mathematics
                 // Find shortest pair lengths
                 ShortPair[] pairs = GetShortestPair(dots);
                 if (pairs.Length == 0)
-                {
                     return 0;
-                }
 
                 // Move the shortest pair away from each other (based on how far they are away from the avg)
                 double avg = pairs.Average(o => o.LengthRatio);
 
                 // Artificially increase repulsive pressure
                 if (minDistance != null && avg < minDistance.Value)
-                {
                     avg = minDistance.Value;
-                }
 
                 double distToMoveMax = avg - pairs[0].LengthRatio;
                 if (distToMoveMax.IsNearZero())
-                {
-                    // Found equilbrium
-                    return 0;
-                }
+                    return 0;       // Found equilbrium
 
                 bool isFirst = true;
                 foreach (ShortPair pair in pairs)
                 {
                     // Only want to move them if they are less than average
                     if (pair.LengthRatio >= avg)
-                    {
                         break;      // they are sorted, so the rest of the list will also be greater
-                    }
 
                     // Figure out how far they should move
                     double actualPercent, distToMoveRatio;
@@ -774,13 +756,9 @@ namespace Game.Math_WPF.Mathematics
                     // Unit vector
                     Vector3D displaceUnit;
                     if (pair.Length.IsNearZero())
-                    {
                         displaceUnit = Math3D.GetRandomVector_Spherical_Shell(1);
-                    }
                     else
-                    {
                         displaceUnit = pair.Link.ToUnit();
-                    }
 
                     // Can't move evenly.  Divide it up based on the ratio of multipliers
                     double sumMult = dots[pair.Index1].RepulseMultiplier + dots[pair.Index2].RepulseMultiplier;
@@ -893,9 +871,7 @@ namespace Game.Math_WPF.Mathematics
                 int movableCount = movable.Length;
 
                 if (movableRepulseMultipliers != null && movableRepulseMultipliers.Length != movableCount)
-                {
                     throw new ArgumentOutOfRangeException("movableRepulseMultipliers", "When movableRepulseMultipliers is nonnull, it must be the same length as the number of movable points");
-                }
 
                 // Figure out how big to make the return array
                 int length = movableCount;
@@ -904,9 +880,7 @@ namespace Game.Math_WPF.Mathematics
                     length += staticPoints.Length;
 
                     if (staticRepulseMultipliers != null && staticRepulseMultipliers.Length != staticPoints.Length)
-                    {
                         throw new ArgumentOutOfRangeException("staticRepulseMultipliers", "When staticRepulseMultipliers is nonnull, it must be the same length as the number of static points");
-                    }
                 }
 
                 Dot[] retVal = new Dot[length];
@@ -1236,9 +1210,7 @@ namespace Game.Math_WPF.Mathematics
             private static void CapToCone(Dot dot, Vector3D axisUnit, Vector3D orthUnit, double angle, double maxDotProduct, double heightMin, double heightMax, double heightMinSquared, double heightMaxSquared)
             {
                 if (dot.IsStatic)
-                {
                     return;
-                }
 
                 bool hadChange = false;
 
@@ -1250,9 +1222,7 @@ namespace Game.Math_WPF.Mathematics
                 if (heightSquared.IsNearZero())
                 {
                     if (heightMin > 0)
-                    {
                         dot.Position = GetRandomVector_ConeShell(axisUnit, 0d, angle, heightMin, heightMax);
-                    }
 
                     return;
                 }
@@ -1281,9 +1251,7 @@ namespace Game.Math_WPF.Mathematics
 
                 // Update Position
                 if (hadChange)
-                {
                     dot.Position = posUnit * Math.Sqrt(heightSquared);
-                }
             }
 
             /// <summary>
@@ -1325,13 +1293,10 @@ namespace Game.Math_WPF.Mathematics
                     for (int inner = 0; inner < dots.Count; inner++)
                     {
                         if (inner == outer)
-                        {
                             continue;
-                        }
+
                         else if (dots[outer].IsStatic && dots[inner].IsStatic)
-                        {
                             continue;
-                        }
 
                         Vector3D link = dots[inner].Position - dots[outer].Position;
                         double length = link.Length;
@@ -1339,15 +1304,11 @@ namespace Game.Math_WPF.Mathematics
                         double ratio = length / avgMult;
 
                         if (currentShortest == null || ratio < currentShortest.Value.ratio)
-                        {
                             currentShortest = (inner, link, length, ratio, avgMult);
-                        }
                     }
 
                     if (currentShortest != null)
-                    {
                         retVal.Add(new ShortPair(outer, currentShortest.Value.index, currentShortest.Value.length, currentShortest.Value.ratio, currentShortest.Value.avgMult, currentShortest.Value.link));
-                    }
                 }
 
                 return retVal.
@@ -8161,7 +8122,7 @@ namespace Game.Math_WPF.Mathematics
             };
         }
         /// <summary>
-        /// This chooses a random point somewhere between the inner rectactle and the outer one
+        /// This chooses a random point somewhere between the inner rectangle and the outer one
         /// </summary>
         public static Vector3D GetRandomVector(Vector3D outerRect_Min, Vector3D outerRect_Max, Vector3D innerRect_Min, Vector3D innerRect_Max)
         {

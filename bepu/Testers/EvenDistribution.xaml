@@ -68,9 +68,26 @@
 
             <ScrollViewer Grid.Row="0">
                 <StackPanel>
-                    <Expander Header="Cube" IsExpanded="False">
-                        <StackPanel Style="{StaticResource expanderStackPanel}">
+                    <Expander Header="Cube" IsExpanded="True">
+                        <StackPanel Style="{StaticResource expanderStackPanel}" TextBox.TextChanged="Cube_TextChanged">
 
+                            <Label Content="count"/>
+                            <TextBox x:Name="txtCube_Count" Text="144"/>
+
+                            <Label Content="size x,y,z"/>
+                            <TextBox x:Name="txtCube_SizeX" Text="12"/>
+                            <TextBox x:Name="txtCube_SizeY" Text="12"/>
+                            <TextBox x:Name="txtCube_SizeZ" Text="12"/>
+
+                            <Label Content="dot size mult"/>
+                            <TextBox x:Name="txtCube_DotSizeMult" Text="1"/>
+
+                            <CheckBox x:Name="chkCube_IsStatic" Content="static points" Margin="0,16,0,2"/>
+                            <Button Content="Add Points" Click="CubeAddPoints_Click"/>
+
+                            <Label Content="iterations" Margin="0,12,0,-3"/>
+                            <TextBox x:Name="txtCube_Iterations" Text="12"/>
+                            <Button Content="Iterate" Click="CubeIterate_Click"/>
 
                         </StackPanel>
                     </Expander>
