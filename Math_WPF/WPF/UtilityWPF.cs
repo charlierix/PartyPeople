@@ -3456,7 +3456,7 @@ namespace Game.Math_WPF.WPF
             Vector3D line = to - from;
             if (line.X == 0 && line.Y == 0 && line.Z == 0) line.X = 0.000000001d;
 
-            Vector3D orth1 = Math3D.GetArbitraryOrhonganal(line);
+            Vector3D orth1 = Math3D.GetArbitraryOrthogonal(line);
             orth1 = Math3D.RotateAroundAxis(orth1, line, StaticRandom.NextDouble() * Math.PI * 2d);		// give it a random rotation so that if many lines are created by this method, they won't all be oriented the same
             orth1 = orth1.ToUnit() * half;
 
@@ -5528,7 +5528,7 @@ namespace Game.Math_WPF.WPF
             var ray = RayFromViewportPoint(visual.Camera, viewport, retVal);
 
             // Get an orthogonal to that (this will be a line that is in the plane that the camera is looking at)
-            Vector3D orth = Math3D.GetArbitraryOrhonganal(ray.Direction);
+            Vector3D orth = Math3D.GetArbitraryOrthogonal(ray.Direction);
             orth = orth.ToUnit() * radius;
 
             // Now that the direction of the line is known, project the point along that line, the length of radius into 2D

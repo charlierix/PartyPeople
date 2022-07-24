@@ -1,6 +1,15 @@
 ﻿using Game.Core;
 using Game.Math_WPF.Mathematics;
+using Game.Math_WPF.Mathematics.GeneticSharp;
 using Game.Math_WPF.WPF;
+using GeneticSharp.Domain;
+using GeneticSharp.Domain.Crossovers;
+using GeneticSharp.Domain.Fitnesses;
+using GeneticSharp.Domain.Mutations;
+using GeneticSharp.Domain.Populations;
+using GeneticSharp.Domain.Selections;
+using GeneticSharp.Domain.Terminations;
+using GeneticSharp.Infrastructure.Framework.Threading;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -339,10 +348,43 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void ConeFindParams_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                ConeProps props = GetConeProps();
+                if (props == null)
+                {
+                    MessageBox.Show("Couldn't parse properties", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                _viewport.Children.RemoveAll(_dots.Select(o => o.Visual));
+                _dots.Clear();
+
+                var result = GetConeOptimalParams(props.Count, new Vector3D(0, 1, 0), props.Angle, props.HeightMin, props.HeightMax, trkConeOptimal_Distance.Value, trkConeOptimal_Iterations.Value, Convert.ToInt32(trkConeOptimal_MaxIterations.Value));
+
+                for (int i = 0; i < result.points.Length; i++)
+                {
+                    Dot dot = GetDot(chkCone_IsStatic.IsChecked.Value, result.points[i].ToPoint(), props.DotSizeMult);
+
+                    _viewport.Children.Add(dot.Visual);
+                    _dots.Add(dot);
+                }
+
+                lblReport.Text = result.report;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void Clear_Click(object sender, RoutedEventArgs e)
         {
             try
             {
+                lblReport.Text = "";
                 _viewport.Children.RemoveAll(_dots.Select(o => o.Visual));
                 _dots.Clear();
             }
@@ -510,6 +552,187 @@ namespace Game.Bepu.Testers
                 Position = position,
                 SizeMult = sizeMult,
             };
+        }
+
+        #endregion
+        #region Private Methods - Cone Optimal Params
+
+        private static (Vector3D[] points, string report) GetConeOptimalParams(int returnCount, Vector3D axis, double angle, double heightMin, double heightMax, double priority_distance, double priority_iterations, int max_iterations, TextBlock textblock = null)
+        {
+            // values to be determined (and position in the chromosome array)
+            //  int stopIterationCount      0
+            //  double move_percent_start   1
+            //  double move_percent_stop    2
+            //  double min_dist_mult        3
+
+            var chromosome = FloatingPointChromosome2.Create(
+                new double[] { 1, 0.05, 0.05, 2 },
+                new double[] { max_iterations, 1, 1, 6 },
+                new int[] { 0, 2, 2, 2 });
+
+            var population = new Population(72, 144, chromosome);
+
+            double maxDistance = heightMax * 2.5;        // using a value larger than will be possible to generate
+
+            var fitness = new FuncFitness(c =>
+            {
+                var fc = c as FloatingPointChromosome2;
+                var values = fc.ToFloatingPoints();
+
+                return GetConeOptimalParams_Evaluate(returnCount, axis, angle, heightMin, heightMax, Convert.ToInt32(values[0]), values[1], values[2], values[3], maxDistance, max_iterations, priority_distance, priority_iterations);
+            });
+
+            var selection = new EliteSelection();       // the larger the score, the better
+
+            var crossover = new UniformCrossover(0.5f);     // .5 will pull half from each parent
+
+            var mutation = new FlipBitMutation();       // FloatingPointChromosome inherits from BinaryChromosomeBase, which is a series of bits.  This mutator will flip random bits
+
+            var termination = new FitnessStagnationTermination(12);        // keeps going until it generates the same winner this many generations in a row
+
+            var taskExecutor = new ParallelTaskExecutor();
+
+            var ga = new GeneticAlgorithm(population, fitness, selection, crossover, mutation)
+            {
+                TaskExecutor = taskExecutor,
+                Termination = termination,
+            };
+
+            // This doesn't show anything, would need to put this whole worker method in a different thread, then invoke progress function in main thread
+            if (textblock != null)
+            {
+                double latestFitness = 0;
+                ga.GenerationRan += (s1, e1) => GetConeOptimalParams_Progress(ref latestFitness, ga, textblock);
+            }
+
+            ga.Start();
+
+            var bestChromosome = ga.BestChromosome as FloatingPointChromosome2;
+            double[] values = bestChromosome.ToFloatingPoints();
+
+            return GetConeOptimalParams_Report(returnCount, axis, angle, heightMin, heightMax, Convert.ToInt32(values[0]), values[1], values[2], values[3]);
+        }
+
+        private static double GetConeOptimalParams_Evaluate(int returnCount, Vector3D axis, double angle, double heightMin, double heightMax, int stopIterationCount, double move_percent_start, double move_percent_stop, double min_dist_mult, double maxDistance, int maxIterations, double priority_distance, double priority_iterations)
+        {
+            UtilityMath.MinMax(ref move_percent_stop, ref move_percent_start);      // needs to go from high to low
+
+            Vector3D[] points = Math3D.GetRandomVectors_ConeShell_EvenDist_DiscoverParams(returnCount, axis, angle, heightMin, heightMax, stopIterationCount, move_percent_start, move_percent_stop, min_dist_mult);
+
+            // find the min/max distance between points
+            var minmax = GetConeOptimalParams_MinMaxDistance(points);
+
+            // Score combines distance with iterations
+            //  dist=0      iterations=1    :   best score
+            //  dist=0      iterations=max  :   average score
+            //  dist=max    iterations=1    :   bad score
+            //  dist=max    iterations=max  :   worst score
+
+            // NOTE: The score needs to be largest number wins
+            double score_dist = 1 - minmax.diff / maxDistance;
+            double score_iteration = 1 - stopIterationCount / maxIterations;
+
+            return score_dist * priority_distance + score_iteration * priority_iterations;
+        }
+
+        private static void GetConeOptimalParams_Progress(ref double latestFitness, GeneticAlgorithm ga, TextBlock textblock)
+        {
+            var bestChromosome = ga.BestChromosome as FloatingPointChromosome2;
+            double bestFitness = bestChromosome.Fitness.Value;
+
+            if (bestFitness != latestFitness)
+            {
+                double[] values = bestChromosome.ToFloatingPoints();
+
+                var report = new StringBuilder();
+
+                report.AppendLine($"generation: {ga.GenerationsNumber}");
+                report.AppendLine($"score: {bestFitness}");
+                report.AppendLine();
+                report.AppendLine($"iterations: {Convert.ToInt32(values[0])}");
+                report.AppendLine($"move% start: {values[1]}");
+                report.AppendLine($"move% stop: {values[2]}");
+                report.AppendLine($"min dist mult: {values[3]}");
+
+                textblock.Text = report.ToString();
+            }
+        }
+
+        private static (Vector3D[] points, string report) GetConeOptimalParams_Report(int returnCount, Vector3D axis, double angle, double heightMin, double heightMax, int stopIterationCount, double move_percent_start, double move_percent_stop, double min_dist_mult)
+        {
+            UtilityMath.MinMax(ref move_percent_stop, ref move_percent_start);      // needs to go from high to low
+
+            Vector3D[] points = Math3D.GetRandomVectors_ConeShell_EvenDist_DiscoverParams(returnCount, axis, angle, heightMin, heightMax, stopIterationCount, move_percent_start, move_percent_stop, min_dist_mult);
+
+            var minmax = GetConeOptimalParams_MinMaxDistance(points);
+
+            var report = new StringBuilder();
+
+            report.AppendLine($"iterations: {stopIterationCount}");
+            report.AppendLine($"move% start: {move_percent_start}");
+            report.AppendLine($"move% stop: {move_percent_stop}");
+            report.AppendLine($"min dist mult: {min_dist_mult}");
+            report.AppendLine();
+            report.AppendLine($"min dist: {minmax.min}");
+            report.AppendLine($"max dist: {minmax.max}");
+            report.AppendLine($"diff dist: {minmax.diff}");
+
+            return (points, report.ToString());
+        }
+
+        private static (double min, double max, double diff) GetConeOptimalParams_MinMaxDistance(Vector3D[] points)
+        {
+            double max = double.MinValue;
+            double min = double.MaxValue;
+
+            var short_pairs = GetConeOptimalParams_ShortestPair(points);
+
+            foreach (var pair in short_pairs)
+            {
+                if (pair.distance < min)
+                    min = pair.distance;
+
+                if (pair.distance > max)
+                    max = pair.distance;
+            }
+
+            return (min, max, max - min);
+        }
+        // copied from Math3D.EvenDistribution_wpf.GetShortestPair
+        private static (int index1, int index2, double distance)[] GetConeOptimalParams_ShortestPair(Vector3D[] points)
+        {
+            var retVal = new List<(int index1, int index2, double distance)>();
+
+            for (int outer = 0; outer < points.Length; outer++)
+            {
+                (int index, double length_sqr)? currentShortest = null;
+
+                for (int inner = 0; inner < points.Length; inner++)
+                {
+                    if (inner == outer)
+                        continue;
+
+                    Vector3D link = points[inner] - points[outer];
+                    double length_sqr = link.LengthSquared;
+
+                    if (currentShortest == null || length_sqr < currentShortest.Value.length_sqr)
+                        currentShortest = (inner, length_sqr);
+                }
+
+                if (currentShortest != null)
+                    retVal.Add((outer, currentShortest.Value.index, Math.Sqrt(currentShortest.Value.length_sqr)));
+            }
+
+            return retVal.
+                Select(o => new     // removing dupes
+                {
+                    key = (Math.Min(o.index1, o.index2), Math.Max(o.index1, o.index2)),
+                    value = o,
+                }).
+                ToLookup(o => o.key).
+                Select(o => o.First().value).
+                OrderBy(o => o.distance).
+                ToArray();
         }
 
         #endregion

@@ -690,7 +690,7 @@ namespace Game.Math_WPF.Mathematics
                 {
                     // The two lines are colinear.  Can't return null because the calling function will return arbitrary points which is wrong.  Come
                     // up with a random orth to one of the vectors so that the below portion of this function will choose accurate control points
-                    axis = Math3D.GetArbitraryOrhonganal(dir21);
+                    axis = Math3D.GetArbitraryOrthogonal(dir21);
                 }
                 else
                 {

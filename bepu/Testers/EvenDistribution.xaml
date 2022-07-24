@@ -68,7 +68,7 @@
 
             <ScrollViewer Grid.Row="0">
                 <StackPanel>
-                    <Expander Header="Cube" IsExpanded="True">
+                    <Expander Header="Cube" IsExpanded="False">
                         <StackPanel Style="{StaticResource expanderStackPanel}" TextBox.TextChanged="Cube_TextChanged">
 
                             <Label Content="count"/>
@@ -106,7 +106,7 @@
                         </StackPanel>
                     </Expander>
 
-                    <Expander Header="Cone" IsExpanded="True">
+                    <Expander Header="Cone" IsExpanded="False">
                         <StackPanel Style="{StaticResource expanderStackPanel}" TextBox.TextChanged="Cone_TextChanged">
 
                             <Label Content="count"/>
@@ -129,6 +129,17 @@
                             <TextBox x:Name="txtCone_Iterations" Text="12"/>
                             <Button Content="Iterate" Click="ConeIterate_Click"/>
 
+                            <Label Content="priority: uniform distances" Margin="0,12,0,-3"/>
+                            <Slider x:Name="trkConeOptimal_Distance" Minimum="0" Maximum="500" Value="500"/>
+                            <Label Content="priority: low num iterations"/>
+                            <Slider x:Name="trkConeOptimal_Iterations" Minimum="0" Maximum="500" Value="50"/>
+                            <Label Content="max allowed iterations"/>
+                            <Slider x:Name="trkConeOptimal_MaxIterations" Minimum="4" Maximum="288" Value="128" IsSnapToTickEnabled="True" TickFrequency="1">
+                                <Slider.ToolTip>
+                                    <ToolTip Content="{Binding RelativeSource={RelativeSource Self}, Path=PlacementTarget.Value}"/>
+                                </Slider.ToolTip>
+                            </Slider>
+                            <Button Content="Find optimal params" ToolTip="NOTE: This will take a while to complete" Click="ConeFindParams_Click"/>
                         </StackPanel>
                     </Expander>
                 </StackPanel>
@@ -160,5 +171,7 @@
                 </ModelVisual3D>
             </Viewport3D>
         </Border>
+
+        <TextBlock Grid.Column="1" x:Name="lblReport" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="30,0,0,20"/>
     </Grid>
 </Window>
