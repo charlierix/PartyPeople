@@ -94,5 +94,9 @@ namespace Game.Tester
         {
             new Game.Bepu.Testers.EvenDistribution().Show();
         }
+        private void DebugLogViewer_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Math_WPF.WPF.DebugLogViewer.DebugLogWindow().Show();
+        }
     }
 }

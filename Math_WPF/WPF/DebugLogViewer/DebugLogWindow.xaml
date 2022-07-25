@@ -1,0 +1,140 @@
+﻿<Window x:Class="Game.Math_WPF.WPF.DebugLogViewer.DebugLogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Game.Math_WPF.WPF.Controls3D"
+        mc:Ignorable="d"
+        Title="Debug Renderer" ResizeMode="CanResizeWithGrip" Width="1000" Height="1000" Loaded="Window_Loaded" Closing="Window_Closing">
+    <Grid>
+        <!-- Viewport -->
+        <Grid Name="grdViewPort" Background="Transparent" MouseMove="grdViewPort_MouseMove" AllowDrop="True" PreviewDragEnter="txtFile_PreviewDragEnter" PreviewDragOver="txtFile_PreviewDragEnter" Drop="txtFile_Drop">
+            <Viewport3D Name="_viewport" IsHitTestVisible="False">
+                <Viewport3D.Camera>
+                    <PerspectiveCamera x:Name="_camera" Position="0,0,7" LookDirection="0,0,-1" UpDirection="0,1,0" FieldOfView="45"/>
+                </Viewport3D.Camera>
+                <ModelVisual3D>
+                    <ModelVisual3D.Content>
+                        <Model3DGroup>
+                            <AmbientLight Color="{Binding Path=LightColor_Ambient}" />
+                            <DirectionalLight Color="{Binding Path=LightColor_Primary}" Direction="1,-1,-1" />
+                            <DirectionalLight Color="{Binding Path=LightColor_Secondary}" Direction="-1,1,1" />
+                        </Model3DGroup>
+                    </ModelVisual3D.Content>
+                </ModelVisual3D>
+            </Viewport3D>
+        </Grid>
+
+        <Border x:Name="borderToolTip" Visibility="Collapsed" Padding="7,3" BorderThickness="1" CornerRadius="2" BorderBrush="#909E9C82" Background="#60E8E6C8" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="300,400,0,0">
+            <TextBlock x:Name="lblToolTip" Text="Sample Text" Foreground="{Binding Path=TextBrush}"/>
+        </Border>
+
+        <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="6,6,6,0">
+            <!-- Filename -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="auto"/>
+                    <ColumnDefinition Width="4"/>
+                    <ColumnDefinition Width="1*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="file" VerticalAlignment="Center" Foreground="{Binding Path=TextBrush}"/>
+                <TextBox Grid.Column="2" x:Name="txtFile" VerticalAlignment="Center" Padding="2" Background="#40FFFFFF" Foreground="{Binding Path=TextBrush}" AllowDrop="True" PreviewDragEnter="txtFile_PreviewDragEnter" PreviewDragOver="txtFile_PreviewDragEnter" Drop="txtFile_Drop" TextChanged="txtFile_TextChanged"/>
+                <TextBlock Grid.Column="2" x:Name="lblFileHint" Text="drag file onto this window" Foreground="{Binding Path=HintBrush}" Margin="6,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+            </Grid>
+
+            <!-- Settings -->
+            <Expander Header="settings" Foreground="{Binding Path=TextBrush}" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="0,12,0,0">
+                <Expander.LayoutTransform>
+                    <RotateTransform Angle="-90"/>
+                </Expander.LayoutTransform>
+
+                <Grid Margin="18">
+                    <Grid.LayoutTransform>
+                        <RotateTransform Angle="90"/>
+                    </Grid.LayoutTransform>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="auto"/>
+                        <ColumnDefinition Width="4"/>
+                        <ColumnDefinition Width="1*" MinWidth="200"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="8"/>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="1*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Column="0" Grid.Row="0" Text="background" VerticalAlignment="Center"/>
+                    <Slider Grid.Column="2" Grid.Row="0" x:Name="trkBackground" Minimum="0" Maximum="1" Value="0.93" LargeChange="0.2" Opacity="0.66" VerticalAlignment="Center" ValueChanged="trkBackground_ValueChanged"/>
+
+                    <TextBlock Grid.Column="0" Grid.Row="2" Text="center points" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="2" Grid.Row="2" x:Name="cboCenterPoints" VerticalAlignment="Center" DisplayMemberPath="Key" Opacity="0.75" SelectionChanged="cboCenterPoints_SelectionChanged"/>
+
+                    <CheckBox Grid.Column="2" Grid.Row="4" x:Name="chkEmptyFrames" Content="show empty frames" Foreground="{Binding Path=TextBrush}" VerticalAlignment="Center" Checked="chkEmptyFrames_Checked" Unchecked="chkEmptyFrames_Checked"/>
+                </Grid>
+            </Expander>
+        </StackPanel>
+
+        <!-- Left/Right Buttons -->
+        <Button x:Name="btnLeft" Width="24" Height="60" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="12,0,0,0" Click="btnLeft_Click"/>
+        <Button x:Name="btnRight" Width="24" Height="60" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,12,0" Click="btnRight_Click"/>
+
+        <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Margin="6,0,6,6">
+            <!-- Text Logs -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*"/>
+                    <ColumnDefinition Width="4"/>
+                    <ColumnDefinition Width="auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- TODO: Tunnel/Bubble mouse events so this doesn't block the viewport -->
+                <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" MaxHeight="300" VerticalAlignment="Bottom">
+                    <StackPanel>
+                        <StackPanel x:Name="panelFrameText">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=expanderFrame, Path=IsExpanded}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                        </StackPanel>
+
+                        <StackPanel x:Name="panelGlobalText">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=expanderGlobal, Path=IsExpanded}" Value="False">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                    <StackPanel.LayoutTransform>
+                        <RotateTransform Angle="90"/>
+                    </StackPanel.LayoutTransform>
+
+                    <Expander x:Name="expanderFrame" Header="frame text" IsExpanded="True" Foreground="{Binding Path=TextBrush}" Margin="0,0,12,0"/>
+                    <Expander x:Name="expanderGlobal" Header="global text" IsExpanded="True" Foreground="{Binding Path=TextBrush}" Margin="0,0,12,0"/>
+                </StackPanel>
+            </Grid>
+
+            <!-- Navigation Slider -->
+            <Slider x:Name="trkMultiFrame" IsSnapToTickEnabled="True" SmallChange="1" Interval="1" Opacity="0.66" HorizontalAlignment="Stretch" VerticalAlignment="Bottom" Margin="10,0,10,10" ValueChanged="trkMultiFrame_ValueChanged" TickPlacement="Both"/>
+        </StackPanel>
+    </Grid>
+</Window>

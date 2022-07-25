@@ -118,6 +118,7 @@
                 <ListBox>
                     <ListBoxItem Content="Pendulum" MouseUp="Pendulum_MouseUp"/>
                     <ListBoxItem Content="Even Distribution" MouseUp="Distribution_MouseUp"/>
+                    <ListBoxItem Content="Debug Log Viewer" MouseUp="DebugLogViewer_MouseUp"/>
                 </ListBox>
             </StackPanel>
         </WrapPanel>
