@@ -74,6 +74,12 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             //public string normal { get; init; }
             public double? size_x { get; init; }
             public double? size_y { get; init; }
+
+            // ----------------- axis lines -----------------
+            //public string position { get; init; }
+            public string rotation { get; init; }
+            public double? size { get; init; }
+
         }
 
         public record Text_local
@@ -142,7 +148,16 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             ItemBase retVal = null;
 
             // Figure out and instantiate derived type
-            if (!string.IsNullOrEmpty(item.position))
+            if (!string.IsNullOrEmpty(item.rotation))
+            {
+                retVal = new ItemAxisLines()
+                {
+                    position = ConvertPoint(item.position),
+                    rotation = ConvertQuat(item.rotation),
+                    size = item.size.Value,
+                };
+            }
+            else if (!string.IsNullOrEmpty(item.position))
             {
                 retVal = new ItemDot()
                 {
@@ -223,6 +238,12 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
         private static Vector3D ConvertVector(string direction)
         {
             return ConvertPoint(direction).ToVector();
+        }
+        private static Quaternion ConvertQuat(string quat)
+        {
+            string[] split = quat.Split(",");
+
+            return new Quaternion(Convert.ToDouble(split[0].Trim()), Convert.ToDouble(split[1].Trim()), Convert.ToDouble(split[2].Trim()), Convert.ToDouble(split[3].Trim()));
         }
 
         private static Category FindCategory(Category[] categories, string name)

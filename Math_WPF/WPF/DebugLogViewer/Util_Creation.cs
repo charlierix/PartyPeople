@@ -51,6 +51,9 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                 return lineVisual.line;
             }
 
+            if (item is ItemAxisLines axisLines)
+                return GetVisual_AxisLines(axisLines);
+
             //return null;
             throw new ApplicationException($"Unexpected type: {item.GetType()}");
         }
@@ -166,6 +169,51 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                     Geometry = UtilityWPF.GetSquare2D(new Point(-half_x, -half_y), new Point(half_x, half_y)),
                     Transform = GetTransform_2D_to_3D(square.center, square.normal),
                 },
+            };
+        }
+        private static Visual3D GetVisual_AxisLines(ItemAxisLines axislines)
+        {
+            var geometry = new Model3DGroup();
+
+            // X
+            var line = new BillboardLine3D()
+            {
+                FromPoint = axislines.position,
+                ToPoint = axislines.position + axislines.rotation.GetRotatedVector(new Vector3D(axislines.size, 0, 0)),
+
+                Color = UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_X),
+
+                Thickness = SIZE_LINE * (axislines.size_mult ?? 1),
+            };
+            geometry.Children.Add(line.Model);
+
+            // Y
+            line = new BillboardLine3D()
+            {
+                FromPoint = axislines.position,
+                ToPoint = axislines.position + axislines.rotation.GetRotatedVector(new Vector3D(0, axislines.size, 0)),
+
+                Color = UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_Y),
+
+                Thickness = SIZE_LINE * (axislines.size_mult ?? 1),
+            };
+            geometry.Children.Add(line.Model);
+
+            // Z
+            line = new BillboardLine3D()
+            {
+                FromPoint = axislines.position,
+                ToPoint = axislines.position + axislines.rotation.GetRotatedVector(new Vector3D(0, 0, axislines.size)),
+
+                Color = UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_Z),
+
+                Thickness = SIZE_LINE * (axislines.size_mult ?? 1),
+            };
+            geometry.Children.Add(line.Model);
+
+            return new ModelVisual3D
+            {
+                Content = geometry,
             };
         }
 

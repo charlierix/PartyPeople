@@ -161,6 +161,10 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                 {
                     yield return square.center;
                 }
+                else if (item is ItemAxisLines axislines)
+                {
+                    yield return axislines.position;
+                }
                 else
                 {
                     throw new ApplicationException($"Unknown item type: {item.GetType()}");
@@ -197,6 +201,13 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                 return square with
                 {
                     center = TranslatePosition(square.center, center),
+                };
+            }
+            else if (item is ItemAxisLines axislines)
+            {
+                return axislines with
+                {
+                    position = TranslatePosition(axislines.position, center),
                 };
             }
             else
