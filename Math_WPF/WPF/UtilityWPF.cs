@@ -107,7 +107,9 @@ namespace Game.Math_WPF.WPF
             private static Point[] GetPointsRegPoly(int numSides, TubeRingRegularPolygon ring)
             {
                 // Multiply the returned unit circle by the ring's radius
-                return Math2D.GetCircle_Cached(numSides).Select(o => new Point(ring.RadiusX * o.X, ring.RadiusY * o.Y)).ToArray();
+                return Math2D.GetCircle_Cached(numSides).
+                    Select(o => new Point(ring.RadiusX * o.X, ring.RadiusY * o.Y)).
+                    ToArray();
             }
 
             private static void EndCap(ref int pointOffset, ref double[] rotateAnglesForPerp, MeshGeometry3D geometry, int numSides, TubeRingBase ringPrev, TubeRingBase ringCurrent, TubeRingBase ringNext, Transform3D transform, bool isFirst, double z, bool softSides)

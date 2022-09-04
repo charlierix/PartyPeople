@@ -179,7 +179,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             var line = new BillboardLine3D()
             {
                 FromPoint = axislines.position,
-                ToPoint = axislines.position + axislines.rotation.GetRotatedVector(new Vector3D(axislines.size, 0, 0)),
+                ToPoint = axislines.position + axislines.axis_x * axislines.size,
 
                 Color = UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_X),
 
@@ -191,7 +191,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             line = new BillboardLine3D()
             {
                 FromPoint = axislines.position,
-                ToPoint = axislines.position + axislines.rotation.GetRotatedVector(new Vector3D(0, axislines.size, 0)),
+                ToPoint = axislines.position + axislines.axis_y * axislines.size,
 
                 Color = UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_Y),
 
@@ -203,7 +203,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             line = new BillboardLine3D()
             {
                 FromPoint = axislines.position,
-                ToPoint = axislines.position + axislines.rotation.GetRotatedVector(new Vector3D(0, 0, axislines.size)),
+                ToPoint = axislines.position + axislines.axis_z * axislines.size,
 
                 Color = UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_Z),
 

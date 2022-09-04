@@ -77,9 +77,10 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
 
             // ----------------- axis lines -----------------
             //public string position { get; init; }
-            public string rotation { get; init; }
+            public string axis_x { get; init; }
+            public string axis_y { get; init; }
+            public string axis_z { get; init; }
             public double? size { get; init; }
-
         }
 
         public record Text_local
@@ -148,12 +149,14 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             ItemBase retVal = null;
 
             // Figure out and instantiate derived type
-            if (!string.IsNullOrEmpty(item.rotation))
+            if (!string.IsNullOrEmpty(item.axis_x))
             {
                 retVal = new ItemAxisLines()
                 {
                     position = ConvertPoint(item.position),
-                    rotation = ConvertQuat(item.rotation),
+                    axis_x = ConvertVector(item.axis_x),
+                    axis_y = ConvertVector(item.axis_y),
+                    axis_z = ConvertVector(item.axis_z),
                     size = item.size.Value,
                 };
             }
@@ -244,6 +247,38 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             string[] split = quat.Split(",");
 
             return new Quaternion(Convert.ToDouble(split[0].Trim()), Convert.ToDouble(split[1].Trim()), Convert.ToDouble(split[2].Trim()), Convert.ToDouble(split[3].Trim()));
+        }
+
+        // The quats were getting generated with "quat.x,quat.y,quat.z,quat.w|axis.x,axis.y,axis.z|angle"
+        private static Quaternion ConvertQuat_DEBUG(string quat)
+        {
+            string[] sets = quat.Split("|");
+
+            string[] split_quat = sets[0].Split(",");
+            string[] split_vec = sets[1].Split(",");
+            string scalar_angle = sets[2];
+
+            var window = new Game.Math_WPF.WPF.Controls3D.Debug3DWindow();
+
+            var sizes = Game.Math_WPF.WPF.Controls3D.Debug3DWindow.GetDrawSizes(2);
+
+            var retVal = new Quaternion(Convert.ToDouble(split_quat[0].Trim()), Convert.ToDouble(split_quat[1].Trim()), Convert.ToDouble(split_quat[2].Trim()), Convert.ToDouble(split_quat[3].Trim()));
+            var axis = new Vector3D(Convert.ToDouble(split_vec[0].Trim()), Convert.ToDouble(split_vec[1].Trim()), Convert.ToDouble(split_vec[2].Trim()));
+            double angle = Convert.ToDouble(scalar_angle);
+
+
+            string report_axis_1 = retVal.Axis.ToStringSignificantDigits(4);
+            string report_axis_2 = axis.ToStringSignificantDigits(4);
+            string report_angle_1 = retVal.Angle.ToStringSignificantDigits(4);
+            string report_angle_2 = angle.ToStringSignificantDigits(4);
+
+            // these are the same
+            if (report_axis_1 != report_axis_2 || report_angle_1 != report_angle_2)
+            {
+            }
+
+
+            return retVal;
         }
 
         private static Category FindCategory(Category[] categories, string name)

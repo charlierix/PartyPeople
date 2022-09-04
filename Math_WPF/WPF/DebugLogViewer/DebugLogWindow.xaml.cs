@@ -18,6 +18,7 @@ using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using System.Windows.Shapes;
+using System.Xaml;
 
 namespace Game.Math_WPF.WPF.DebugLogViewer
 {
@@ -72,6 +73,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
         private List<Visual3D> _visuals = new List<Visual3D>();
         private List<BillboardLine3DSet> _lines_defaultColor = new List<BillboardLine3DSet>();
         private List<VisualEntry> _tooltips = new List<VisualEntry>();
+        private List<Visual3D> _axis_lines = new List<Visual3D>();
 
         private bool _hasAutoSetCamera = false;
 
@@ -104,6 +106,10 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             cboCenterPoints.Items.Add(new KeyValuePair<string, PointCentering>("Per Frame", PointCentering.PerFrame));
             cboCenterPoints.Items.Add(new KeyValuePair<string, PointCentering>("None", PointCentering.None));
             cboCenterPoints.SelectedIndex = 0;
+
+            cboHandedness.Items.Add(new KeyValuePair<string, Handedness>("Right (Z up, Y forward, X left)", Handedness.Right_ZUp_YFor_XLeft));
+            cboHandedness.Items.Add(new KeyValuePair<string, Handedness>("Left (Y up, Z forward, X right)", Handedness.Left_YUp_ZFor_XRight));
+            cboHandedness.SelectedIndex = 0;
 
             EnableDisableMultiFrame();
         }
@@ -276,12 +282,47 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private void cboHandedness_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            try
+            {
+                if (_scene_orig != null)
+                    LoadScene(_scene_orig);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private void chkEmptyFrames_Checked(object sender, RoutedEventArgs e)
         {
             try
             {
                 if (_scene_orig != null)
                     LoadScene(_scene_orig);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void chkAxisLines_Checked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (chkAxisLines.IsChecked.Value)
+                {
+                    if (_axis_lines.Count == 0)
+                    {
+                        _axis_lines.AddRange(Debug3DWindow.GetAxisLines(1, Debug3DWindow.GetDrawSizes(1.5).line));
+                        _viewport.Children.AddRange(_axis_lines);
+                    }
+                }
+                else
+                {
+                    _viewport.Children.RemoveAll(_axis_lines);
+                    _axis_lines.Clear();
+                }
             }
             catch (Exception ex)
             {
@@ -352,6 +393,29 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                     return;
 
                 ShowFrame(_scene.frames[Convert.ToInt32(trkMultiFrame.Value)]);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SaveXAML_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_scene == null)
+                {
+                    MessageBox.Show("Need to load a scene first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                string folder_base = System.IO.Path.GetDirectoryName(txtFile.Text);
+                string filename_base = System.IO.Path.GetFileNameWithoutExtension(txtFile.Text);
+
+                string filename = System.IO.Path.Combine(folder_base, filename_base + ".xml");
+
+                System.IO.File.WriteAllText(filename, XamlServices.Save(_scene));
             }
             catch (Exception ex)
             {
@@ -494,6 +558,10 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             panelFrameText.Children.Clear();
 
             _scene_orig = scene;
+
+            var handedness = ((KeyValuePair<string, Handedness>)cboHandedness.SelectedItem).Value;
+            if (scene.isRightHanded != (handedness == Handedness.Right_ZUp_YFor_XLeft))
+                scene = Util_Runtime.SwitchLeftRightHanded(scene);
 
             scene = Util_Runtime.Apply_EmptyFrameRemoval(scene, chkEmptyFrames.IsChecked.Value);
             scene = Util_Runtime.Apply_Centering(scene, ((KeyValuePair<string, PointCentering>)cboCenterPoints.SelectedItem).Value);

@@ -13,5 +13,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer.Models
         public LogFrame[] frames { get; init; }
 
         public Text[] text { get; init; }
+
+        public bool isRightHanded { get; init; }
     }
 }

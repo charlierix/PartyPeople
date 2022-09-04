@@ -58,6 +58,29 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                     throw new ApplicationException($"Unknown {nameof(PointCentering)}: {centering}");
             }
         }
+        /// <summary>
+        /// Negates all X's to emulate the opposite handedness
+        /// </summary>
+        /// <remarks>
+        /// WPF uses right handed, so X points left
+        /// 
+        /// Unity uses left handed, so X points right
+        /// 
+        /// If the items were created in unity, they will draw wrong in wpf.  So negating X's of all items will
+        /// make render correctly
+        /// </remarks>
+        public static LogScene SwitchLeftRightHanded(LogScene scene)
+        {
+            // Negate all X's
+            return scene with
+            {
+                frames = scene.frames.
+                    Select(o => NegateHanded(o, scene.isRightHanded)).
+                    ToArray(),
+
+                isRightHanded = !scene.isRightHanded,
+            };
+        }
 
         // These colors are used to stand out from the current background
         public static double GetComplementaryGray(double percent)
@@ -219,6 +242,86 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
         private static Point3D TranslatePosition(Point3D position, Point3D center)
         {
             return position - center.ToVector();
+        }
+
+        private static LogFrame NegateHanded(LogFrame frame, bool from_right)
+        {
+            return frame with
+            {
+                items = frame.items.
+                    Select(o => NegateHanded(o, from_right)).
+                    ToArray(),
+            };
+        }
+        private static ItemBase NegateHanded(ItemBase item, bool from_right)
+        {
+            if (item is ItemDot dot)
+                return dot with
+                {
+                    position = new Point3D(-dot.position.X, dot.position.Y, dot.position.Z),
+                };
+
+            if (item is ItemCircle_Edge circle)
+                return circle with
+                {
+                    center = new Point3D(-circle.center.X, circle.center.Y, circle.center.Z),
+                    normal = new Vector3D(-circle.normal.X, circle.normal.Y, circle.normal.Z),
+                };
+
+            if (item is ItemSquare_Filled square)
+                return square with
+                {
+                    center = new Point3D(-square.center.X, square.center.Y, square.center.Z),
+                    normal = new Vector3D(-square.normal.X, square.normal.Y, square.normal.Z),
+                };
+
+            if (item is ItemLine line)
+                return line with
+                {
+                    point1 = new Point3D(-line.point1.X, line.point1.Y, line.point1.Z),
+                    point2 = new Point3D(-line.point2.X, line.point2.Y, line.point2.Z),
+                };
+
+            if (item is ItemAxisLines axisLines)
+                return axisLines with
+                {
+                    position = new Point3D(-axisLines.position.X, axisLines.position.Y, axisLines.position.Z),
+                    axis_x = new Vector3D(-axisLines.axis_x.X, axisLines.axis_x.Y, axisLines.axis_x.Z),
+                    axis_y = new Vector3D(-axisLines.axis_y.X, axisLines.axis_y.Y, axisLines.axis_y.Z),
+                    axis_z = new Vector3D(-axisLines.axis_z.X, axisLines.axis_z.Y, axisLines.axis_z.Z),
+                };
+
+            throw new ApplicationException($"Unexpected type: {item.GetType()}");
+        }
+
+        //TODO: this doesn't seem to be working.  Make a test button
+        // https://stackoverflow.com/questions/28673777/convert-quaternion-from-right-handed-to-left-handed-coordinate-system
+        // https://gamedev.stackexchange.com/questions/157946/converting-a-quaternion-in-a-right-to-left-handed-coordinate-system
+        private static Quaternion RightToLeft(Quaternion quat)
+        {
+            //          from (wpf)     to (unity)
+            // forward      y              z
+            // up           z              y
+            // right       -x              x
+
+            return new Quaternion(
+                quat.X,        // -(-x)
+                -quat.Z,        // -(+z)
+                -quat.Y,        // -(+y)
+                quat.W);        // leave w alone
+        }
+        private static Quaternion LeftToRight(Quaternion quat)
+        {
+            //          from (unity)     to (wpf)
+            // forward      z              y
+            // up           y              z
+            // right        x             -x
+
+            return new Quaternion(
+                quat.X,        // -(-x)
+                -quat.Z,        // -(+z)
+                -quat.Y,        // -(+y)
+                quat.W);        // leave w alone
         }
 
         #endregion
