@@ -312,6 +312,44 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void CircularBuffer_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var circular = new CircularBuffer<string>(6);
+
+                for (int i = 0; i < 3; i++)
+                {
+                    if (i > 0)
+                        circular.Clear();
+
+                    int count = circular.CurrentSize;
+                    var latest = circular.LastestItem;
+
+                    var results = Enumerable.Range(0, 24).
+                        Select(o =>
+                        {
+                            circular.Add(o.ToString());
+
+                            return new
+                            {
+                                count = circular.CurrentSize,
+                                latest = circular.LastestItem,
+
+                                report = circular.
+                                    GetLatestEntries().
+                                    ToJoin(", "),
+                            };
+                        }).
+                        ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
 
         #region Private Methods

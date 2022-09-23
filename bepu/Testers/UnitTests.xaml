@@ -9,6 +9,7 @@
     <Grid Margin="8">
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
             <Button Content="Quaternions" Click="Quaternions_Click"/>
+            <Button Content="Circular Buffer" Click="CircularBuffer_Click"/>
         </StackPanel>
     </Grid>
 </Window>
