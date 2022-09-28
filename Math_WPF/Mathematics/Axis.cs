@@ -42,20 +42,14 @@ namespace Game.Math_WPF.Mathematics
         public readonly int Increment;
         public readonly bool IsPos;
 
-        public int Length
-        {
-            get
-            {
-                return Math.Abs(this.Stop - this.Start) + 1;
-            }
-        }
+        public int Length => Math.Abs(Stop - Start) + 1;
 
         /// <summary>
         /// This will set one of the output x,y,z to index3D based on this.Axis
         /// </summary>
         public void Set3DIndex(ref int x, ref int y, ref int z, int index3D)
         {
-            switch (this.Axis)
+            switch (Axis)
             {
                 case Axis.X:
                     x = index3D;
@@ -70,12 +64,12 @@ namespace Game.Math_WPF.Mathematics
                     break;
 
                 default:
-                    throw new ApplicationException("Unknown Axis: " + this.Axis.ToString());
+                    throw new ApplicationException($"Unknown Axis: {Axis}");
             }
         }
         public void Set2DIndex(ref int x, ref int y, int index2D)
         {
-            switch (this.Axis)
+            switch (Axis)
             {
                 case Axis.X:
                     x = index2D;
@@ -89,19 +83,16 @@ namespace Game.Math_WPF.Mathematics
                     throw new ApplicationException("Didn't expect Z axis");
 
                 default:
-                    throw new ApplicationException("Unknown Axis: " + this.Axis.ToString());
+                    throw new ApplicationException($"Unknown Axis: {Axis}");
             }
         }
         public int GetValueForOffset(int value2D)
         {
-            if (this.IsPos)
-            {
+            if (IsPos)
                 return value2D;
-            }
+
             else
-            {
-                return this.Start - value2D;        // using start, because it's negative, so start is the larger value
-            }
+                return Start - value2D;        // using start, because it's negative, so start is the larger value
         }
 
         public IEnumerable<int> Iterate()
@@ -114,14 +105,11 @@ namespace Game.Math_WPF.Mathematics
 
         public bool IsBetween(int test)
         {
-            if (this.IsPos)
-            {
-                return test >= this.Start && test <= this.Stop;
-            }
+            if (IsPos)
+                return test >= Start && test <= Stop;
+
             else
-            {
-                return test >= this.Stop && test <= this.Start;
-            }
+                return test >= Stop && test <= Start;
         }
 
         public override string ToString()
@@ -152,31 +140,31 @@ namespace Game.Math_WPF.Mathematics
         {
             if (steps <= 0)
             {
-                throw new ArgumentException("steps must be positive: " + steps.ToString());
+                throw new ArgumentException($"steps must be positive: {steps}");
             }
             else if (Math1D.IsNearValue(start, stop))
             {
-                throw new ArgumentException("start and stop can't be the same value: " + start.ToString());
+                throw new ArgumentException($"start and stop can't be the same value: {start}");
             }
 
-            this.Axis = axis;
-            this.Start = start;
-            this.Stop = stop;
+            Axis = axis;
+            Start = start;
+            Stop = stop;
 
-            this.IsPos = this.Stop > this.Start;
-            this.Increment = (stop - start) / steps;
+            IsPos = Stop > Start;
+            Increment = (stop - start) / steps;
         }
         /// <summary>
         /// This overload sets up the struct to only have one value.  When you call Iterate(), it returns that one value, then stops
         /// </summary>
         public AxisForDouble(Axis axis, double value)
         {
-            this.Axis = axis;
-            this.Start = value;
-            this.Stop = value;
+            Axis = axis;
+            Start = value;
+            Stop = value;
 
-            this.IsPos = true;
-            this.Increment = 100;       // this way iterate will only return one value
+            IsPos = true;
+            Increment = 100;       // this way iterate will only return one value
         }
 
         public readonly Axis Axis;
@@ -190,7 +178,7 @@ namespace Game.Math_WPF.Mathematics
         /// </summary>
         public void SetCorrespondingValue(ref double x, ref double y, ref double z, double value)
         {
-            switch (this.Axis)
+            switch (Axis)
             {
                 case Axis.X:
                     x = value;
@@ -205,18 +193,18 @@ namespace Game.Math_WPF.Mathematics
                     break;
 
                 default:
-                    throw new ApplicationException("Unknown Axis: " + this.Axis.ToString());
+                    throw new ApplicationException($"Unknown Axis: {Axis}");
             }
         }
 
         public IEnumerable<double> Iterate()
         {
-            double retVal = this.Start;
+            double retVal = Start;
 
-            while ((this.IsPos ? retVal < this.Stop : retVal > this.Stop) || Math1D.IsNearValue(retVal, this.Stop))
+            while ((IsPos ? retVal < Stop : retVal > Stop) || Math1D.IsNearValue(retVal, Stop))
             {
                 yield return retVal;
-                retVal += this.Increment;
+                retVal += Increment;
             }
         }
 
@@ -240,9 +228,9 @@ namespace Game.Math_WPF.Mathematics
     {
         public Mapping_2D_1D(int x, int y, int offset1D)
         {
-            this.X = x;
-            this.Y = y;
-            this.Offset1D = offset1D;
+            X = x;
+            Y = y;
+            Offset1D = offset1D;
         }
 
         public readonly int X;
@@ -260,10 +248,10 @@ namespace Game.Math_WPF.Mathematics
     {
         public Mapping_3D_1D(int x, int y, int z, int offset1D)
         {
-            this.X = x;
-            this.Y = y;
-            this.Z = z;
-            this.Offset1D = offset1D;
+            X = x;
+            Y = y;
+            Z = z;
+            Offset1D = offset1D;
         }
 
         public readonly int X;

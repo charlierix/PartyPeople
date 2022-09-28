@@ -126,7 +126,7 @@ namespace Game.Math_WPF.Mathematics
         public static Point3D GetPoint(double percent, BezierSegment3D_wpf[] bezier)
         {
             //TODO: If the bezier is closed, make it circular
-            if (percent < 0) 
+            if (percent < 0)
                 return bezier[0].EndPoint0;
 
             double totalLength = bezier.Sum(o => o.Length_quick);
@@ -351,15 +351,9 @@ namespace Game.Math_WPF.Mathematics
         public static Point3D GetControlPoint_End(Point3D end1, Point3D end2, Point3D otherPoint, bool isAwayFromOther = true, double angle = 30, double percentAlong12 = .25)
         {
             // Figure out the axis
-            Vector3D axis;
-            if (isAwayFromOther)
-            {
-                axis = Vector3D.CrossProduct(otherPoint - end1, end2 - end1);
-            }
-            else
-            {
-                axis = Vector3D.CrossProduct(end2 - end1, otherPoint - end1);
-            }
+            Vector3D axis = isAwayFromOther ?
+                Vector3D.CrossProduct(otherPoint - end1, end2 - end1) :
+                Vector3D.CrossProduct(end2 - end1, otherPoint - end1);
 
             // Call the other overload
             return GetControlPoint_End(end1, end2, axis, angle, percentAlong12);
@@ -402,9 +396,7 @@ namespace Game.Math_WPF.Mathematics
         public static Point3D[] GetBezierMesh_Points(BezierSegment3D_wpf[][] horizontals, int horzCount, int vertCount, double controlPointPercent = .5)
         {
             if (horzCount < 2 || vertCount < 2)
-            {
                 throw new ArgumentException($"horzCount and vertCount need to be at least 2.  horzCount={horzCount}, vertCount={vertCount}");
-            }
 
             return GetVerticalSamples(horizontals, horzCount, vertCount, controlPointPercent).
                 SelectMany(o => o).
@@ -413,9 +405,7 @@ namespace Game.Math_WPF.Mathematics
         public static Point3D[][] GetBezierMesh_Horizontals(BezierSegment3D_wpf[][] horizontals, int horzCount, int vertCount, double controlPointPercent = .5)
         {
             if (horzCount < 2 || vertCount < 2)
-            {
                 throw new ArgumentException($"horzCount and vertCount need to be at least 2.  horzCount={horzCount}, vertCount={vertCount}");
-            }
 
             Point3D[][] verticals = GetVerticalSamples(horizontals, horzCount, vertCount, controlPointPercent);
 
@@ -436,9 +426,7 @@ namespace Game.Math_WPF.Mathematics
         public static ITriangleIndexed_wpf[] GetBezierMesh_Triangles(BezierSegment3D_wpf[][] horizontals, int horzCount, int vertCount, double controlPointPercent = .5)
         {
             if (horzCount < 2 || vertCount < 2)
-            {
                 throw new ArgumentException($"horzCount and vertCount need to be at least 2.  horzCount={horzCount}, vertCount={vertCount}");
-            }
 
             int horzCount_centers = (horzCount * 2) - 1;
             int vertCount_centers = (vertCount * 2) - 1;
@@ -482,13 +470,10 @@ namespace Game.Math_WPF.Mathematics
         public static MeshGeometry3D GetBezierMesh_MeshGeometry3D(BezierSegment3D_wpf[][] horizontals, int horzCount, int vertCount, double controlPointPercent = .5, double textureAspectRatio = 1, bool invertY = true, double zoom = 1)
         {
             if (horzCount < 3 || vertCount < 3)
-            {
                 throw new ArgumentException($"horzCount and vertCount need to be at least 3.  horzCount={horzCount}, vertCount={vertCount}");
-            }
+
             else if (horzCount % 2 != 1 || vertCount % 2 != 1)
-            {
                 throw new ArgumentException($"horzCount and vertCount both need to be odd numbers (because the mesh's center needs to fall on an actual point).  horzCount={horzCount}, vertCount={vertCount}");
-            }
 
             int horzCount_centers = (horzCount * 2) - 1;
             int vertCount_centers = (vertCount * 2) - 1;
@@ -556,9 +541,7 @@ namespace Game.Math_WPF.Mathematics
 
                 Point point = textureTransform.Transform(distances.lengths[cntr].ToPoint());
                 if (invertY)
-                {
                     point = new Point(point.X, 1 - point.Y);
-                }
 
                 retVal.TextureCoordinates.Add(point);
             }
@@ -868,12 +851,12 @@ namespace Game.Math_WPF.Mathematics
 
         public BezierSegment3D_wpf(int endIndex0, int endIndex1, Point3D[] controlPoints, Point3D[] allEndPoints)
         {
-            this.EndIndex0 = endIndex0;
-            this.EndIndex1 = endIndex1;
-            this.ControlPoints = controlPoints;
-            this.AllEndPoints = allEndPoints;
+            EndIndex0 = endIndex0;
+            EndIndex1 = endIndex1;
+            ControlPoints = controlPoints;
+            AllEndPoints = allEndPoints;
 
-            this.Combined = UtilityCore.Iterate<Point3D>(this.EndPoint0, this.ControlPoints, this.EndPoint1).ToArray();
+            Combined = UtilityCore.Iterate<Point3D>(EndPoint0, ControlPoints, EndPoint1).ToArray();
         }
 
         #endregion
@@ -883,20 +866,8 @@ namespace Game.Math_WPF.Mathematics
         public readonly int EndIndex0;
         public readonly int EndIndex1;
 
-        public Point3D EndPoint0
-        {
-            get
-            {
-                return this.AllEndPoints[this.EndIndex0];
-            }
-        }
-        public Point3D EndPoint1
-        {
-            get
-            {
-                return this.AllEndPoints[this.EndIndex1];
-            }
-        }
+        public Point3D EndPoint0 => AllEndPoints[EndIndex0];
+        public Point3D EndPoint1 => AllEndPoints[EndIndex1];
 
         public readonly Point3D[] ControlPoints;
 
@@ -922,20 +893,20 @@ namespace Game.Math_WPF.Mathematics
                 {
                     if (_length_quick == null)
                     {
-                        if (this.ControlPoints == null || this.ControlPoints.Length == 0)
+                        if (ControlPoints == null || ControlPoints.Length == 0)
                         {
-                            _length_quick = (this.EndPoint1 - this.EndPoint0).Length;
+                            _length_quick = (EndPoint1 - EndPoint0).Length;
                         }
                         else
                         {
                             double length = 0;
 
-                            length += (this.ControlPoints[0] - this.EndPoint0).LengthSquared;
-                            length += (this.ControlPoints[this.ControlPoints.Length - 1] - this.EndPoint1).LengthSquared;
+                            length += (ControlPoints[0] - EndPoint0).LengthSquared;
+                            length += (ControlPoints[ControlPoints.Length - 1] - EndPoint1).LengthSquared;
 
-                            for (int cntr = 0; cntr < this.ControlPoints.Length - 1; cntr++)
+                            for (int cntr = 0; cntr < ControlPoints.Length - 1; cntr++)
                             {
-                                length += (this.ControlPoints[cntr] - this.ControlPoints[cntr + 1]).LengthSquared;
+                                length += (ControlPoints[cntr] - ControlPoints[cntr + 1]).LengthSquared;
                             }
 
                             _length_quick = Math.Sqrt(length);
@@ -1033,33 +1004,23 @@ namespace Game.Math_WPF.Mathematics
 
             // X length
             if (axisX == null || axisX.Length < 2)
-            {
                 throw new ArgumentException(string.Format("axisX must have at least 2 items: len={0}", axisX == null ? "null" : axisX.Length.ToString()));
-            }
 
             // Y length
             if (axisY == null || axisY.Length < 2)
-            {
                 throw new ArgumentException(string.Format("axisY must have at least 2 items: len={0}", axisY == null ? "null" : axisY.Length.ToString()));
-            }
 
             // Z area
             if (valuesZ == null || valuesZ.Length != axisX.Length * axisY.Length)
-            {
                 throw new ArgumentException(string.Format("valuesZ is invalid length: values={0}, axis1={1}, axis2={2}", valuesZ == null ? "null" : valuesZ.Length.ToString(), axisX.Length, axisY.Length));
-            }
 
             // X equality
             if (Enumerable.Range(0, axisX.Length - 1).Any(o => axisX[o].IsNearValue(axisX[o + 1])))
-            {
                 throw new ArgumentException("Values can't be the same in x axis");
-            }
 
             // Y equality
             if (Enumerable.Range(0, axisY.Length - 1).Any(o => axisY[o].IsNearValue(axisY[o + 1])))
-            {
                 throw new ArgumentException("Values can't be the same in y axis");
-            }
 
             #endregion
 
@@ -1070,15 +1031,11 @@ namespace Game.Math_WPF.Mathematics
 
             // X ascending
             if (Enumerable.Range(0, axisX.Length - 1).Any(o => isAccendingX ? axisX[o + 1] < axisX[o] : axisX[o + 1] > axisX[o]))
-            {
                 throw new ArgumentException("The values in axisX must all ascend or descend");
-            }
 
             // Y ascending
             if (Enumerable.Range(0, axisY.Length - 1).Any(o => isAccendingY ? axisY[o + 1] < axisY[o] : axisY[o + 1] > axisY[o]))
-            {
                 throw new ArgumentException("The values in axisX must all ascend or descend");
-            }
 
             #endregion
 
