@@ -9,7 +9,14 @@
     <Grid Margin="8">
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
             <Button Content="Quaternions" Click="Quaternions_Click"/>
-            <Button Content="Circular Buffer" Click="CircularBuffer_Click"/>
+            <Button Content="Mirror Quat" Click="MirrorQuat_Click"/>
+
+            <Button Content="Circular Buffer" Margin="0,8,0,0" Click="CircularBuffer_Click"/>
+
+            <!--<Button Content="cos test" Margin="0,16,0,0" Click="CosTest_Click"/>
+            <Button Content="cos test 2" Click="CosTest2_Click"/>
+            <Button Content="bezier plot" Click="BezierPlot_Click"/>-->
+
         </StackPanel>
     </Grid>
 </Window>

@@ -5382,6 +5382,35 @@ namespace Game.Math_WPF.Mathematics
             return new Quaternion(axis, angle);
         }
 
+        public static Quaternion GetMirroredRotation(Quaternion quat, Axis normal)
+        {
+            //https://stackoverflow.com/questions/32438252/efficient-way-to-apply-mirror-effect-on-quaternion-rotation
+
+            if (quat.IsIdentity)
+                return quat;
+
+            Vector3D axis = quat.Axis;
+            double angle = quat.Angle;
+
+            switch (normal)
+            {
+                case Axis.X:
+                    //return new Quaternion(new Vector3D(axis.X, -axis.Y, -axis.Z), angle);        // this is equivalent to the statement with negative angle (they both produce the same quaternion)
+                    return new Quaternion(new Vector3D(-axis.X, axis.Y, axis.Z), -angle);
+
+                case Axis.Y:
+                    //return new Quaternion(new Vector3D(-axis.X, axis.Y, -axis.Z), angle);
+                    return new Quaternion(new Vector3D(axis.X, -axis.Y, axis.Z), -angle);
+
+                case Axis.Z:
+                    //return new Quaternion(new Vector3D(-axis.X, -axis.Y, axis.Z), angle);
+                    return new Quaternion(new Vector3D(axis.X, axis.Y, -axis.Z), -angle);
+
+                default:
+                    throw new ApplicationException($"Unknown AxisDim: {normal}");
+            }
+        }
+
         /// <summary>
         /// This returns a vector that is orthogonal to standard, and in the same plane as direction
         /// </summary>

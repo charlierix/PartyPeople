@@ -1,10 +1,13 @@
 ﻿using Game.Core;
 using Game.Math_WPF.Mathematics;
+using Game.Math_WPF.WPF;
+using Game.Math_WPF.WPF.Controls3D;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -312,6 +315,74 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void MirrorQuat_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var window = new Debug3DWindow();
+
+                var sizes = Debug3DWindow.GetDrawSizes(2);
+
+                var get_vectors = new Func<Vector3D[]>(() =>
+                    new[]
+                    {
+                        new Vector3D(1,0,0),
+                        new Vector3D(0,1,0),
+                        new Vector3D(0,0,1),
+                    });
+
+                var draw_vectors = new Action<Vector3D[]>(v =>
+                    {
+                        window.AddLine(new Point3D(), v[0].ToPoint(), sizes.line, UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_X));
+                        window.AddLine(new Point3D(), v[1].ToPoint(), sizes.line, UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_Y));
+                        window.AddLine(new Point3D(), v[2].ToPoint(), sizes.line, UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_Z));
+                    });
+
+                // Original
+                var quat = Math3D.GetRandomRotation();
+
+                var rotated_orig = get_vectors();
+                quat.GetRotatedVector(rotated_orig);
+
+                draw_vectors(rotated_orig);
+
+                // Mirror Plane
+                //var normal = Math3D.GetRandomVector_Spherical_Shell(1);       // there are special cases for the orthogonal axiis, not sure about an arbitrary vector
+                var normal = UtilityCore.GetRandomEnum<Axis>();
+                var normal_vec = normal switch
+                {
+                    Axis.X => new Vector3D(1, 0, 0),
+                    Axis.Y => new Vector3D(0, 1, 0),
+                    Axis.Z => new Vector3D(0, 0, 1),
+                    _ => throw new ApplicationException($"Unknown Axis: {normal}"),
+                };
+
+                window.AddPlane(Math3D.GetPlane(new Point3D(), normal_vec), 1, Colors.Black);
+
+                window.AddText(normal.ToString());
+
+                var mirrored_quat_1 = GetMirroredQuat_1(quat, normal);
+                var mirrored_quat_2 = GetMirroredQuat_2(quat, normal);
+                var mirrored_quat_final = Math3D.GetMirroredRotation(quat, normal);
+
+                if (!mirrored_quat_1.IsNearValue(mirrored_quat_2) || !mirrored_quat_1.IsNearValue(mirrored_quat_final))       // they are always the same
+                {
+                    MessageBox.Show("quats are different", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+
+                var rotated_1 = get_vectors();
+                mirrored_quat_1.GetRotatedVector(rotated_1);
+
+                draw_vectors(rotated_1);
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void CircularBuffer_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -464,6 +535,438 @@ namespace Game.Bepu.Testers
         private static double GetLength(System.Windows.Media.Media3D.Quaternion quat)
         {
             return Math.Sqrt((quat.X * quat.X) + (quat.Y * quat.Y) + (quat.Z * quat.Z) + (quat.W * quat.W));
+        }
+
+        // Both of these are the same
+        private static System.Windows.Media.Media3D.Quaternion GetMirroredQuat_1(System.Windows.Media.Media3D.Quaternion quat, Axis normal)
+        {
+            //https://stackoverflow.com/questions/32438252/efficient-way-to-apply-mirror-effect-on-quaternion-rotation
+
+            if (quat.IsIdentity)
+                return quat;
+
+            Vector3D axis = quat.Axis;
+            double angle = quat.Angle;
+
+            switch (normal)
+            {
+                case Axis.X:
+                    return new System.Windows.Media.Media3D.Quaternion(new Vector3D(-axis.X, axis.Y, axis.Z), -angle);
+
+                case Axis.Y:
+                    return new System.Windows.Media.Media3D.Quaternion(new Vector3D(axis.X, -axis.Y, axis.Z), -angle);
+
+                case Axis.Z:
+                    return new System.Windows.Media.Media3D.Quaternion(new Vector3D(axis.X, axis.Y, -axis.Z), -angle);
+
+                default:
+                    throw new ApplicationException($"Unknown Axis: {normal}");
+            }
+        }
+        private static System.Windows.Media.Media3D.Quaternion GetMirroredQuat_2(System.Windows.Media.Media3D.Quaternion quat, Axis normal)
+        {
+            //https://stackoverflow.com/questions/32438252/efficient-way-to-apply-mirror-effect-on-quaternion-rotation
+
+            if (quat.IsIdentity)
+                return quat;
+
+            Vector3D axis = quat.Axis;
+            double angle = quat.Angle;
+
+            switch (normal)
+            {
+                case Axis.X:
+                    return new System.Windows.Media.Media3D.Quaternion(new Vector3D(axis.X, -axis.Y, -axis.Z), angle);
+
+                case Axis.Y:
+                    return new System.Windows.Media.Media3D.Quaternion(new Vector3D(-axis.X, axis.Y, -axis.Z), angle);
+
+                case Axis.Z:
+                    return new System.Windows.Media.Media3D.Quaternion(new Vector3D(-axis.X, -axis.Y, axis.Z), angle);
+
+                default:
+                    throw new ApplicationException($"Unknown Axis: {normal}");
+            }
+        }
+
+        #endregion
+
+        #region Dual Cosine vs Bezier
+
+        private void CosTest_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                float boom_length = 1f;
+                float boom_mid_length = 0.7f;
+
+                float boom_chord_base = 0.5f;
+                float boom_chord_mid = 0.2f;
+                float boom_chord_tip = 0.3f;
+
+                var window = new Debug3DWindow();
+
+                //var sizes = Debug3DWindow.GetDrawSizes(1);
+
+                var graphs = new List<GraphResult>();
+
+                int n = 1000;
+
+                #region standard cos
+
+                var standard_cos = Enumerable.Range(0, n).
+                    Select(o =>
+                    {
+                        double x = (double)o / (double)n;
+                        double y = 0.5 + 0.5 * Math.Cos(x * 2 * Math.PI);
+
+                        return y;
+                    }).
+                    ToArray();
+
+                graphs.Add(Debug3DWindow.GetGraph(standard_cos, "standard cosine"));
+
+                #endregion
+                #region standard sin
+
+                var standard_sin = Enumerable.Range(0, n).
+                    Select(o =>
+                    {
+                        double x = (double)o / (double)n;
+                        double y = 0.5 + 0.5 * Math.Sin(x * 2 * Math.PI);
+
+                        return y;
+                    }).
+                    ToArray();
+
+                graphs.Add(Debug3DWindow.GetGraph(standard_sin, "standard sine"));
+
+                #endregion
+
+                #region left side - FAIL
+
+                //var left_side = Enumerable.Range(0, n).
+                //    Select(o =>
+                //    {
+                //        double x = (double)o / (double)n;
+                //        x *= boom_mid_length / boom_length;
+
+                //        double y = 0.5 + 0.5 * Math.Cos(x * 2 * Math.PI);
+
+                //        return y;
+                //    }).
+                //    ToArray();
+
+                //graphs.Add(Debug3DWindow.GetGraph(left_side, "left side"));
+
+                #endregion
+                #region right side - FAIL
+
+                //var right_side = Enumerable.Range(0, n).
+                //    Select(o =>
+                //    {
+                //        double x = (double)o / (double)n;
+                //        x *= boom_length - (boom_mid_length / boom_length);
+
+                //        double y = 0.5 + 0.5 * Math.Sin(x * 2 * Math.PI);
+
+                //        return y;
+                //    }).
+                //    ToArray();
+
+                //graphs.Add(Debug3DWindow.GetGraph(right_side, "right side"));
+
+                #endregion
+
+                float t = boom_mid_length / boom_length;
+                float u = 1 - t;
+
+                #region left side
+
+                var left_side = Enumerable.Range(0, n).
+                    Select(o =>
+                    {
+                        double x = (double)o / (double)n;
+                        double y = 0.5 + 0.5 * Math.Cos(x / t * Math.PI);
+
+                        return y;
+                    }).
+                    ToArray();
+
+                graphs.Add(Debug3DWindow.GetGraph(left_side, "left side"));
+
+                #endregion
+                #region right side
+
+                var right_side = Enumerable.Range(0, n).
+                    Select(o =>
+                    {
+                        double x = (double)o / (double)n;
+                        double y = 0.5 + 0.5 * Math.Cos(Math.PI + x / u * Math.PI);
+
+                        return y;
+                    }).
+                    ToArray();
+
+                graphs.Add(Debug3DWindow.GetGraph(right_side, "right side"));
+
+                #endregion
+
+                #region combined - const height
+
+                var comb_const = Enumerable.Range(0, n).
+                    Select(o =>
+                    {
+                        double x = (double)o / (double)n;
+
+                        double y;
+                        if (x <= t)
+                        {
+                            y = 0.5 + 0.5 * Math.Cos(x / t * Math.PI);
+                        }
+                        else
+                        {
+                            y = 0.5 + 0.5 * Math.Cos(Math.PI + (x - t) / u * Math.PI);
+                        }
+
+                        return y;
+                    }).
+                    ToArray();
+
+                graphs.Add(Debug3DWindow.GetGraph(comb_const, "combined - const height"));
+
+                #endregion
+                #region combined - variable height
+
+                var comb_var = Enumerable.Range(0, n).
+                    Select(o =>
+                    {
+                        double x = (double)o / (double)n;
+                        double y = GetY_Cos(x, t, boom_chord_base, boom_chord_mid, boom_chord_tip);
+
+                        return y;
+                    }).
+                    ToArray();
+
+                graphs.Add(Debug3DWindow.GetGraph(comb_var, "combined - variable height"));
+
+                #endregion
+
+                #region bezier - variable height
+
+                var bezier = BezierUtil.GetBezierSegments(new[] { new Point3D(0, boom_chord_base, 0), new Point3D(t, boom_chord_mid, 0), new Point3D(1, boom_chord_tip, 0) }, 0.1);
+
+                var bezier_var = Enumerable.Range(0, n).
+                    Select(o =>
+                    {
+                        double x = (double)o / (double)n;
+                        Point3D point = BezierUtil.GetPoint(x, bezier);
+
+                        return point.Y;
+                    }).
+                    ToArray();
+
+                graphs.Add(Debug3DWindow.GetGraph(bezier_var, "bezier - variable height"));
+
+                #endregion
+
+                boom_chord_base = 0.5f;
+                boom_chord_mid = 0.7f; //0.2f;
+                boom_chord_tip = 0.3f;
+
+                #region combined - variable height
+
+                comb_var = Enumerable.Range(0, n).
+                    Select(o =>
+                    {
+                        double x = (double)o / (double)n;
+                        double y = GetY_Cos(x, t, boom_chord_base, boom_chord_mid, boom_chord_tip);
+
+                        return y;
+                    }).
+                    ToArray();
+
+                graphs.Add(Debug3DWindow.GetGraph(comb_var, "combined - variable height 2"));
+
+                #endregion
+                #region bezier - variable height
+
+                bezier = BezierUtil.GetBezierSegments(new[] { new Point3D(0, boom_chord_base, 0), new Point3D(t, boom_chord_mid, 0), new Point3D(1, boom_chord_tip, 0) }, 0.1);
+
+                bezier_var = Enumerable.Range(0, n).
+                    Select(o =>
+                    {
+                        double x = (double)o / (double)n;
+                        Point3D point = BezierUtil.GetPoint(x, bezier);
+
+                        return point.Y;
+                    }).
+                    ToArray();
+
+                graphs.Add(Debug3DWindow.GetGraph(bezier_var, "bezier - variable height 2"));
+
+                #endregion
+
+                window.AddGraphs(graphs.ToArray(), new Point3D(), 1);
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void CosTest2_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Random rand = StaticRandom.GetRandomForThread();
+
+                var window = new Debug3DWindow();
+
+                //var sizes = Debug3DWindow.GetDrawSizes(1);
+
+                var graphs = new List<GraphResult>();
+
+                int n = 1000;
+
+                for (int i = 0; i < 12; i++)
+                {
+                    double y_at_0 = rand.NextDouble();
+                    double y_at_mid = rand.NextDouble();
+                    double y_at_1 = rand.NextDouble();
+
+                    double t = rand.NextDouble(0.1, 0.9);
+                    double u = 1 - t;
+
+                    double bezier_along = 0.2;      //rand.NextDouble(0.05, 0.4);
+
+                    string report = $"{t.ToStringSignificantDigits(2)}  |  {y_at_0.ToStringSignificantDigits(2)}, {y_at_mid.ToStringSignificantDigits(2)}, {y_at_1.ToStringSignificantDigits(2)}";
+
+                    #region combined - variable height
+
+                    var cosine = Enumerable.Range(0, n).
+                        Select(o =>
+                        {
+                            double x = (double)o / (double)n;
+                            double y = GetY_Cos(x, t, y_at_0, y_at_mid, y_at_1);
+
+                            return y;
+                        }).
+                        ToArray();
+
+                    graphs.Add(Debug3DWindow.GetGraph(cosine, $"cosine {report}"));
+
+                    #endregion
+                    #region bezier - variable height
+
+                    var bezier = BezierUtil.GetBezierSegments(new[] { new Point3D(0, y_at_0, 0), new Point3D(t, y_at_mid, 0), new Point3D(1, y_at_1, 0) }, bezier_along);
+
+                    var bezier_var = Enumerable.Range(0, n).
+                        Select(o =>
+                        {
+                            double x = (double)o / (double)n;
+                            Point3D point = BezierUtil.GetPoint(x, bezier);
+
+                            return point.Y;
+                        }).
+                        ToArray();
+
+                    graphs.Add(Debug3DWindow.GetGraph(bezier_var, $"bezier {report}"));
+
+                    #endregion
+                }
+
+                window.AddGraphs(graphs.ToArray(), new Point3D(), 1);
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private static double GetY_Cos(double x, double mid_x, double y_at_0, double y_at_mid, double y_at_1)
+        {
+            if (x <= mid_x)
+            {
+                double height = (y_at_0 - y_at_mid) / 2;
+
+                return y_at_mid + height + (height * Math.Cos(x / mid_x * Math.PI));
+            }
+            else
+            {
+                double height = (y_at_1 - y_at_mid) / 2;
+
+                return y_at_mid + height + (height * Math.Cos(Math.PI + (x - mid_x) / (1 - mid_x) * Math.PI));
+            }
+        }
+
+        private void BezierPlot_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                float Boom_Length = 1f;
+
+                float Boom_Mid_Length = 0.7f;
+
+                float Boom_Span_Base = 0.5f;
+                float Boom_Span_Mid = 0.2f;
+                float Boom_Span_Tip = 0.3f;
+
+                float Boom_Bezier_PinchPercent = 0.2f;       // 0 to 0.4 (affects the curviness of the bezier, 0 is linear)
+
+
+                float val_base = Boom_Span_Base;
+                float val_mid = Boom_Span_Mid;
+                float val_tip = Boom_Span_Tip;
+                float mid_dist = Boom_Mid_Length;
+                float total_span = Boom_Length;
+                float pinch_percent = Boom_Bezier_PinchPercent;
+
+                var slice0 = new[]
+                {
+                    new Point3D(0, 0, val_base),
+                    new Point3D(mid_dist, 0, val_mid),
+                    new Point3D(total_span, 0, val_tip)
+                };
+                var slice1 = slice0.
+                    Select(o => new Point3D(o.X, 1, o.Z)).
+                    ToArray();
+
+                var bezier0 = BezierUtil.GetBezierSegments(slice0, pinch_percent);
+                var bezier1 = BezierUtil.GetBezierSegments(slice1, pinch_percent);
+
+                float[] sample_xs = new[] { 0, 1f / 3f, 2f / 3f, 1 };
+
+                // doesn't work, x isn't walked linearly
+                //var points1D = BezierUtil.GetBezierMesh_Points(new[] { bezier0, bezier1}, sample_xs.Length, 2);
+                //var points2D = BezierUtil.GetBezierMesh_Horizontals(new[] { bezier0, bezier1 }, sample_xs.Length, 2);
+
+
+                var get_x_at_percent = new Func<double, double>(perc => BezierUtil.GetPoint(perc, bezier0).X);
+
+
+                foreach (float x in sample_xs)
+                {
+                    double percent = Math1D.GetInputForDesiredOutput_PosInput_PosCorrelation(x, 0.01, get_x_at_percent);
+
+                    Point3D point = BezierUtil.GetPoint(percent, bezier0);
+
+
+
+                }
+
+
+
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         #endregion
