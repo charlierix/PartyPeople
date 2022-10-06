@@ -1,0 +1,35 @@
+﻿<Window x:Class="Game.Bepu.Testers.WingInterference"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Game.Bepu.Testers"
+        mc:Ignorable="d"
+        Title="Wing Interference" ResizeMode="CanResizeWithGrip" Width="640" Height="480">
+    <Window.Resources>
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="6,2"/>
+            <Setter Property="Margin" Value="4"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="8"/>
+            <ColumnDefinition Width="auto"/>
+        </Grid.ColumnDefinitions>
+        
+        <StackPanel Grid.Column="0">
+            <Button Content="cells" Click="Cells_Click"/>
+            
+            <!-- This is several thoughts that never finished -->
+            <Button Content="axis aligned plate" Click="AxisAligned_Click"/>
+        </StackPanel>
+
+        <StackPanel Grid.Column="2">
+            <Label Content="SparseCellGrid"/>
+            <Button Content="GetCell" Click="GetCell_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

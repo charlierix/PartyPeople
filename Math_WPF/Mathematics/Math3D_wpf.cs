@@ -6060,9 +6060,7 @@ namespace Game.Math_WPF.Mathematics
         public static (Rect3D rect, Point3D center)[] GetCells(double cellSize, int numCellsX, int numCellsY, int numCellsZ, double margin = 0, Point3D? center = null)
         {
             if (numCellsX <= 0 || numCellsY <= 0 || numCellsZ <= 0)
-            {
                 return new (Rect3D, Point3D)[0];
-            }
 
             (Rect3D, Point3D)[] retVal = new (Rect3D, Point3D)[numCellsX * numCellsY * numCellsZ];
 
@@ -6113,6 +6111,30 @@ namespace Game.Math_WPF.Mathematics
             }
 
             return retVal;
+        }
+
+        public static ((int i1, int i2)[] index_pairs, Point3D[] all_points_distinct) GetDistinctLineSegments(IEnumerable<(Point3D point1, Point3D point2)> lines)
+        {
+            var lines_arr = lines.ToArray();
+
+            Point3D[] distinct_points = Math3D.GetUnique(lines_arr.SelectMany(o => new[] { o.point1, o.point2 }));
+
+            var find_index = new Func<Point3D, int>(p =>
+            {
+                for (int i = 0; i < distinct_points.Length; i++)
+                    if (distinct_points[i].IsNearValue(p))
+                        return i;
+
+                return -1;
+            });
+
+            var index_pairs = lines_arr.
+                Select(o => (find_index(o.point1), find_index(o.point2))).
+                Select(o => (Math.Min(o.Item1, o.Item2), Math.Max(o.Item1, o.Item2))).
+                Distinct().
+                ToArray();
+
+            return (index_pairs, distinct_points);
         }
 
         /// <summary>

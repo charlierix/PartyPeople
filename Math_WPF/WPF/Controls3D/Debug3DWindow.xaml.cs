@@ -363,6 +363,11 @@ namespace Game.Math_WPF.WPF.Controls3D
             Visuals3D.Add(
                 GetLines(lines, thickness, color));
         }
+        public void AddLines((int i1, int i2)[] index_pairs, Point3D[] all_points, double thickness, Color color)
+        {
+            AddLines(index_pairs.Select(o => (all_points[o.i1], all_points[o.i2])), thickness, color);
+        }
+
         public static Visual3D GetLines(IEnumerable<Point3D> points, double thickness, Color color)
         {
             var segments = new List<(Point3D, Point3D)>();

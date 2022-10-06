@@ -1186,9 +1186,10 @@ namespace Game.Core
             // Keep trying to merge the chains until no more merges are possible
             while (true)
             {
-                #region Merge pass
+                #region merge pass
 
-                if (chains.Count == 1) break;
+                if (chains.Count == 1)
+                    break;
 
                 bool hadJoin = false;
 
@@ -1212,17 +1213,19 @@ namespace Game.Core
                         }
                     }
 
-                    if (hadJoin) break;
+                    if (hadJoin)
+                        break;
                 }
 
-                if (!hadJoin) break;        // compared all the mini chains, and there were no merges.  Quit looking
+                if (!hadJoin)
+                    break;        // compared all the mini chains, and there were no merges.  Quit looking
 
                 #endregion
             }
 
-            #region Detect loops
+            #region detect loops
 
-            List<Tuple<T[], bool>> retVal = new List<Tuple<T[], bool>>();
+            var retVal = new List<Tuple<T[], bool>>();
 
             foreach (T[] chain in chains)
             {
@@ -1941,25 +1944,19 @@ namespace Game.Core
         private static T[] TryJoinChains<T>(T[] chain1, T[] chain2, Func<T, T, bool> compare)
         {
             if (compare(chain1[0], chain2[0]))
-            {
                 return UtilityCore.Iterate(chain1.Reverse<T>(), chain2.Skip(1)).ToArray();
-            }
+
             else if (compare(chain1[chain1.Length - 1], chain2[0]))
-            {
                 return UtilityCore.Iterate(chain1, chain2.Skip(1)).ToArray();
-            }
+
             else if (compare(chain1[0], chain2[chain2.Length - 1]))
-            {
                 return UtilityCore.Iterate(chain2, chain1.Skip(1)).ToArray();
-            }
+
             else if (compare(chain1[chain1.Length - 1], chain2[chain2.Length - 1]))
-            {
                 return UtilityCore.Iterate(chain2, chain1.Reverse<T>().Skip(1)).ToArray();
-            }
+
             else
-            {
                 return null;
-            }
         }
 
         /// <summary>

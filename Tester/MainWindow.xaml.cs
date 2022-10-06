@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Game.Bepu.Testers;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -97,6 +98,10 @@ namespace Game.Tester
         private void DebugLogViewer_MouseUp(object sender, MouseButtonEventArgs e)
         {
             new Game.Math_WPF.WPF.DebugLogViewer.DebugLogWindow().Show();
+        }
+        private void WingInterference_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.WingInterference().Show();
         }
     }
 }

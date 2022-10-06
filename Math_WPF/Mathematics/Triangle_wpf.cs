@@ -1447,7 +1447,9 @@ namespace Game.Math_WPF.Mathematics
 
             // Get the points
             Point3D[] allPoints = triangles[0].AllPoints;
-            allUsedPoints = allUsedIndices.Select(o => allPoints[o]).ToArray();
+            allUsedPoints = allUsedIndices.
+                Select(o => allPoints[o]).
+                ToArray();
 
             // Build the map
             oldToNewIndex = new SortedList<int, int>();
