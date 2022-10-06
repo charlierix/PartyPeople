@@ -30,7 +30,12 @@ namespace Game.Math_WPF.Mathematics
 
         public VectorInt3 GetIndex_Point(Point3D point)
         {
-            throw new ApplicationException("finish this");
+            return new VectorInt3
+            (
+                ((point.X - _cell_half) / _cell_size).ToInt_Ceiling(),
+                ((point.Y - _cell_half) / _cell_size).ToInt_Ceiling(),
+                ((point.Z - _cell_half) / _cell_size).ToInt_Ceiling()
+            );
         }
         public VectorInt3[] GetIndices_Triangle(ITriangle_wpf triangle)
         {

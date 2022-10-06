@@ -179,7 +179,7 @@ namespace Game.Bepu.Testers
                     Select(o => new VectorInt3(StaticRandom.Next(-size, size + 1), StaticRandom.Next(-size, size + 1), StaticRandom.Next(-size, size + 1)))).
                     ToArray();
 
-                var test1 = grid.GetCell(indices[0]);
+                //var test1 = grid.GetCell(indices[0]);
 
                 var cells = indices.
                     Select(o => new
@@ -188,6 +188,34 @@ namespace Game.Bepu.Testers
                         cell = grid.GetCell(o),
                     }).
                     ToArray();
+
+
+                var full_circle = cells.
+                    Select(o =>
+                    {
+                        var sample_points = Enumerable.Range(0, 144).
+                            Select(p => Math3D.GetRandomVector(o.cell.rect.Location.ToVector(), (o.cell.rect.Location + o.cell.rect.Size.ToVector()).ToVector()).ToPoint()).
+                            ToArray();
+
+                        return new
+                        {
+                            o.index,
+                            o.cell,
+                            samples = sample_points.
+                                Select(p => new
+                                {
+                                    pt = p,
+                                    index = grid.GetIndex_Point(p),
+                                }).
+                                ToArray(),
+                        };
+                    }).
+                    ToArray();
+
+                var fails = full_circle.
+                    Where(o => o.samples.Any(p => o.index != p.index)).
+                    ToArray();
+
 
                 var line_segments = grid.GetDistinctLineSegments(indices);
 
@@ -201,13 +229,40 @@ namespace Game.Bepu.Testers
 
                 //window.AddLines(line_segments.index_pairs, line_segments.all_points_distinct, sizes.line, Colors.White);
 
-                foreach(var segment in line_segments.index_pairs)
+                foreach (var segment in line_segments.index_pairs)
                 {
                     window.AddLine(line_segments.all_points_distinct[segment.i1], line_segments.all_points_distinct[segment.i2], sizes.line, UtilityWPF.GetRandomColor(64, 255));
                 }
 
 
                 window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void CellIndices_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var grid = new SparseCellGrid(CELL_SIZE);
+
+                var points = new[] { new Point3D(0.05, -0.05, .15) };
+
+                double radius = 12;
+
+                points = points.Concat(Enumerable.Range(0, 12).
+                    Select(o => Math3D.GetRandomVector_Spherical(radius).ToPoint())).
+                    ToArray();
+
+                //var test1 = grid.GetIndex_Point(points[0]);
+
+                var indices = points.
+                    Select(o => grid.GetIndex_Point(o)).
+                    ToArray();
+
             }
             catch (Exception ex)
             {
