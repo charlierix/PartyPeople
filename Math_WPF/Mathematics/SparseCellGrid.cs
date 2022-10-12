@@ -139,7 +139,40 @@ namespace Game.Math_WPF.Mathematics
         }
         public VectorInt3[,] GetIndices_Rect2D(Rect rect, double z)
         {
-            throw new ApplicationException("finish this");
+            var rect_points = new[]
+            {
+                new Point3D(rect.X, rect.Y, z),
+                new Point3D(rect.X + rect.Width, rect.Y, z),
+                new Point3D(rect.X + rect.Width, rect.Y + rect.Height, z),
+                new Point3D(rect.X, rect.Y + rect.Height, z),
+            };
+
+            var aabb = Math3D.GetAABB(rect_points);
+
+            // Get index of each corner of aabb
+            VectorInt3[] corner_indices = Polytopes.GetCubePoints(aabb.min, aabb.max).
+                Select(o => GetIndex_Point(o)).
+                ToArray();
+
+            VectorInt3[,,] indices = GetIndexBlock(corner_indices);
+
+            if (indices.GetUpperBound(2) != 0)
+                throw new ApplicationException($"3D indices should always have a size of 1 for this function.  rect: {rect}, z: {z}, indices_0: {indices.GetUpperBound(0)}, indices_1: {indices.GetUpperBound(1)}, indices_2: {indices.GetUpperBound(2)}");
+
+            int size_x = indices.GetUpperBound(0) + 1;
+            int size_y = indices.GetUpperBound(1) + 1;
+
+            VectorInt3[,] retVal = new VectorInt3[size_x, size_y];
+
+            for (int x = 0; x < size_x; x++)
+            {
+                for (int y = 0; y < size_y; y++)
+                {
+                    retVal[x, y] = indices[x, y, 0];
+                }
+            }
+
+            return retVal;
         }
 
         //NOTE: these don't need to go to the expense of marking cells unless a cell within its aabb is requested

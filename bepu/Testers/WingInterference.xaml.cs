@@ -289,6 +289,26 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void IndicesForRect2D_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var grid = new SparseCellGrid(CELL_SIZE);
+
+
+                double span = StaticRandom.NextDouble(0.5, 3);
+                double chord = StaticRandom.NextDouble(0.1, 1.3);
+
+                Rect rect = new Rect(new Point(-span / 2, -chord / 2), new Size(span, chord));
+
+                var indices = grid.GetIndices_Rect2D(rect, 0);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
 
         #region Private Methods

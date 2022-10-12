@@ -32,6 +32,7 @@
             <Button Content="GetCell" Click="GetCell_Click"/>
             <Button Content="Cell Indices" Click="CellIndices_Click"/>
             <Button Content="Indices for Triangle" Click="IndicesForTriangle_Click"/>
+            <Button Content="Indices for Rect2D" Click="IndicesForRect2D_Click"/>
         </StackPanel>
     </Grid>
 </Window>
