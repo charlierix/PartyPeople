@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Windows.Media.Media3D;
 
 namespace Game.Math_WPF.Mathematics
 {
@@ -19,6 +20,7 @@ namespace Game.Math_WPF.Mathematics
     }
 
     #endregion
+
     #region struct: AxisFor
 
     /// <summary>
@@ -45,38 +47,38 @@ namespace Game.Math_WPF.Mathematics
         public int Length => Math.Abs(Stop - Start) + 1;
 
         /// <summary>
-        /// This will set one of the output x,y,z to index3D based on this.Axis
+        /// This will set one of the output x,y,z to value3D based on this.Axis
         /// </summary>
-        public void Set3DIndex(ref int x, ref int y, ref int z, int index3D)
+        public void Set3DValue<T>(ref T x, ref T y, ref T z, T value3D)
         {
             switch (Axis)
             {
                 case Axis.X:
-                    x = index3D;
+                    x = value3D;
                     break;
 
                 case Axis.Y:
-                    y = index3D;
+                    y = value3D;
                     break;
 
                 case Axis.Z:
-                    z = index3D;
+                    z = value3D;
                     break;
 
                 default:
                     throw new ApplicationException($"Unknown Axis: {Axis}");
             }
         }
-        public void Set2DIndex(ref int x, ref int y, int index2D)
+        public void Set2DValue<T>(ref T x, ref T y, T value2D)
         {
             switch (Axis)
             {
                 case Axis.X:
-                    x = index2D;
+                    x = value2D;
                     break;
 
                 case Axis.Y:
-                    y = index2D;
+                    y = value2D;
                     break;
 
                 case Axis.Z:
@@ -86,6 +88,7 @@ namespace Game.Math_WPF.Mathematics
                     throw new ApplicationException($"Unknown Axis: {Axis}");
             }
         }
+
         public int GetValueForOffset(int value2D)
         {
             if (IsPos)
@@ -95,11 +98,30 @@ namespace Game.Math_WPF.Mathematics
                 return Start - value2D;        // using start, because it's negative, so start is the larger value
         }
 
+        //NOTE: there are wpf specific overloads in the other file
+        public int GetValue(VectorInt3 vector)
+        {
+            switch (this.Axis)
+            {
+                case Axis.X:
+                    return vector.X;
+
+                case Axis.Y:
+                    return vector.Y;
+
+                case Axis.Z:
+                    return vector.Z;
+
+                default:
+                    throw new ApplicationException($"Unknown Axis: {this.Axis}");
+            }
+        }
+
         public IEnumerable<int> Iterate()
         {
-            for (int cntr = Start; IsPos ? cntr <= Stop : cntr >= Stop; cntr += Increment)
+            for (int i = Start; IsPos ? i <= Stop : i >= Stop; i += Increment)
             {
-                yield return cntr;
+                yield return i;
             }
         }
 
@@ -219,6 +241,7 @@ namespace Game.Math_WPF.Mathematics
     }
 
     #endregion
+
     #region struct: Mapping_2D_1D
 
     /// <summary>

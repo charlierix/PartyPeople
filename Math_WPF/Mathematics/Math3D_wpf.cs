@@ -6320,31 +6320,19 @@ namespace Game.Math_WPF.Mathematics
             double dmin = 0d;
 
             if (center.X < min.X)
-            {
                 dmin += (center.X - min.X) * (center.X - min.X);
-            }
             else if (center.X > max.X)
-            {
                 dmin += (center.X - max.X) * (center.X - max.X);
-            }
 
             if (center.Y < min.Y)
-            {
                 dmin += (center.Y - min.Y) * (center.Y - min.Y);
-            }
             else if (center.Y > max.Y)
-            {
                 dmin += (center.Y - max.Y) * (center.Y - max.Y);
-            }
 
             if (center.Z < min.Z)
-            {
                 dmin += (center.Z - min.Z) * (center.Z - min.Z);
-            }
             else if (center.Z > max.Z)
-            {
                 dmin += (center.Z - max.Z) * (center.Z - max.Z);
-            }
 
             return dmin <= r2;
         }
@@ -6355,17 +6343,13 @@ namespace Game.Math_WPF.Mathematics
         public static bool IsIntersecting_AABB_AABB(Point3D min1, Point3D max1, Point3D min2, Point3D max2)
         {
             if (min1.X > max2.X || min2.X > max1.X)
-            {
                 return false;
-            }
+
             else if (min1.Y > max2.Y || min2.Y > max1.Y)
-            {
                 return false;
-            }
+
             else if (min1.Z > max2.Z || min2.Z > max1.Z)
-            {
                 return false;
-            }
 
             return true;
         }
@@ -6383,9 +6367,7 @@ namespace Game.Math_WPF.Mathematics
             foreach (ITriangle_wpf plane in planes)
             {
                 if (IsAbovePlane(plane, testPoint, true))
-                {
                     return false;
-                }
             }
 
             return true;
@@ -6393,58 +6375,44 @@ namespace Game.Math_WPF.Mathematics
         public static bool IsInside_AABB(Point3D min, Point3D max, Point3D testPoint)
         {
             if (testPoint.X < min.X)
-            {
                 return false;
-            }
+
             else if (testPoint.X > max.X)
-            {
                 return false;
-            }
+
             else if (testPoint.Y < min.Y)
-            {
                 return false;
-            }
+
             else if (testPoint.Y > max.Y)
-            {
                 return false;
-            }
+
             else if (testPoint.Z < min.Z)
-            {
                 return false;
-            }
+
             else if (testPoint.Z > max.Z)
-            {
                 return false;
-            }
 
             return true;
         }
         public static bool IsInside_AABB(Vector3D min, Vector3D max, Vector3D testPoint)
         {
             if (testPoint.X < min.X)
-            {
                 return false;
-            }
+
             else if (testPoint.X > max.X)
-            {
                 return false;
-            }
+
             else if (testPoint.Y < min.Y)
-            {
                 return false;
-            }
+
             else if (testPoint.Y > max.Y)
-            {
                 return false;
-            }
+
             else if (testPoint.Z < min.Z)
-            {
                 return false;
-            }
+
             else if (testPoint.Z > max.Z)
-            {
                 return false;
-            }
 
             return true;
         }
@@ -6458,17 +6426,13 @@ namespace Game.Math_WPF.Mathematics
             double res = (plane.NormalUnit.X * testPoint.X) + (plane.NormalUnit.Y * testPoint.Y) + (plane.NormalUnit.Z * testPoint.Z) + d;
 
             if (res > 0)
-            {
                 return true;        // above the plane
-            }
+
             else if (trueIfOnPlane && Math1D.IsNearZero(res))
-            {
                 return true;        // on the plane
-            }
+
             else
-            {
                 return false;       // below the plane
-            }
         }
 
         /// <summary>
@@ -6502,9 +6466,7 @@ namespace Game.Math_WPF.Mathematics
         {
             Point3D? retVal = GetIntersection_Plane_Line(plane, testPoint, plane.Normal);
             if (retVal == null)
-            {
                 throw new ApplicationException("Intersection between a plane and its normal should never be null");
-            }
 
             return retVal.Value;
         }
@@ -6523,17 +6485,13 @@ namespace Game.Math_WPF.Mathematics
 
             // Cap to one of the edges
             if (bary.X < 0)
-            {
                 return GetClosestPoint_LineSegment_Point(triangle.Point0, triangle.Point1, testPoint);      // see the comments in ToBarycentric for how I know which points to use
-            }
+
             else if (bary.Y < 0)
-            {
                 return GetClosestPoint_LineSegment_Point(triangle.Point0, triangle.Point2, testPoint);
-            }
+
             else
-            {
                 return GetClosestPoint_LineSegment_Point(triangle.Point1, triangle.Point2, testPoint);
-            }
         }
         public static double GetClosestDistance_Triangle_Point(ITriangle_wpf triangle, Point3D testPoint)
         {
@@ -6626,13 +6584,9 @@ namespace Game.Math_WPF.Mathematics
 
             if (double.IsNaN(resultPoint1.Value.X) || double.IsNaN(resultPoint1.Value.Y) || double.IsNaN(resultPoint1.Value.Z) ||
                 double.IsNaN(resultPoint2.Value.X) || double.IsNaN(resultPoint2.Value.Y) || double.IsNaN(resultPoint2.Value.Z))
-            {
                 return false;
-            }
             else
-            {
                 return true;
-            }
         }
         public static bool GetClosestPoints_Line_LineSegment(out Point3D[] resultPointsLine, out Point3D[] resultPointsLineSegment, Point3D pointOnLine, Vector3D lineDirection, Point3D lineSegmentStart, Point3D lineSegmentStop)
         {

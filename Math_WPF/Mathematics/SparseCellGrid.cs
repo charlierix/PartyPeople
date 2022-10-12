@@ -1,10 +1,15 @@
-﻿using Game.Core;
+﻿using Accord.Math;
+using Game.Core;
+using Game.Math_WPF.WPF;
+using Game.Math_WPF.WPF.Controls3D;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
 namespace Game.Math_WPF.Mathematics
@@ -17,16 +22,79 @@ namespace Game.Math_WPF.Mathematics
     /// </remarks>
     public class SparseCellGrid
     {
+        #region record: CubeFace
+
+        private record CubeFace
+        {
+            public ITriangleIndexed_wpf[] Triangles { get; init; }
+            public long Token { get; init; }
+        }
+
+        #endregion
+        #region record: CubeFacesByIndex
+
+        private record CubeFacesByIndex
+        {
+            public VectorInt3 Index { get; init; }
+            public CubeFace[] Faces { get; init; }
+        }
+
+        #endregion
+        #region record: IndicesByCubeFace
+
+        private record IndicesByCubeFace
+        {
+            public CubeFace Face { get; init; }
+            public VectorInt3[] Indices { get; init; }
+        }
+
+        #endregion
+        #region record: CubeFaceAABBResults
+
+        private record CubeFaceAABBResults
+        {
+            public IndicesByCubeFace[][] FaceStripes { get; init; }
+            //public CubeFacesByIndex[] Faces_By_Index { get; init; }
+        }
+
+        #endregion
+
+        #region record: MarkResult
+
+        public record MarkResult
+        {
+            public VectorInt3 AABB_Min { get; init; }
+            public VectorInt3 AABB_Max { get; init; }
+
+            //NOTE: this only gets populated if the funtion was told to process immediately
+            public VectorInt3[] MarkedCells { get; init; }
+        }
+
+        #endregion
+
+
+        #region Declaration Section
+
         private readonly double _cell_size;
         public double CellSize => _cell_size;
 
         private readonly double _cell_half;
+
+        private readonly List<VectorInt3> _marked = new List<VectorInt3>();
+
+        #endregion
+
+        #region Constructor
 
         public SparseCellGrid(double cell_size)
         {
             _cell_size = cell_size;
             _cell_half = cell_size / 2;
         }
+
+        #endregion
+
+        #region Public Methods
 
         public VectorInt3 GetIndex_Point(Point3D point)
         {
@@ -39,22 +107,96 @@ namespace Game.Math_WPF.Mathematics
         }
         public VectorInt3[] GetIndices_Triangle(ITriangle_wpf triangle)
         {
-            throw new ApplicationException("finish this");
+            var window = new Debug3DWindow()
+            {
+                Title = "Get Indices - Triangle",
+            };
+
+            window.AddTriangle(triangle, Colors.DarkKhaki);
+
+            var aabb = Math3D.GetAABB(triangle);
+
+            var sizes = Debug3DWindow.GetDrawSizes((aabb.max - aabb.min).Length / 2);
+
+            window.AddLines(Polytopes.GetCubeLines(aabb.min, aabb.max), sizes.line * 2, Colors.DarkGray);
+
+
+            // get index of each corner of aabb
+            VectorInt3[] corner_indices = Polytopes.GetCubePoints(aabb.min, aabb.max).
+                Select(o => GetIndex_Point(o)).
+                ToArray();
+
+            var line_segments = GetDistinctLineSegments(corner_indices);
+            window.AddLines(line_segments.index_pairs, line_segments.all_points_distinct, sizes.line / 2, Colors.White);
+
+
+            // if all three vertices have the same index, then the entire triangle is inside a single cell
+            if (corner_indices.Skip(1).All(o => o.Equals(corner_indices[0])))
+            {
+                window.Background = Brushes.Honeydew;
+                window.Show();
+                return new[] { corner_indices[0] };
+            }
+
+            VectorInt3[,,] indices = GetIndexBlock(corner_indices);
+
+            //var faces_1 = GetCubeFacesForAABBIndices_ATTEMPT1(indices);
+            var faces = GetCubeFacesForAABBIndices(indices);
+
+
+            // To map from indices to this array, take the index - marked_offset
+            bool[,,] marked = new bool[indices.GetUpperBound(0) + 1, indices.GetUpperBound(1) + 1, indices.GetUpperBound(2) + 1];
+            VectorInt3 marked_offset = new VectorInt3
+            (
+                corner_indices.Min(o => o.X),
+                corner_indices.Min(o => o.Y),
+                corner_indices.Min(o => o.Z)
+            );
+
+            //FillMarked(marked, marked_offset, _marked);       // this would be a nice optimization, but would polute the return array with existing marked cells
+
+            // intersect the cube's faces with triangle (this won't detect a triangle completely inside a singe cell, but that check was accounted for earlier)
+            foreach (var stripe in faces.FaceStripes)
+            {
+                // Start in the middle of the stripe and walk out.  When transitioning from marked to unmarked, the remainder of the stripe can be considered unmarked
+
+                // No need to compare the face if touching cells are already marked
+
+                WalkStripe(triangle, stripe, marked, marked_offset, true);
+                WalkStripe(triangle, stripe, marked, marked_offset, false);
+            }
+
+
+            VectorInt3[] marked_cells = GetMarkedCells(marked, marked_offset);
+
+            // Store the unique matches
+            _marked.AddRange(marked_cells.Except(_marked));
+
+
+            line_segments = GetDistinctLineSegments(marked_cells);
+            window.AddLines(line_segments.index_pairs, line_segments.all_points_distinct, sizes.line, UtilityWPF.ColorFromHex("7585BD"));
+
+
+            window.Show();
+
+            return marked_cells;
         }
-        public VectorInt3[][] GetIndices_Rect2D(Rect rect, double z)
+        public VectorInt3[,] GetIndices_Rect2D(Rect rect, double z)
         {
             throw new ApplicationException("finish this");
         }
 
-        public VectorInt3 Mark_Point(Point3D point)
+        //NOTE: these don't need to go to the expense of marking cells unless a cell within its aabb is requested
+        //So calculate the index aabb for the triangle, and store that in a to work list
+        public MarkResult Mark_Point(Point3D point, bool return_marked_cells = false)
         {
             throw new ApplicationException("finish this");
         }
-        public VectorInt3[] Mark_Triangle(ITriangle_wpf triangle)
+        public MarkResult Mark_Triangle(ITriangle_wpf triangle, bool return_marked_cells = false)
         {
             throw new ApplicationException("finish this");
         }
-        public VectorInt3[][] Mark_Rect2D(Rect rect, double z)
+        public MarkResult Mark_Rect2D(Rect rect, double z, bool return_marked_cells = false)
         {
             throw new ApplicationException("finish this");
         }
@@ -109,7 +251,9 @@ namespace Game.Math_WPF.Mathematics
             return GetCondensedPoints(combined, lines_distinct.all_points_distinct);
         }
 
-        #region Private Methods
+        #endregion
+
+        #region Private Methods - line segments
 
         /// <summary>
         /// Returns the subset of line segments that are along the vector passed in
@@ -235,6 +379,435 @@ namespace Game.Math_WPF.Mathematics
                 ToArray();
 
             return (segments_remapped, used_points);
+        }
+
+        #endregion
+        #region Private Methods - triangle indices
+
+        /// <summary>
+        /// This finds the min/max and returns a 3D block of indices
+        /// </summary>
+        private static VectorInt3[,,] GetIndexBlock(VectorInt3[] indices)
+        {
+            VectorInt3 min = new VectorInt3
+            (
+                indices.Min(o => o.X),
+                indices.Min(o => o.Y),
+                indices.Min(o => o.Z)
+            );
+
+            VectorInt3 max = new VectorInt3
+            (
+                indices.Max(o => o.X),
+                indices.Max(o => o.Y),
+                indices.Max(o => o.Z)
+            );
+
+            var retVal = new VectorInt3[max.X - min.X + 1, max.Y - min.Y + 1, max.Z - min.Z + 1];
+
+            for (int x = 0; x < retVal.GetLength(0); x++)
+            {
+                for (int y = 0; y < retVal.GetLength(1); y++)
+                {
+                    for (int z = 0; z < retVal.GetLength(2); z++)
+                    {
+                        retVal[x, y, z] = new VectorInt3(min.X + x, min.Y + y, min.Z + z);
+                    }
+                }
+            }
+
+            return retVal;
+        }
+
+        private CubeFacesByIndex[] GetCubeFacesForAABBIndices_ATTEMPT1(VectorInt3[,,] indices)
+        {
+            // X
+            AxisFor axis_primary = new AxisFor(Axis.X, 0, indices.GetUpperBound(0));
+            AxisFor axis_secondary1 = new AxisFor(Axis.Y, 0, indices.GetUpperBound(1));
+            AxisFor axis_secondary2 = new AxisFor(Axis.Z, 0, indices.GetUpperBound(2));
+
+            var faces_x = GetCubeFaces_Axis_ATTEMPT1(indices, axis_primary, axis_secondary1, axis_secondary2);       // this marches along x, returning yz faces
+
+            // Y
+            axis_primary = new AxisFor(Axis.Y, 0, indices.GetUpperBound(1));
+            axis_secondary1 = new AxisFor(Axis.X, 0, indices.GetUpperBound(0));
+            axis_secondary2 = new AxisFor(Axis.Z, 0, indices.GetUpperBound(2));
+
+            var faces_y = GetCubeFaces_Axis_ATTEMPT1(indices, axis_primary, axis_secondary1, axis_secondary2);
+
+            // Z
+            axis_primary = new AxisFor(Axis.Z, 0, indices.GetUpperBound(2));
+            axis_secondary1 = new AxisFor(Axis.X, 0, indices.GetUpperBound(0));
+            axis_secondary2 = new AxisFor(Axis.Y, 0, indices.GetUpperBound(1));
+
+            var faces_z = GetCubeFaces_Axis_ATTEMPT1(indices, axis_primary, axis_secondary1, axis_secondary2);
+
+            IndicesByCubeFace[] faces = faces_x.
+                Concat(faces_y).
+                Concat(faces_z).
+                ToArray();
+
+            return indices.Enumerate<VectorInt3>().
+                AsParallel().
+                Select(o => new CubeFacesByIndex()
+                {
+                    Index = o,
+                    Faces = faces.
+                        Where(p => o.In(p.Indices)).
+                        Select(p => p.Face).
+                        ToArray(),
+                }).
+                ToArray();
+        }
+        private CubeFaceAABBResults GetCubeFacesForAABBIndices(VectorInt3[,,] indices)
+        {
+            // X
+            AxisFor axis_primary = new AxisFor(Axis.X, 0, indices.GetUpperBound(0));
+            AxisFor axis_secondary1 = new AxisFor(Axis.Y, 0, indices.GetUpperBound(1));
+            AxisFor axis_secondary2 = new AxisFor(Axis.Z, 0, indices.GetUpperBound(2));
+
+            var faces_x = GetCubeFaces_Axis(indices, axis_primary, axis_secondary1, axis_secondary2);       // this marches along x, returning yz faces
+
+            // Y
+            axis_primary = new AxisFor(Axis.Y, 0, indices.GetUpperBound(1));
+            axis_secondary1 = new AxisFor(Axis.X, 0, indices.GetUpperBound(0));
+            axis_secondary2 = new AxisFor(Axis.Z, 0, indices.GetUpperBound(2));
+
+            var faces_y = GetCubeFaces_Axis(indices, axis_primary, axis_secondary1, axis_secondary2);
+
+            // Z
+            axis_primary = new AxisFor(Axis.Z, 0, indices.GetUpperBound(2));
+            axis_secondary1 = new AxisFor(Axis.X, 0, indices.GetUpperBound(0));
+            axis_secondary2 = new AxisFor(Axis.Y, 0, indices.GetUpperBound(1));
+
+            var faces_z = GetCubeFaces_Axis(indices, axis_primary, axis_secondary1, axis_secondary2);
+
+            IndicesByCubeFace[][] faces = faces_x.
+                Concat(faces_y).
+                Concat(faces_z).
+                ToArray();
+
+            // Not needed
+            //var faces_by_index = indices.Enumerate<VectorInt3>().
+            //    AsParallel().
+            //    Select(o => new CubeFacesByIndex()
+            //    {
+            //        Index = o,
+            //        Faces = faces.
+            //            SelectMany(o => o).
+            //            Where(p => o.In(p.Indices)).
+            //            Select(p => p.Face).
+            //            ToArray(),
+            //    }).
+            //    ToArray();
+
+            return new CubeFaceAABBResults()
+            {
+                FaceStripes = faces,
+                //Faces_By_Index = faces_by_index,
+            };
+        }
+
+        private IndicesByCubeFace[] GetCubeFaces_Axis_X(VectorInt3[,,] indices)
+        {
+            AxisFor axis_primary = new AxisFor(Axis.X, 0, 0);
+            AxisFor axis_secondary1 = new AxisFor(Axis.Y, 0, 0);
+            AxisFor axis_secondary2 = new AxisFor(Axis.Z, 0, 0);
+
+            var retVal = new List<IndicesByCubeFace>();
+
+            var buffer = new List<VectorInt3>();
+
+            for (int y = 0; y <= indices.GetUpperBound(1); y++)
+            {
+                for (int z = 0; z <= indices.GetUpperBound(2); z++)
+                {
+                    // Face to the left of the first item
+                    //CubeFace face_pre = GetCubeFace_Max_X(new VectorInt3(indices[0, y, z].X - 1, indices[0, y, z].Y, indices[0, y, z].Z));
+                    CubeFace face_pre = GetCubeFace_Max(new VectorInt3(indices[0, y, z].X - 1, indices[0, y, z].Y, indices[0, y, z].Z), axis_primary, axis_secondary1, axis_secondary2);
+
+                    retVal.Add(new IndicesByCubeFace()
+                    {
+                        Face = face_pre,
+                        Indices = new[] { indices[0, y, z] },
+                    });
+
+                    // Faces for the rest of the cells
+                    int len = indices.GetUpperBound(0);
+
+                    for (int x = 0; x <= len; x++)
+                    {
+                        //CubeFace face = GetCubeFace_Max_X(new VectorInt3(indices[x, y, z].X, indices[x, y, z].Y, indices[x, y, z].Z));
+                        CubeFace face = GetCubeFace_Max(new VectorInt3(indices[x, y, z].X, indices[x, y, z].Y, indices[x, y, z].Z), axis_primary, axis_secondary1, axis_secondary2);
+
+                        buffer.Clear();
+                        buffer.Add(indices[x, y, z]);       // this sits between current and next cell
+
+                        if (x < len)
+                            buffer.Add(indices[x + 1, y, z]);       // if this is the last cell, then don't add the one to the right (because that's one too far)
+
+                        retVal.Add(new IndicesByCubeFace()
+                        {
+                            Face = face,
+                            Indices = buffer.ToArray(),
+                        });
+                    }
+                }
+            }
+
+            return retVal.ToArray();
+        }
+        private CubeFace GetCubeFace_Max_X(VectorInt3 index)
+        {
+            Point3D[] points = new Point3D[4];
+
+            double x = index.X * _cell_size + _cell_half;
+
+            double y_center = index.Y * _cell_size;
+            double z_center = index.Z * _cell_size;
+
+            points[0] = new Point3D(x, y_center - _cell_half, z_center - _cell_half);     // -y   -z
+            points[1] = new Point3D(x, y_center + _cell_half, z_center - _cell_half);     // y    -z
+            points[2] = new Point3D(x, y_center + _cell_half, z_center + _cell_half);     // y     z
+            points[3] = new Point3D(x, y_center - _cell_half, z_center + _cell_half);     // -y    z
+
+            return new CubeFace()
+            {
+                Token = TokenGenerator.NextToken(),
+                Triangles = new[]
+                {
+                    new TriangleIndexed_wpf(0, 1, 2, points),
+                    new TriangleIndexed_wpf(2, 3, 0, points),
+                },
+            };
+        }
+
+        private IndicesByCubeFace[] GetCubeFaces_Axis_ATTEMPT1(VectorInt3[,,] indices, AxisFor axis_primary, AxisFor axis_secondary1, AxisFor axis_secondary2)
+        {
+            var retVal = new List<IndicesByCubeFace>();
+
+            foreach (int sec1 in axis_secondary1.Iterate())
+            {
+                foreach (int sec2 in axis_secondary2.Iterate())
+                {
+                    // Face to the left of the first item
+                    GetCubeFaces_Axis_Initial(retVal, indices, axis_primary, axis_secondary1, axis_secondary2, sec1, sec2);
+
+                    // Faces for the rest of the cells
+                    foreach (int prim in axis_primary.Iterate())
+                    {
+                        GetCubeFaces_Axis_Standard(retVal, indices, axis_primary, axis_secondary1, axis_secondary2, prim, sec1, sec2);
+                    }
+                }
+            }
+
+            return retVal.ToArray();
+        }
+        private IndicesByCubeFace[][] GetCubeFaces_Axis(VectorInt3[,,] indices, AxisFor axis_primary, AxisFor axis_secondary1, AxisFor axis_secondary2)
+        {
+            var retVal = new List<IndicesByCubeFace[]>();
+
+            foreach (int sec1 in axis_secondary1.Iterate())
+            {
+                foreach (int sec2 in axis_secondary2.Iterate())
+                {
+                    var stripe = new List<IndicesByCubeFace>();
+
+                    // Face to the left of the first item
+                    GetCubeFaces_Axis_Initial(stripe, indices, axis_primary, axis_secondary1, axis_secondary2, sec1, sec2);
+
+                    // Faces for the rest of the cells
+                    foreach (int prim in axis_primary.Iterate())
+                    {
+                        GetCubeFaces_Axis_Standard(stripe, indices, axis_primary, axis_secondary1, axis_secondary2, prim, sec1, sec2);
+                    }
+
+                    retVal.Add(stripe.ToArray());
+                }
+            }
+
+            return retVal.ToArray();
+        }
+        private void GetCubeFaces_Axis_Initial(List<IndicesByCubeFace> retVal, VectorInt3[,,] indices, AxisFor axis_primary, AxisFor axis_secondary1, AxisFor axis_secondary2, int sec1, int sec2)
+        {
+            int ix = 0, iy = 0, iz = 0;
+            axis_primary.Set3DValue(ref ix, ref iy, ref iz, 0);
+            axis_secondary1.Set3DValue(ref ix, ref iy, ref iz, sec1);
+            axis_secondary2.Set3DValue(ref ix, ref iy, ref iz, sec2);
+
+            int offset_x = 0, offset_y = 0, offset_z = 0;
+            axis_primary.Set3DValue(ref offset_x, ref offset_y, ref offset_z, -1);
+            axis_secondary1.Set3DValue(ref offset_x, ref offset_y, ref offset_z, 0);
+            axis_secondary2.Set3DValue(ref offset_x, ref offset_y, ref offset_z, 0);
+
+            var index = new VectorInt3(indices[ix, iy, iz].X + offset_x, indices[ix, iy, iz].Y + offset_y, indices[ix, iy, iz].Z + offset_z);
+
+            CubeFace face_pre = GetCubeFace_Max(index, axis_primary, axis_secondary1, axis_secondary2);
+
+            retVal.Add(new IndicesByCubeFace()
+            {
+                Face = face_pre,
+                Indices = new[] { indices[ix, iy, iz] },
+            });
+        }
+        private void GetCubeFaces_Axis_Standard(List<IndicesByCubeFace> retVal, VectorInt3[,,] indices, AxisFor axis_primary, AxisFor axis_secondary1, AxisFor axis_secondary2, int prim, int sec1, int sec2)
+        {
+            int ix = 0, iy = 0, iz = 0;
+            axis_primary.Set3DValue(ref ix, ref iy, ref iz, prim);
+            axis_secondary1.Set3DValue(ref ix, ref iy, ref iz, sec1);
+            axis_secondary2.Set3DValue(ref ix, ref iy, ref iz, sec2);
+
+            VectorInt3 index = new VectorInt3(indices[ix, iy, iz].X, indices[ix, iy, iz].Y, indices[ix, iy, iz].Z);
+
+            CubeFace face = GetCubeFace_Max(index, axis_primary, axis_secondary1, axis_secondary2);
+
+            var buffer = new List<VectorInt3>();
+            buffer.Add(indices[ix, iy, iz]);       // this sits between current and next cell
+
+            if (prim < axis_primary.Stop)
+            {
+                int offset_x = 0, offset_y = 0, offset_z = 0;
+                axis_primary.Set3DValue(ref offset_x, ref offset_y, ref offset_z, 1);
+                axis_secondary1.Set3DValue(ref offset_x, ref offset_y, ref offset_z, 0);
+                axis_secondary2.Set3DValue(ref offset_x, ref offset_y, ref offset_z, 0);
+
+                buffer.Add(indices[ix + offset_x, iy + offset_y, iz + offset_z]);       // if this is the last cell, then don't add the one to the right (because that's one too far)
+            }
+
+            retVal.Add(new IndicesByCubeFace()
+            {
+                Face = face,
+                Indices = buffer.ToArray(),
+            });
+        }
+
+        private CubeFace GetCubeFace_Max(VectorInt3 index, AxisFor axis_primary, AxisFor axis_secondary1, AxisFor axis_secondary2)
+        {
+            Point3D[] points = new Point3D[4];
+
+            double prim = axis_primary.GetValue(index) * _cell_size + _cell_half;
+
+            double sec1_center = axis_secondary1.GetValue(index) * _cell_size;
+            double sec2_center = axis_secondary2.GetValue(index) * _cell_size;
+
+            double x = 0, y = 0, z = 0;
+
+            // - -
+            axis_primary.Set3DValue(ref x, ref y, ref z, prim);
+            axis_secondary1.Set3DValue(ref x, ref y, ref z, sec1_center - _cell_half);
+            axis_secondary2.Set3DValue(ref x, ref y, ref z, sec2_center - _cell_half);
+            points[0] = new Point3D(x, y, z);
+
+            // + -
+            axis_primary.Set3DValue(ref x, ref y, ref z, prim);
+            axis_secondary1.Set3DValue(ref x, ref y, ref z, sec1_center + _cell_half);
+            axis_secondary2.Set3DValue(ref x, ref y, ref z, sec2_center - _cell_half);
+            points[1] = new Point3D(x, y, z);
+
+            // + +
+            axis_primary.Set3DValue(ref x, ref y, ref z, prim);
+            axis_secondary1.Set3DValue(ref x, ref y, ref z, sec1_center + _cell_half);
+            axis_secondary2.Set3DValue(ref x, ref y, ref z, sec2_center + _cell_half);
+            points[2] = new Point3D(x, y, z);
+
+            // - +
+            axis_primary.Set3DValue(ref x, ref y, ref z, prim);
+            axis_secondary1.Set3DValue(ref x, ref y, ref z, sec1_center - _cell_half);
+            axis_secondary2.Set3DValue(ref x, ref y, ref z, sec2_center + _cell_half);
+            points[3] = new Point3D(x, y, z);
+
+            return new CubeFace()
+            {
+                Token = TokenGenerator.NextToken(),
+                Triangles = new[]
+                {
+                    new TriangleIndexed_wpf(0, 1, 2, points),
+                    new TriangleIndexed_wpf(2, 3, 0, points),
+                },
+            };
+        }
+
+        private void WalkStripe(ITriangle_wpf triangle, IndicesByCubeFace[] stripe, bool[,,] marked, VectorInt3 offset, bool forward)
+        {
+            // Helper functions
+            var is_already_marked = new Func<VectorInt3, bool>(vi => marked[vi.X - offset.X, vi.Y - offset.Y, vi.Z - offset.Z]);
+
+            var mark_index = new Action<VectorInt3>(vi =>
+            {
+                marked[vi.X - offset.X, vi.Y - offset.Y, vi.Z - offset.Z] = true;
+            });
+
+            var all_already_marked = new Func<VectorInt3[], bool>(vis =>
+            {
+                for (int i = 0; i < vis.Length; i++)
+                    if (!is_already_marked(vis[i]))
+                        return false;
+
+                return true;
+            });
+
+            var ensure_all_marked = new Action<VectorInt3[]>(vis =>
+            {
+                for (int i = 0; i < vis.Length; i++)
+                    mark_index(vis[i]);
+            });
+
+            // Walk the stripe, starting in the middle of the array, out to 0 or len-1
+            bool had_marked = false;
+
+            int half = stripe.Length / 2;
+
+            AxisFor iterator = forward ?
+                new AxisFor(Axis.X, half, stripe.Length - 1) :      // the axis doesn't matter, just using this for the from/to
+                new AxisFor(Axis.X, half - 1, 0);
+
+            foreach (int i in iterator.Iterate())
+            {
+                //NOTE: Calling all_already_marked, because there's no point checking geometry collisions if the affected cells
+                //are already considered to be touching
+
+                if (all_already_marked(stripe[i].Indices) || WalkStripe_IsColliding(triangle, stripe[i].Face))
+                {
+                    ensure_all_marked(stripe[i].Indices);
+                    had_marked = true;
+                }
+                else if (had_marked)
+                {
+                    // Walking a stripe is like marching a ray.  Triangle is a convex polygon.
+                    // So once going from inside the polygon to outside, the rest of the ray is guaranteed to not collide
+                    break;
+                }
+            }
+        }
+        private static bool WalkStripe_IsColliding(ITriangle_wpf triangle, CubeFace face)
+        {
+            for (int i = 0; i < face.Triangles.Length; i++)
+            {
+                var points = Math3D.GetIntersection_Triangle_Triangle(triangle, face.Triangles[i]);
+                if (points != null)
+                    return true;
+            }
+
+            return false;
+        }
+
+        private static VectorInt3[] GetMarkedCells(bool[,,] marked, VectorInt3 offset)
+        {
+            var retVal = new List<VectorInt3>();
+
+            for (int x = 0; x <= marked.GetUpperBound(0); x++)
+            {
+                for (int y = 0; y <= marked.GetUpperBound(1); y++)
+                {
+                    for (int z = 0; z <= marked.GetUpperBound(2); z++)
+                    {
+                        if (marked[x, y, z])
+                            retVal.Add(new VectorInt3(x + offset.X, y + offset.Y, z + offset.Z));
+                    }
+                }
+            }
+
+            return retVal.ToArray();
         }
 
         #endregion

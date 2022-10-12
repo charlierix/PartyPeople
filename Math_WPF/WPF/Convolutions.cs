@@ -2253,8 +2253,8 @@ namespace Game.Math_WPF.WPF
                 {
                     int x = -1;
                     int y = -1;
-                    orth.Set2DIndex(ref x, ref y, orthIndex);
-                    edge.Set2DIndex(ref x, ref y, edgeIndex);
+                    orth.Set2DValue(ref x, ref y, orthIndex);
+                    edge.Set2DValue(ref x, ref y, edgeIndex);
 
                     values[(y * width) + x] = rand.Next(256);
                 }
@@ -2291,14 +2291,14 @@ namespace Game.Math_WPF.WPF
                 // From XY
                 int fromX = -1;
                 int fromY = -1;
-                orth.Set2DIndex(ref fromX, ref fromY, toOrth);
-                edge.Set2DIndex(ref fromX, ref fromY, toEdge);
+                orth.Set2DValue(ref fromX, ref fromY, toOrth);
+                edge.Set2DValue(ref fromX, ref fromY, toEdge);
 
                 // To XY
                 int toX = -1;
                 int toY = -1;
-                orth.Set2DIndex(ref toX, ref toY, orthIndex);
-                edge.Set2DIndex(ref toX, ref toY, edgeIndex);
+                orth.Set2DValue(ref toX, ref toY, orthIndex);
+                edge.Set2DValue(ref toX, ref toY, edgeIndex);
 
                 // Copy pixel
                 values[(toY * width) + toX] = values[(fromY * width) + fromX];
@@ -2354,11 +2354,11 @@ namespace Game.Math_WPF.WPF
             {
                 int x = -1;
                 int y = -1;
-                orth.Set2DIndex(ref x, ref y, orthIndex);
+                orth.Set2DValue(ref x, ref y, orthIndex);
 
                 foreach (int edgeIndex in edge.Iterate())
                 {
-                    edge.Set2DIndex(ref x, ref y, edgeIndex);
+                    edge.Set2DValue(ref x, ref y, edgeIndex);
 
                     retVal[index] = values[(y * width) + x];
 
@@ -2372,7 +2372,7 @@ namespace Game.Math_WPF.WPF
         {
             int x = -1;
             int y = -1;
-            orth.Set2DIndex(ref x, ref y, orthIndex);
+            orth.Set2DValue(ref x, ref y, orthIndex);
 
             for (int cntr = 0; cntr < overlay.Length; cntr++)
             {
@@ -2388,7 +2388,7 @@ namespace Game.Math_WPF.WPF
                     edgeIndex = edge.Stop - ((cntr + 1) * edge.Increment);
                 }
 
-                edge.Set2DIndex(ref x, ref y, edgeIndex);
+                edge.Set2DValue(ref x, ref y, edgeIndex);
 
                 int index = (y * width) + x;
                 //values[index] = UtilityCore.GetScaledValue(values[index], overlay[cntr], 0d, 1d, opacity);

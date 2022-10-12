@@ -24,9 +24,10 @@ namespace Game.Math_WPF.Mathematics
                     return point.Z;
 
                 default:
-                    throw new ApplicationException("Unknown Axis: " + this.Axis.ToString());
+                    throw new ApplicationException($"Unknown Axis: {this.Axis}");
             }
         }
+
         public double GetValue(Vector3D vector)
         {
             switch (this.Axis)
@@ -41,7 +42,7 @@ namespace Game.Math_WPF.Mathematics
                     return vector.Z;
 
                 default:
-                    throw new ApplicationException("Unknown Axis: " + this.Axis.ToString());
+                    throw new ApplicationException($"Unknown Axis: {this.Axis}");
             }
         }
 

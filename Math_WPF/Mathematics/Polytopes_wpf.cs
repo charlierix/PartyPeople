@@ -33,6 +33,24 @@ namespace Game.Math_WPF.Mathematics
             };
         }
 
+        public static Point3D[] GetCubePoints(Point3D min, Point3D max)
+        {
+            return new[]
+            {
+                // bottom points
+                new Point3D(min.X, min.Y, min.Z),
+                new Point3D(max.X, min.Y, min.Z),
+                new Point3D(max.X, max.Y, min.Z),
+                new Point3D(min.X, max.Y, min.Z),
+
+                // top points
+                new Point3D(min.X, min.Y, max.Z),
+                new Point3D(max.X, min.Y, max.Z),
+                new Point3D(max.X, max.Y, max.Z),
+                new Point3D(min.X, max.Y, max.Z),
+            };
+        }
+
         public static Triangle_wpf GetEquilateralTriangle(double radius, double z = 0)
         {
             Vector3D up = new Vector3D(0, 0, 1);

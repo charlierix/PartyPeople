@@ -270,6 +270,23 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void IndicesForTriangle_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var grid = new SparseCellGrid(CELL_SIZE);
+
+                double radius = 1.5;
+                var triangle = new Triangle_wpf(Math3D.GetRandomVector_Spherical(radius).ToPoint(), Math3D.GetRandomVector_Spherical(radius).ToPoint(), Math3D.GetRandomVector_Spherical(radius).ToPoint());
+
+                var indices = grid.GetIndices_Triangle(triangle);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
 
         #region Private Methods

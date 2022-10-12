@@ -393,7 +393,7 @@ namespace Game.Math_WPF.WPF
 
             foreach (int item in axis.Iterate())
             {
-                axis.Set2DIndex(ref x, ref y, item);
+                axis.Set2DValue(ref x, ref y, item);
 
                 if (!IsSameSide(gray, sourceGray, hue, y, x))
                 {
@@ -472,18 +472,18 @@ namespace Game.Math_WPF.WPF
         private static int GetBox_OneAxis_Direction(AxisFor axis, int axisStop, double hue, int fromX, int fromY, byte sourceGray, byte gray)
         {
             // After this, fromX and fromY will be toX and toY.  It's difficult to name these meaningfully
-            axis.Set2DIndex(ref fromX, ref fromY, axisStop);
+            axis.Set2DValue(ref fromX, ref fromY, axisStop);
 
             // Get posistions of feelers
             AxisFor perpAxis = new AxisFor(axis.Axis == Axis.X ? Axis.Y : Axis.X, 66, 88);      // the ints don't matter, just using this for Set2DIndex
 
             int negX = fromX;
             int negY = fromY;
-            perpAxis.Set2DIndex(ref negX, ref negY, 0);
+            perpAxis.Set2DValue(ref negX, ref negY, 0);
 
             int posX = fromX;
             int posY = fromY;
-            perpAxis.Set2DIndex(ref posX, ref posY, 100);
+            perpAxis.Set2DValue(ref posX, ref posY, 100);
 
             // Handle cases where fromX,fromY is sitting on the edge of the square
             if (negX == fromX && negY == fromY)
