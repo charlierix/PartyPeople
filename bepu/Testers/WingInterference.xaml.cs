@@ -275,11 +275,13 @@ namespace Game.Bepu.Testers
             try
             {
                 var grid = new SparseCellGrid(CELL_SIZE);
+                //var grid = new SparseCellGrid(CELL_SIZE / 3);
+                //var grid = new SparseCellGrid(CELL_SIZE * 3);
 
                 double radius = 1.5;
                 var triangle = new Triangle_wpf(Math3D.GetRandomVector_Spherical(radius).ToPoint(), Math3D.GetRandomVector_Spherical(radius).ToPoint(), Math3D.GetRandomVector_Spherical(radius).ToPoint());
 
-                var indices = grid.GetIndices_Triangle(triangle);
+                var indices = grid.GetIndices_Triangle(triangle, true);
             }
             catch (Exception ex)
             {
