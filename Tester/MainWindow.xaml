@@ -120,6 +120,7 @@
                     <ListBoxItem Content="Even Distribution" MouseUp="Distribution_MouseUp"/>
                     <ListBoxItem Content="Debug Log Viewer" MouseUp="DebugLogViewer_MouseUp"/>
                     <ListBoxItem Content="Wing Interference" MouseUp="WingInterference_MouseUp"/>
+                    <ListBoxItem Content="WallJump Config" MouseUp="WallJumpConfig_MouseUp"/>
                 </ListBox>
             </StackPanel>
         </WrapPanel>

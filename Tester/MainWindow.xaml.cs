@@ -103,5 +103,9 @@ namespace Game.Tester
         {
             new Game.Bepu.Testers.WingInterference().Show();
         }
+        private void WallJumpConfig_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.WallJumpConfig().Show();
+        }
     }
 }
