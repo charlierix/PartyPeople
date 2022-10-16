@@ -21,7 +21,7 @@
             <Setter Property="Stroke" Value="#50303030"/>
         </Style>
     </Window.Resources>
-    
+
     <Grid Margin="8">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="auto"/>
@@ -37,6 +37,8 @@
                 <RowDefinition Height="auto"/>
                 <RowDefinition Height="8"/>
                 <RowDefinition Height="1*"/>
+                <RowDefinition Height="8"/>
+                <RowDefinition Height="auto"/>
             </Grid.RowDefinitions>
 
             <StackPanel Grid.Row="0" Slider.ValueChanged="HorizontalAngleSlider_Changed">
@@ -125,8 +127,10 @@
                     </StackPanel>
                 </Grid>
             </StackPanel>
-            
+
             <Canvas Grid.Row="2" x:Name="canvas_horz"/>
+
+            <UniformGrid Grid.Row="4" x:Name="panel_horz_plots" Rows="2"/>
         </Grid>
 
         <!-- Vertical -->
@@ -160,9 +164,9 @@
                         <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#30A030" Direction="0" ShadowDepth="0"/>
                     </Slider.Effect>
                 </Slider>
-                
+
                 <!-- TODO: Figure out if anything is needed or negative angles -->
-                
+
             </StackPanel>
 
             <Canvas Grid.Row="2" x:Name="canvas_vert"/>

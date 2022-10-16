@@ -5,6 +5,7 @@ using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -52,7 +53,7 @@ namespace Game.Bepu.Testers
             public PropsAtAngle FaceWall = null;
             public PropsAtAngle AlongStart = null;
             public PropsAtAngle AlongEnd = null;
-            public PropsAtAngle DirectSway = null;
+            public PropsAtAngle DirectAway = null;
         }
 
         #endregion
@@ -73,6 +74,17 @@ namespace Game.Bepu.Testers
             // along correction amount
             //  this will apply a force that pushes them along the wall.  Needs to account for current velocity
 
+        }
+
+        #endregion
+
+        #region record: HorizontalAngles
+
+        private record HorizontalAngles
+        {
+            public double FaceWall { get; init; }
+            public double AlongStart { get; init; }
+            public double AlongEnd { get; init; }
         }
 
         #endregion
@@ -178,6 +190,7 @@ namespace Game.Bepu.Testers
                     return;
 
                 RefreshImage_Horizontal();
+                RefreshStrengthPlots();
             }
             catch (Exception ex)
             {
@@ -229,6 +242,8 @@ namespace Game.Bepu.Testers
                 PropsAtAngle props = Scrape_PropsAtAngle();
 
                 _props_horz = SetProps(_props_horz, _selected_props, props);
+
+                RefreshStrengthPlots();
             }
             catch (Exception ex)
             {
@@ -327,6 +342,20 @@ namespace Game.Bepu.Testers
             _vert_standard.Rotate.Angle = 90 - standard;
         }
 
+        private void RefreshStrengthPlots()
+        {
+            var angles = Scrape_HorizontalAngles();
+
+            panel_horz_plots.Children.Clear();
+
+            panel_horz_plots.Children.Add(BuildPlot(angles, _props_horz, "Percent Up", trkPropsAtAngle_PercentUp, o => o.Percent_Up));
+            panel_horz_plots.Children.Add(BuildPlot(angles, _props_horz, "Percent Along", trkPropsAtAngle_PercentAlong, o => o.Percent_Along));
+            panel_horz_plots.Children.Add(BuildPlot(angles, _props_horz, "Percent Away", trkPropsAtAngle_PercentAway, o => o.Percent_Away));
+            panel_horz_plots.Children.Add(BuildPlot(angles, _props_horz, "Strength", trkPropsAtAngle_Strength, o => o.Strength));
+            panel_horz_plots.Children.Add(BuildPlot(angles, _props_horz, "Velocity Mult", trkPropsAtAngle_VelocityMult, o => o.Velocity_Mult));
+            panel_horz_plots.Children.Add(BuildPlot(angles, _props_horz, "Yaw Turn Percent", trkPropsAtAngle_YawTurnPercent, o => o.YawTurn_Percent));
+        }
+
         private SelectedPropsAtAngle GetWhichSelected_PropsAtAngle()
         {
             if (radHorizontalRadio_DirectFaceWall.IsChecked.Value)
@@ -364,7 +393,7 @@ namespace Game.Bepu.Testers
                     return set.AlongEnd;
 
                 case SelectedPropsAtAngle.DirectSway:
-                    return set.DirectSway;
+                    return set.DirectAway;
 
                 default:
                     throw new ApplicationException($"Unknown {nameof(SelectedPropsAtAngle)}: {selected}");
@@ -387,11 +416,27 @@ namespace Game.Bepu.Testers
                     return set with { AlongEnd = value };
 
                 case SelectedPropsAtAngle.DirectSway:
-                    return set with { DirectSway = value };
+                    return set with { DirectAway = value };
 
                 default:
                     throw new ApplicationException($"Unknown {nameof(SelectedPropsAtAngle)}: {selected}");
             }
+        }
+
+        private HorizontalAngles Scrape_HorizontalAngles()
+        {
+            return new HorizontalAngles()
+            {
+                FaceWall = trkHorizontal_DirectWall.Value,
+                AlongStart = trkHorizontal_InDirectWall.Value,
+                AlongEnd = trkHorizontal_AlongWall.Value,
+            };
+        }
+        private void Present_HorizontalAngles(HorizontalAngles angles)
+        {
+            trkHorizontal_DirectWall.Value = angles.FaceWall;
+            trkHorizontal_InDirectWall.Value = angles.AlongStart;
+            trkHorizontal_AlongWall.Value = angles.AlongEnd;
         }
 
         private PropsAtAngle Scrape_PropsAtAngle()
@@ -680,6 +725,98 @@ namespace Game.Bepu.Testers
             );
         }
 
+        private static FrameworkElement BuildPlot(HorizontalAngles angles, PropsAtAllAngles props, string title, Slider slider, Func<PropsAtAngle, double> getValue)
+        {
+            var retVal = new StackPanel()
+            {
+                Margin = new Thickness(0, 4, 0, 4),
+            };
+
+            retVal.Children.Add(DrawPlot(30, angles, props, slider.Minimum, slider.Maximum, getValue));
+
+            retVal.Children.Add(new TextBlock()
+            {
+                Text = title,
+                FontSize = 10,
+                Foreground = UtilityWPF.BrushFromHex("999"),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                Margin = new Thickness(0, 4, 0, 0),
+            });
+
+            return retVal;
+        }
+
+        private static FrameworkElement DrawPlot(double radius, HorizontalAngles angles, PropsAtAllAngles props, double minimum, double maximum, Func<PropsAtAngle, double> getValue)
+        {
+            var values = new List<(double angle, double value, double x, double y)>();
+
+            for (int angle = 0; angle <= 180; angle += 5)
+            {
+                double value = GetPlotValue(angle, angles, props, getValue);
+                double x = radius * Math.Cos(Math1D.DegreesToRadians(angle + 90));      // 0 should be +y
+                double y = radius * Math.Sin(Math1D.DegreesToRadians(angle + 90));
+                values.Add((angle, value, x, y));
+            }
+
+            var retVal = new Canvas()
+            {
+                Width = radius * 2,
+                Height = radius * 2,
+            };
+
+            for (int i = 0; i < values.Count - 1; i++)
+            {
+                double percent = UtilityMath.GetScaledValue(0, 1, minimum, maximum, (values[i].value + values[i + 1].value) / 2);
+                Brush brush = new SolidColorBrush(UtilityWPF.AlphaBlend(Colors.Black, Color.FromArgb(0, 255, 255, 255), percent));
+                double thickness = UtilityMath.GetScaledValue(0.25, 4, 0, 1, percent);
+
+                retVal.Children.Add(new Line()
+                {
+                    X1 = radius + values[i].x,
+                    Y1 = radius - values[i].y,
+                    X2 = radius + values[i + 1].x,
+                    Y2 = radius - values[i + 1].y,
+                    Stroke = brush,
+                    StrokeThickness = thickness,
+                });
+
+                retVal.Children.Add(new Line()
+                {
+                    X1 = radius - values[i].x,
+                    Y1 = radius - values[i].y,
+                    X2 = radius - values[i + 1].x,
+                    Y2 = radius - values[i + 1].y,
+                    Stroke = brush,
+                    StrokeThickness = thickness,
+                });
+            }
+
+            return retVal;
+        }
+
+        private static double GetPlotValue(double angle, HorizontalAngles angles, PropsAtAllAngles props, Func<PropsAtAngle, double> getValue)
+        {
+            var angle_lerp = GetPlotValue_AngleLERP(angle, angles, props);
+
+            double value_from = getValue(angle_lerp.from);
+            double value_to = getValue(angle_lerp.to);
+
+            return UtilityMath.GetScaledValue(value_from, value_to, 0, 1, angle_lerp.percent);
+        }
+        private static (PropsAtAngle from, PropsAtAngle to, double percent) GetPlotValue_AngleLERP(double angle, HorizontalAngles angles, PropsAtAllAngles props)
+        {
+            if (angle <= angles.FaceWall)
+                return (props.DirectFaceWall, props.FaceWall, UtilityMath.GetScaledValue_Capped(0, 1, 0, angles.FaceWall, angle));
+
+            if (angle <= angles.AlongStart)
+                return (props.FaceWall, props.AlongStart, UtilityMath.GetScaledValue_Capped(0, 1, angles.FaceWall, angles.AlongStart, angle));
+
+            if (angle <= angles.AlongEnd)
+                return (props.AlongStart, props.AlongEnd, UtilityMath.GetScaledValue_Capped(0, 1, angles.AlongStart, angles.AlongEnd, angle));
+
+            return (props.AlongEnd, props.DirectAway, UtilityMath.GetScaledValue_Capped(0, 1, angles.AlongEnd, 180, angle));
+        }
+
         private static PropsAtAllAngles GetPreset_Attempt1()
         {
             return new PropsAtAllAngles()
@@ -724,7 +861,7 @@ namespace Game.Bepu.Testers
                     YawTurn_Percent = 1,
                 },
 
-                DirectSway = new PropsAtAngle()
+                DirectAway = new PropsAtAngle()
                 {
                     Percent_Up = 1,
                     Percent_Along = 1,
