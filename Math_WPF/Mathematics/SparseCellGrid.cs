@@ -40,6 +40,29 @@ namespace Game.Math_WPF.Mathematics
         }
 
         #endregion
+        #region record: GeometryBounds
+
+        private record GeometryBounds
+        {
+            public Point3D aabb_min_3D { get; init; }
+            public Point3D aabb_max_3D { get; init; }
+
+            public VectorInt3[] corner_indices { get; init; }
+
+            public VectorInt3 aabb_min { get; init; }
+            public VectorInt3 aabb_max { get; init; }
+        }
+
+        #endregion
+        #region record: TriangleToProcess
+
+        private record TriangleToProcess
+        {
+            public GeometryBounds bounds { get; init; }
+            public ITriangle_wpf triangle { get; init; }
+        }
+
+        #endregion
 
         #region record: MarkResult
 
@@ -62,6 +85,11 @@ namespace Game.Math_WPF.Mathematics
         private readonly double _cell_half;
 
         private readonly List<VectorInt3> _marked = new List<VectorInt3>();
+
+        private readonly List<TriangleToProcess> _pending_triangles = new List<TriangleToProcess>();
+
+        //TODO: may want to store a list of (GeometryBounds, VectorInt3[]), in case queries are from point with radius.  Would also help
+        //with doing fluid simulations
 
         #endregion
 
@@ -88,37 +116,26 @@ namespace Game.Math_WPF.Mathematics
         }
         public VectorInt3[] GetIndices_Triangle(ITriangle_wpf triangle, bool show_debug = false)
         {
-            var aabb = Math3D.GetAABB(triangle);
-
-            // Get index of each corner of aabb
-            VectorInt3[] corner_indices = Polytopes.GetCubePoints(aabb.min, aabb.max).
-                Select(o => GetIndex_Point(o)).
-                ToArray();
+            var bounds = GetBounds_Triangle(triangle);
 
             // If all three vertices have the same index, then the entire triangle is inside a single cell
-            if (corner_indices.Skip(1).All(o => o.Equals(corner_indices[0])))
+            //if (corner_indices.Skip(1).All(o => o.Equals(corner_indices[0])))
+            if (bounds.aabb_min == bounds.aabb_max)
             {
                 if (show_debug)
-                    ShowDebug_IndicesTriangle(triangle, aabb, corner_indices, null, true);
+                    ShowDebug_IndicesTriangle(triangle, bounds, null, true);
 
-                return new[] { corner_indices[0] };
+                return new[] { bounds.aabb_min };
             }
 
-            VectorInt3[,,] indices = GetIndexBlock(corner_indices);
+            VectorInt3[,,] indices = GetIndexBlock(bounds.aabb_min, bounds.aabb_max);
 
             // Go through all the cells and get the faces that sit betwen the cells
             var face_stripes = GetCubeFaceStripes_ForAABBIndices(indices);
 
             // To map from indices to this array, take the index - marked_offset
             bool[,,] marked = new bool[indices.GetUpperBound(0) + 1, indices.GetUpperBound(1) + 1, indices.GetUpperBound(2) + 1];
-            VectorInt3 marked_offset = new VectorInt3
-            (
-                corner_indices.Min(o => o.X),
-                corner_indices.Min(o => o.Y),
-                corner_indices.Min(o => o.Z)
-            );
-
-            //FillMarked(marked, marked_offset, _marked);       // this would be a nice optimization, but would polute the return array with existing marked cells
+            VectorInt3 marked_offset = bounds.aabb_min;
 
             // Intersect the cube's faces with triangle (this won't detect a triangle completely inside a singe cell, but that check was accounted for earlier)
             foreach (var stripe in face_stripes)
@@ -129,32 +146,16 @@ namespace Game.Math_WPF.Mathematics
 
             VectorInt3[] marked_cells = GetMarkedCells(marked, marked_offset);
 
-            // Store the unique matches
-            _marked.AddRange(marked_cells.Except(_marked));
-
             if (show_debug)
-                ShowDebug_IndicesTriangle(triangle, aabb, corner_indices, marked_cells, false);
+                ShowDebug_IndicesTriangle(triangle, bounds, marked_cells, false);
 
             return marked_cells;
         }
         public VectorInt3[,] GetIndices_Rect2D(Rect rect, double z)
         {
-            var rect_points = new[]
-            {
-                new Point3D(rect.X, rect.Y, z),
-                new Point3D(rect.X + rect.Width, rect.Y, z),
-                new Point3D(rect.X + rect.Width, rect.Y + rect.Height, z),
-                new Point3D(rect.X, rect.Y + rect.Height, z),
-            };
+            var bounds = GetBounds_Rect2D(rect, z);
 
-            var aabb = Math3D.GetAABB(rect_points);
-
-            // Get index of each corner of aabb
-            VectorInt3[] corner_indices = Polytopes.GetCubePoints(aabb.min, aabb.max).
-                Select(o => GetIndex_Point(o)).
-                ToArray();
-
-            VectorInt3[,,] indices = GetIndexBlock(corner_indices);
+            VectorInt3[,,] indices = GetIndexBlock(bounds.aabb_min, bounds.aabb_max);
 
             if (indices.GetUpperBound(2) != 0)
                 throw new ApplicationException($"3D indices should always have a size of 1 for this function.  rect: {rect}, z: {z}, indices_0: {indices.GetUpperBound(0)}, indices_1: {indices.GetUpperBound(1)}, indices_2: {indices.GetUpperBound(2)}");
@@ -175,19 +176,75 @@ namespace Game.Math_WPF.Mathematics
             return retVal;
         }
 
-        //NOTE: these don't need to go to the expense of marking cells unless a cell within its aabb is requested
-        //So calculate the index aabb for the triangle, and store that in a to work list
-        public MarkResult Mark_Point(Point3D point, bool return_marked_cells = false)
+        public MarkResult Mark_Point(Point3D point)
         {
-            throw new ApplicationException("finish this");
+            VectorInt3 index = GetIndex_Point(point);
+
+            VectorInt3[] index_arr = new[] { index };
+
+            MarkCells(index_arr);
+
+            return new MarkResult()
+            {
+                AABB_Min = index,
+                AABB_Max = index,
+                MarkedCells = index_arr,
+            };
         }
         public MarkResult Mark_Triangle(ITriangle_wpf triangle, bool return_marked_cells = false)
         {
-            throw new ApplicationException("finish this");
+            //TODO: don't go to the expense of marking cells unless a cell within its aabb is requested
+            //Calculate the index aabb for the triangle, and store that in a to work list
+
+            var bounds = GetBounds_Triangle(triangle);
+
+            VectorInt3[] touching_cells = null;
+            if (return_marked_cells)
+            {
+                touching_cells = GetIndices_Triangle(triangle, false);
+                MarkCells(touching_cells);
+            }
+            else
+            {
+                // Store this for later
+                _pending_triangles.Add(new TriangleToProcess()
+                {
+                    bounds = bounds,
+                    triangle = new Triangle_wpf(triangle.Point0, triangle.Point1, triangle.Point2),     // clone in case the triangle changes
+                });
+            }
+
+            return new MarkResult()
+            {
+                AABB_Min = bounds.aabb_min,
+                AABB_Max = bounds.aabb_max,
+
+                MarkedCells = touching_cells,
+            };
         }
-        public MarkResult Mark_Rect2D(Rect rect, double z, bool return_marked_cells = false)
+        public MarkResult Mark_Rect2D(Rect rect, double z)
         {
-            throw new ApplicationException("finish this");
+            var indices = GetIndices_Rect2D(rect, z);
+
+            VectorInt3[] flattened = new VectorInt3[indices.Length];
+
+            int k = 0;
+            for (int i = 0; i <= indices.GetUpperBound(0); i++)
+            {
+                for (int j = 0; j <= indices.GetUpperBound(1); j++)
+                {
+                    flattened[k++] = indices[i, j];
+                }
+            }
+
+            MarkCells(flattened);
+
+            return new MarkResult()
+            {
+                AABB_Min = indices[0, 0],
+                AABB_Max = indices[indices.GetUpperBound(0), indices.GetUpperBound(1)],
+                MarkedCells = flattened,
+            };
         }
 
         public VectorInt3[] GetMarked()
@@ -373,25 +430,59 @@ namespace Game.Math_WPF.Mathematics
         #endregion
         #region Private Methods - triangle indices
 
+        private GeometryBounds GetBounds_Triangle(ITriangle_wpf triangle)
+        {
+            return GetBounds_Points(new Point3D[] { triangle.Point0, triangle.Point1, triangle.Point2 });
+        }
+        private GeometryBounds GetBounds_Rect2D(Rect rect, double z)
+        {
+            var rect_points = new[]
+            {
+                new Point3D(rect.X, rect.Y, z),
+                new Point3D(rect.X + rect.Width, rect.Y, z),
+                new Point3D(rect.X + rect.Width, rect.Y + rect.Height, z),
+                new Point3D(rect.X, rect.Y + rect.Height, z),
+            };
+
+            return GetBounds_Points(rect_points);
+        }
+        private GeometryBounds GetBounds_Points(IEnumerable<Point3D> points)
+        {
+            var aabb = Math3D.GetAABB(points);
+
+            // Get index of each corner of aabb
+            VectorInt3[] corner_indices = Polytopes.GetCubePoints(aabb.min, aabb.max).
+                Select(o => GetIndex_Point(o)).
+                ToArray();
+
+            return new GeometryBounds()
+            {
+                aabb_min_3D = aabb.min,
+                aabb_max_3D = aabb.max,
+
+                corner_indices = corner_indices,
+
+                aabb_min = new VectorInt3
+                (
+                    corner_indices.Min(o => o.X),
+                    corner_indices.Min(o => o.Y),
+                    corner_indices.Min(o => o.Z)
+                ),
+
+                aabb_max = new VectorInt3
+                (
+                    corner_indices.Max(o => o.X),
+                    corner_indices.Max(o => o.Y),
+                    corner_indices.Max(o => o.Z)
+                ),
+            };
+        }
+
         /// <summary>
         /// This finds the min/max and returns a 3D block of indices
         /// </summary>
-        private static VectorInt3[,,] GetIndexBlock(VectorInt3[] indices)
+        private static VectorInt3[,,] GetIndexBlock(VectorInt3 min, VectorInt3 max)
         {
-            VectorInt3 min = new VectorInt3
-            (
-                indices.Min(o => o.X),
-                indices.Min(o => o.Y),
-                indices.Min(o => o.Z)
-            );
-
-            VectorInt3 max = new VectorInt3
-            (
-                indices.Max(o => o.X),
-                indices.Max(o => o.Y),
-                indices.Max(o => o.Z)
-            );
-
             var retVal = new VectorInt3[max.X - min.X + 1, max.Y - min.Y + 1, max.Z - min.Z + 1];
 
             for (int x = 0; x < retVal.GetLength(0); x++)
@@ -644,7 +735,7 @@ namespace Game.Math_WPF.Mathematics
             return retVal.ToArray();
         }
 
-        private void ShowDebug_IndicesTriangle(ITriangle_wpf triangle, (Point3D min, Point3D max) aabb, VectorInt3[] corner_indices, VectorInt3[] marked_cells, bool is_single_cell)
+        private void ShowDebug_IndicesTriangle(ITriangle_wpf triangle, GeometryBounds bounds, VectorInt3[] marked_cells, bool is_single_cell)
         {
             var window = new Debug3DWindow()
             {
@@ -653,11 +744,11 @@ namespace Game.Math_WPF.Mathematics
 
             window.AddTriangle(triangle, Colors.DarkKhaki);
 
-            var sizes = Debug3DWindow.GetDrawSizes((aabb.max - aabb.min).Length / 2);
+            var sizes = Debug3DWindow.GetDrawSizes((bounds.aabb_max_3D - bounds.aabb_min_3D).Length / 2);
 
-            window.AddLines(Polytopes.GetCubeLines(aabb.min, aabb.max), sizes.line * 2, Colors.DarkGray);
+            window.AddLines(Polytopes.GetCubeLines(bounds.aabb_min_3D, bounds.aabb_max_3D), sizes.line * 2, Colors.DarkGray);
 
-            var line_segments = GetDistinctLineSegments(corner_indices);
+            var line_segments = GetDistinctLineSegments(bounds.corner_indices);
             window.AddLines(line_segments.index_pairs, line_segments.all_points_distinct, sizes.line / 2, Colors.White);
 
             if (is_single_cell)
@@ -670,6 +761,14 @@ namespace Game.Math_WPF.Mathematics
             line_segments = GetDistinctLineSegments(marked_cells);
             window.AddLines(line_segments.index_pairs, line_segments.all_points_distinct, sizes.line, UtilityWPF.ColorFromHex("7585BD"));
             window.Show();
+        }
+
+        #endregion
+        #region Private Methods - marking
+
+        private void MarkCells(VectorInt3[] cells)
+        {
+            _marked.AddRange(cells.Except(_marked));
         }
 
         #endregion
