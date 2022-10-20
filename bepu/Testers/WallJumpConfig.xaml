@@ -31,6 +31,11 @@
             <ColumnDefinition Width="1*"/>
         </Grid.ColumnDefinitions>
 
+        <StackPanel Grid.Column="0">
+            <Button Content="anim" Click="Anim_Click"/>
+            <Button Content="anim2" Click="Anim2_Click"/>
+        </StackPanel>
+
         <!-- Horizontal -->
         <Grid Grid.Column="2">
             <Grid.RowDefinitions>
@@ -43,6 +48,8 @@
 
             <StackPanel Grid.Row="0" Slider.ValueChanged="HorizontalAngleSlider_Changed">
                 <Label Content="Angles" Style="{StaticResource label_header}"/>
+
+                <!-- TODO: Don't hardcode the number/name of sliders.  Just have a list and add + - clear buttons -->
 
                 <Label Content="Facing Wall"/>
                 <Slider x:Name="trkHorizontal_DirectWall" Minimum="0" Maximum="60" Value="20">

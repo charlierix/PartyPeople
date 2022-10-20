@@ -3,6 +3,7 @@ using BepuUtilities;
 using Game.Core;
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
+using Game.Math_WPF.WPF.Controls3D;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -249,6 +250,160 @@ namespace Game.Bepu.Testers
             {
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void Anim_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                //var anim = new AnimationCurve();        // empty
+                //var anim = TestAnim_Squared();
+                //var anim = TestAnim_Random_XY();
+                var anim = TestAnim_Random_Y();
+
+                var window = new Debug3DWindow();
+
+                var sizes = Debug3DWindow.GetDrawSizes(32);
+
+                //double min = anim.Min_Key - 1;
+                //double max = anim.Max_Key + 1;
+
+                double min = anim.Min_Key;
+                double max = anim.Max_Key;
+
+                int steps = 144;
+
+                var points = Enumerable.Range(0, steps).
+                    Select(o =>
+                    {
+                        double x = UtilityMath.GetScaledValue(min, max, 0, steps - 1, o);
+
+                        return new
+                        {
+                            key = x,
+                            value = anim.Evaluate2(x),
+                        };
+                    }).
+                    Select(o => new Point3D(o.key, o.value, 0)).
+                    ToArray();
+
+                window.AddLines(anim.KeyValues.Select(o => new Point3D(o.key, o.value, 0)), sizes.line * 0.75, Colors.Black);
+
+                window.AddLines(points, sizes.line, Colors.White);
+
+                window.AddLines(BezierUtil.GetPoints(144, anim.Bezier), sizes.line * 0.5, Colors.DodgerBlue);
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void Anim2_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var anim = TestAnim_Random_Y();
+
+                var window = new Debug3DWindow();
+
+                var sizes = Debug3DWindow.GetDrawSizes(32);
+
+                double min = anim.Min_Key;
+                double max = anim.Max_Key;
+
+                int steps = 24;
+
+                Point3D[] points = Enumerable.Range(0, steps).
+                    Select(o =>
+                    {
+                        double x = UtilityMath.GetScaledValue(min, max, 0, steps - 1, o);
+
+                        return new
+                        {
+                            key = x,
+                            value = anim.Evaluate2(x),
+                        };
+                    }).
+                    Select(o => new Point3D(o.key, o.value, 0)).
+                    ToArray();
+
+                Point3D[] keyvalue_points = anim.KeyValues.
+                    Select(o => new Point3D(o.key, o.value, 0)).
+                    ToArray();
+
+                var bezier_points = BezierUtil.GetPoints(steps, anim.Bezier);
+
+
+                window.AddLines(keyvalue_points, sizes.line * 0.75, Colors.Black);
+
+                window.AddLines(points, sizes.line, Colors.White);
+
+                window.AddLines(bezier_points, sizes.line * 0.75, Colors.DodgerBlue);
+
+
+                for(int i = 0; i < steps; i++)
+                {
+                    window.AddLine(points[i], bezier_points[i], sizes.line * 0.5, Colors.RosyBrown);
+                }
+
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private static AnimationCurve TestAnim_Squared()
+        {
+            var retVal = new AnimationCurve();
+
+            retVal.AddKeyValue(0, 0);
+            retVal.AddKeyValue(1, 1);
+            retVal.AddKeyValue(2, 4);
+            retVal.AddKeyValue(3, 8);
+            retVal.AddKeyValue(4, 16);
+            retVal.AddKeyValue(5, 32);
+
+            return retVal;
+        }
+        private static AnimationCurve TestAnim_Random_XY()
+        {
+            var retVal = new AnimationCurve();
+
+            for (int i = 0; i < 6; i++)
+            {
+                Vector3D point = Math3D.GetRandomVector_Circular(16);
+                retVal.AddKeyValue(point.X, point.Y);
+            }
+
+            return retVal;
+        }
+        private static AnimationCurve TestAnim_Random_Y()
+        {
+            var retVal = new AnimationCurve();
+
+            double max_x = 16;
+            double min_x = -max_x;
+
+            double max_y = 16;
+            double min_y = -max_y;
+
+            int count = 5;
+            //int count = 12;
+
+            for (int i = 0; i < count; i++)
+            {
+                double x = UtilityMath.GetScaledValue(min_x, max_x, 0, count - 1, i);
+                double y = StaticRandom.NextDouble(min_y, max_y);
+
+                retVal.AddKeyValue(x, y);
+            }
+
+            return retVal;
         }
 
         #endregion

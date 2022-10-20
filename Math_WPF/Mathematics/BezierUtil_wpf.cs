@@ -262,9 +262,7 @@ namespace Game.Math_WPF.Mathematics
         public static BezierSegment3D_wpf[] GetBezierSegments(Point3D[] ends, double along = .25, bool isClosed = false)
         {
             if (isClosed)
-            {
                 return GetBezierSegments_Closed(ends, along);
-            }
 
             if (ends.Length > 2 && Math3D.IsNearValue(ends[0], ends[ends.Length - 1]))
             {
@@ -278,13 +276,13 @@ namespace Game.Math_WPF.Mathematics
             }
         }
 
-        public static Tuple<Point, Point> GetControlPoints_Middle(Point end1, Point end2, Point end3, double percentAlong12 = .25, double percentAlong23 = .25)
+        public static (Point, Point) GetControlPoints_Middle(Point end1, Point end2, Point end3, double percentAlong12 = .25, double percentAlong23 = .25)
         {
             // Just use the 3D overload
             var retVal = GetControlPoints_Middle(end1.ToPoint3D(), end2.ToPoint3D(), end3.ToPoint3D(), percentAlong12, percentAlong23);
 
             // Convert the response back to 2D
-            return Tuple.Create(retVal.Item1.ToPoint2D(), retVal.Item2.ToPoint2D());
+            return (retVal.Item1.ToPoint2D(), retVal.Item2.ToPoint2D());
         }
         /// <summary>
         /// This is a helper method to generate control points
@@ -306,7 +304,7 @@ namespace Game.Math_WPF.Mathematics
         /// Item1=control point for end2 for the 1-2 bezier segment (this is the last point in this.ControlPoints)
         /// Item2=control point for end2 for the 2-3 bezier segment (this is the first point in this.ControlPoints)
         /// </returns>
-        public static Tuple<Point3D, Point3D> GetControlPoints_Middle(Point3D end1, Point3D end2, Point3D end3, double percentAlong12 = .25, double percentAlong23 = .25)
+        public static (Point3D, Point3D) GetControlPoints_Middle(Point3D end1, Point3D end2, Point3D end3, double percentAlong12 = .25, double percentAlong23 = .25)
         {
             Vector3D dir21 = end1 - end2;
             Vector3D dir23 = end3 - end2;
@@ -319,7 +317,7 @@ namespace Game.Math_WPF.Mathematics
                 //
                 // Just return control points that are the same as the middle point.  This could be improved in the
                 // future if certain cases look bad
-                return Tuple.Create(end2, end2);
+                return (end2, end2);
             }
 
             Vector3D controlLineUnit;
@@ -337,7 +335,7 @@ namespace Game.Math_WPF.Mathematics
             Point3D control21 = end2 + (controlLineUnit * (dir21.Length * percentAlong12));
             Point3D control23 = end2 - (controlLineUnit * (dir23.Length * percentAlong23));
 
-            return Tuple.Create(control21, control23);
+            return (control21, control23);
         }
 
         /// <summary>
@@ -602,7 +600,7 @@ namespace Game.Math_WPF.Mathematics
             //NOTE: The difference between closed and open is closed has one more segment that loops back to zero (and a control point for point zero)
 
             // Precalculate the control points
-            Tuple<Point3D, Point3D>[] controls = new Tuple<Point3D, Point3D>[ends.Length - 1];
+            var controls = new (Point3D, Point3D)[ends.Length - 1];
 
             for (int cntr = 1; cntr < ends.Length; cntr++)
             {
@@ -634,11 +632,11 @@ namespace Game.Math_WPF.Mathematics
         private static BezierSegment3D_wpf[] GetBezierSegments_Open(Point3D[] ends, double along = .25)
         {
             // Precalculate the control points
-            Tuple<Point3D, Point3D>[] controls = new Tuple<Point3D, Point3D>[ends.Length - 2];
+            var controls = new (Point3D, Point3D)[ends.Length - 2];
 
             for (int cntr = 1; cntr < ends.Length - 1; cntr++)
             {
-                Tuple<double, double> adjustedAlong = GetAdjustedRatios(ends[cntr - 1], ends[cntr], ends[cntr + 1], along);
+                var adjustedAlong = GetAdjustedRatios(ends[cntr - 1], ends[cntr], ends[cntr + 1], along);
 
                 controls[cntr - 1] = GetControlPoints_Middle(ends[cntr - 1], ends[cntr], ends[cntr + 1], adjustedAlong.Item1, adjustedAlong.Item2);
             }
