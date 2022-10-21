@@ -28,6 +28,8 @@ namespace Game.Math_WPF.Mathematics
         {
             public BezierSegment3D_wpf[] Bezier { get; init; }
 
+            public (double key, double value)[] Bezier_Samples { get; init; }
+
             public double[] PercentsAlong { get; init; }
             public (double key, double percent)[] PercentsAlong2 { get; init; }
 
@@ -114,6 +116,34 @@ namespace Game.Math_WPF.Mathematics
 
             throw new ApplicationException($"Didn't find key: {key} | {_keyvalues.Select(o => o.Key.ToString()).ToJoin(", ")}");
         }
+        public double Evaluate3(double key)
+        {
+            if (_keyvalues.Length == 0)
+                return 0;
+
+            EnsureDerivedCreated();
+
+            //TODO: these should extend a ray from the first/last segment of the bezier
+            if (key <= _keyvalues[0].Key)
+                return _keyvalues[0].Value;   
+
+            if (key >= _keyvalues[^1].Key)
+                return _keyvalues[^1].Value;
+
+            for (int i = 1; i < _derived.Bezier_Samples.Length; i++)
+            {
+                if (key > _derived.Bezier_Samples[i].key)
+                    continue;
+
+                // get the percent from prev to next key
+                double percent = UtilityMath.GetScaledValue(0, 1, _derived.Bezier_Samples[i - 1].key, _derived.Bezier_Samples[i].key, key);
+
+                // get the corresponding value along the two points
+                return UtilityMath.LERP(_derived.Bezier_Samples[i - 1].value, _derived.Bezier_Samples[i].value, percent);
+            }
+
+            throw new ApplicationException($"Didn't find key: {key} | {_derived.Bezier_Samples.Select(o => o.key.ToString()).ToJoin(", ")}");
+        }
 
         private Derived EnsureDerivedCreated()
         {
@@ -129,6 +159,7 @@ namespace Game.Math_WPF.Mathematics
                 return new Derived()
                 {
                     Bezier = new BezierSegment3D_wpf[0],
+                    Bezier_Samples = new (double key, double value)[0],
                     PercentsAlong = new double[0],
                     PercentsAlong2 = new (double, double)[0],
                     Min_Key = 0,
@@ -145,6 +176,8 @@ namespace Game.Math_WPF.Mathematics
             {
                 Bezier = bezier,
 
+                Bezier_Samples = BuildBezierSamples(keyvalues, bezier),
+
                 PercentsAlong = BuildPercentsAlong(keyvalues),
                 PercentsAlong2 = BuildPercentsAlong4(keyvalues, bezier),
 
@@ -153,6 +186,25 @@ namespace Game.Math_WPF.Mathematics
                 Min_Value = keyvalues.Min(o => o.Value),
                 Max_Value = keyvalues.Max(o => o.Value),
             };
+        }
+
+        private static (double key, double value)[] BuildBezierSamples(KeyValuePair<double, double>[] keyvalues, BezierSegment3D_wpf[] bezier)
+        {
+            double total_len_keys = keyvalues[^1].Key - keyvalues[0].Key;
+
+            // Find the closest distance between keys
+            var key_distances = Enumerable.Range(0, keyvalues.Length - 1).
+                Select(o => keyvalues[o + 1].Key - keyvalues[o].Key).       // the list is already sorted
+                OrderBy(o => o).
+                Take(1).
+                ToArray();
+
+            // Get more samples than the keyvalues
+            int count = Math.Min((total_len_keys / key_distances[0]) * 16, 144).ToInt_Ceiling();
+
+            return BezierUtil.GetPoints(count, bezier).
+                Select(o => (o.X, o.Y)).
+                ToArray();
         }
 
         //TODO: this is too simple.  Need to approximate the length of the curve, then see where each point is along that path
@@ -165,7 +217,6 @@ namespace Game.Math_WPF.Mathematics
                 Select(o => (o.Key - keyvalues[0].Key) / length).
                 ToArray();
         }
-
         private static (double key, double percent)[] BuildPercentsAlong4(KeyValuePair<double, double>[] keyvalues, BezierSegment3D_wpf[] bezier)
         {
             double total_len_keys = keyvalues[^1].Key - keyvalues[0].Key;

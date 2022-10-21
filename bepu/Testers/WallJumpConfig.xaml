@@ -34,6 +34,7 @@
         <StackPanel Grid.Column="0">
             <Button Content="anim" Click="Anim_Click"/>
             <Button Content="anim2" Click="Anim2_Click"/>
+            <Button Content="anim3" Click="Anim3_Click"/>
         </StackPanel>
 
         <!-- Horizontal -->

@@ -343,11 +343,86 @@ namespace Game.Bepu.Testers
                 window.AddLines(bezier_points, sizes.line * 0.75, Colors.DodgerBlue);
 
 
-                for(int i = 0; i < steps; i++)
+                for (int i = 0; i < steps; i++)
                 {
                     window.AddLine(points[i], bezier_points[i], sizes.line * 0.5, Colors.RosyBrown);
                 }
 
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void Anim3_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                AnimationCurve anim = null;
+                switch (StaticRandom.Next(7))
+                {
+                    case 0:
+                        anim = new AnimationCurve();        // empty
+                        break;
+
+                    case 1:
+                        anim = TestAnim_Random_XY(1);
+                        break;
+
+                    case 2:
+                        anim = TestAnim_Random_XY(2);
+                        break;
+
+                    case 3:
+                        anim = TestAnim_Random_XY(3);
+                        break;
+
+                    case 4:
+                        anim = TestAnim_Squared();
+                        break;
+
+                    case 5:
+                        anim = TestAnim_Random_XY();
+                        break;
+
+                    case 6:
+                        anim = TestAnim_Random_Y();
+                        break;
+
+                    default:
+                        throw new ApplicationException("bad switch");
+                }
+
+                var window = new Debug3DWindow();
+
+                var sizes = Debug3DWindow.GetDrawSizes(32);
+
+                double min = anim.Min_Key - 1;
+                double max = anim.Max_Key + 1;
+
+                int steps = 144;
+
+                var points = Enumerable.Range(0, steps).
+                    Select(o =>
+                    {
+                        double x = UtilityMath.GetScaledValue(min, max, 0, steps - 1, o);
+
+                        return new
+                        {
+                            key = x,
+                            value = anim.Evaluate3(x),
+                        };
+                    }).
+                    Select(o => new Point3D(o.key, o.value, 0)).
+                    ToArray();
+
+                window.AddLines(anim.KeyValues.Select(o => new Point3D(o.key, o.value, 0)), sizes.line * 0.75, Colors.Black);
+
+                window.AddLines(points, sizes.line, Colors.White);
+
+                window.AddLines(BezierUtil.GetPoints(144, anim.Bezier), sizes.line * 0.5, Colors.DodgerBlue);
 
                 window.Show();
             }
@@ -370,11 +445,11 @@ namespace Game.Bepu.Testers
 
             return retVal;
         }
-        private static AnimationCurve TestAnim_Random_XY()
+        private static AnimationCurve TestAnim_Random_XY(int count = 6)
         {
             var retVal = new AnimationCurve();
 
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < count; i++)
             {
                 Vector3D point = Math3D.GetRandomVector_Circular(16);
                 retVal.AddKeyValue(point.X, point.Y);
