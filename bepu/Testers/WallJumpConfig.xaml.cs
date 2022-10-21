@@ -50,11 +50,11 @@ namespace Game.Bepu.Testers
 
         private record PropsAtAllAngles
         {
-            public PropsAtAngle DirectFaceWall = null;
-            public PropsAtAngle FaceWall = null;
-            public PropsAtAngle AlongStart = null;
-            public PropsAtAngle AlongEnd = null;
-            public PropsAtAngle DirectAway = null;
+            public PropsAtAngle DirectFaceWall { get; init; }
+            public PropsAtAngle FaceWall { get; init; }
+            public PropsAtAngle AlongStart { get; init; }
+            public PropsAtAngle AlongEnd { get; init; }
+            public PropsAtAngle DirectAway { get; init; }
         }
 
         #endregion
@@ -884,9 +884,11 @@ namespace Game.Bepu.Testers
         {
             var values = new List<(double angle, double value, double x, double y)>();
 
+            AnimationCurve curve = BuildAnimationCurve(angles, props, getValue);
+
             for (int angle = 0; angle <= 180; angle += 5)
             {
-                double value = GetPlotValue(angle, angles, props, getValue);
+                double value = curve.Evaluate(angle);
                 double x = radius * Math.Cos(Math1D.DegreesToRadians(angle + 90));      // 0 should be +y
                 double y = radius * Math.Sin(Math1D.DegreesToRadians(angle + 90));
                 values.Add((angle, value, x, y));
@@ -928,27 +930,17 @@ namespace Game.Bepu.Testers
             return retVal;
         }
 
-        private static double GetPlotValue(double angle, HorizontalAngles angles, PropsAtAllAngles props, Func<PropsAtAngle, double> getValue)
+        private static AnimationCurve BuildAnimationCurve(HorizontalAngles angles, PropsAtAllAngles props, Func<PropsAtAngle, double> getValue)
         {
-            var angle_lerp = GetPlotValue_AngleLERP(angle, angles, props);
+            var retVal = new AnimationCurve();
 
-            double value_from = getValue(angle_lerp.from);
-            double value_to = getValue(angle_lerp.to);
+            retVal.AddKeyValue(0, getValue(props.DirectFaceWall));
+            retVal.AddKeyValue(angles.FaceWall, getValue(props.FaceWall));
+            retVal.AddKeyValue(angles.AlongStart, getValue(props.AlongStart));
+            retVal.AddKeyValue(angles.AlongEnd, getValue(props.AlongEnd));
+            retVal.AddKeyValue(180, getValue(props.DirectAway));
 
-            return UtilityMath.GetScaledValue(value_from, value_to, 0, 1, angle_lerp.percent);
-        }
-        private static (PropsAtAngle from, PropsAtAngle to, double percent) GetPlotValue_AngleLERP(double angle, HorizontalAngles angles, PropsAtAllAngles props)
-        {
-            if (angle <= angles.FaceWall)
-                return (props.DirectFaceWall, props.FaceWall, UtilityMath.GetScaledValue_Capped(0, 1, 0, angles.FaceWall, angle));
-
-            if (angle <= angles.AlongStart)
-                return (props.FaceWall, props.AlongStart, UtilityMath.GetScaledValue_Capped(0, 1, angles.FaceWall, angles.AlongStart, angle));
-
-            if (angle <= angles.AlongEnd)
-                return (props.AlongStart, props.AlongEnd, UtilityMath.GetScaledValue_Capped(0, 1, angles.AlongStart, angles.AlongEnd, angle));
-
-            return (props.AlongEnd, props.DirectAway, UtilityMath.GetScaledValue_Capped(0, 1, angles.AlongEnd, 180, angle));
+            return retVal;
         }
 
         private static PropsAtAllAngles GetPreset_Attempt1()
