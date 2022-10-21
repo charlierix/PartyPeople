@@ -256,112 +256,10 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                //var anim = new AnimationCurve();        // empty
-                //var anim = TestAnim_Squared();
-                //var anim = TestAnim_Random_XY();
-                var anim = TestAnim_Random_Y();
-
-                var window = new Debug3DWindow();
-
-                var sizes = Debug3DWindow.GetDrawSizes(32);
-
-                //double min = anim.Min_Key - 1;
-                //double max = anim.Max_Key + 1;
-
-                double min = anim.Min_Key;
-                double max = anim.Max_Key;
-
-                int steps = 144;
-
-                var points = Enumerable.Range(0, steps).
-                    Select(o =>
-                    {
-                        double x = UtilityMath.GetScaledValue(min, max, 0, steps - 1, o);
-
-                        return new
-                        {
-                            key = x,
-                            value = anim.Evaluate2(x),
-                        };
-                    }).
-                    Select(o => new Point3D(o.key, o.value, 0)).
-                    ToArray();
-
-                window.AddLines(anim.KeyValues.Select(o => new Point3D(o.key, o.value, 0)), sizes.line * 0.75, Colors.Black);
-
-                window.AddLines(points, sizes.line, Colors.White);
-
-                window.AddLines(BezierUtil.GetPoints(144, anim.Bezier), sizes.line * 0.5, Colors.DodgerBlue);
-
-                window.Show();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-        private void Anim2_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var anim = TestAnim_Random_Y();
-
-                var window = new Debug3DWindow();
-
-                var sizes = Debug3DWindow.GetDrawSizes(32);
-
-                double min = anim.Min_Key;
-                double max = anim.Max_Key;
-
-                int steps = 24;
-
-                Point3D[] points = Enumerable.Range(0, steps).
-                    Select(o =>
-                    {
-                        double x = UtilityMath.GetScaledValue(min, max, 0, steps - 1, o);
-
-                        return new
-                        {
-                            key = x,
-                            value = anim.Evaluate2(x),
-                        };
-                    }).
-                    Select(o => new Point3D(o.key, o.value, 0)).
-                    ToArray();
-
-                Point3D[] keyvalue_points = anim.KeyValues.
-                    Select(o => new Point3D(o.key, o.value, 0)).
-                    ToArray();
-
-                var bezier_points = BezierUtil.GetPoints(steps, anim.Bezier);
-
-
-                window.AddLines(keyvalue_points, sizes.line * 0.75, Colors.Black);
-
-                window.AddLines(points, sizes.line, Colors.White);
-
-                window.AddLines(bezier_points, sizes.line * 0.75, Colors.DodgerBlue);
-
-
-                for (int i = 0; i < steps; i++)
-                {
-                    window.AddLine(points[i], bezier_points[i], sizes.line * 0.5, Colors.RosyBrown);
-                }
-
-
-                window.Show();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-        private void Anim3_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
                 AnimationCurve anim = null;
                 switch (StaticRandom.Next(7))
+                //switch (StaticRandom.Next(3, 6))
+                //switch (2)
                 {
                     case 0:
                         anim = new AnimationCurve();        // empty
@@ -412,17 +310,23 @@ namespace Game.Bepu.Testers
                         return new
                         {
                             key = x,
-                            value = anim.Evaluate3(x),
+                            value = anim.Evaluate(x),
                         };
                     }).
                     Select(o => new Point3D(o.key, o.value, 0)).
                     ToArray();
 
-                window.AddLines(anim.KeyValues.Select(o => new Point3D(o.key, o.value, 0)), sizes.line * 0.75, Colors.Black);
+                window.AddLines(anim.KeyValues.Select(o => new Point3D(o.key, o.value, 0)), sizes.line * 0.25, Colors.Black);
 
                 window.AddLines(points, sizes.line, Colors.White);
 
-                window.AddLines(BezierUtil.GetPoints(144, anim.Bezier), sizes.line * 0.5, Colors.DodgerBlue);
+                if (anim.NumPoints > 2)
+                    window.AddLines(BezierUtil.GetPoints(144, anim.Bezier), sizes.line * 0.5, Colors.DodgerBlue);
+
+                //foreach(var point in points)
+                //{
+                //    window.AddDot(new Point3D(point.X, 0, -1), sizes.dot, Colors.PowderBlue);
+                //}
 
                 window.Show();
             }
