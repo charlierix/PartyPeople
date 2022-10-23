@@ -72,85 +72,8 @@ namespace Game.Math_WPF.Mathematics
         {
             return GetPoints(count, UtilityCore.Iterate<Point3D>(segment.EndPoint0, segment.ControlPoints, segment.EndPoint1).ToArray());
         }
-        public static Point3D[] GetPoints(int count, BezierSegment3D_wpf[] bezier)
-        {
-            double divisor = (count - 1).ToDouble();
-
-            return Enumerable.Range(0, count).
-                Select(o => GetPoint(o / divisor, bezier)).
-                ToArray();
-        }
-
         /// <summary>
-        /// Get a single point along the curve
-        /// </summary>
-        public static Point3D GetPoint(double percent, BezierSegment3D_wpf segment)
-        {
-            return GetPoint(percent, UtilityCore.Iterate<Point3D>(segment.EndPoint0, segment.ControlPoints, segment.EndPoint1).ToArray());
-        }
-        /// <summary>
-        /// Get a single point along the curve
-        /// </summary>
-        /// <returns>
-        /// Got this here:
-        /// http://www.cubic.org/docs/bezier.htm
-        /// </returns>
-        public static Point3D GetPoint(double percent, Point3D[] controlPoints)
-        {
-            #region asserts
-#if DEBUG
-            if (controlPoints.Length < 2)
-            {
-                throw new ArgumentException("There must be at least two points passed in: " + controlPoints.Length.ToString());
-            }
-#endif
-            #endregion
-
-            Point3D[] prev = controlPoints;
-            Point3D[] current = null;
-
-            for (int outer = controlPoints.Length - 1; outer > 0; outer--)
-            {
-                current = new Point3D[outer];
-
-                for (int inner = 0; inner < outer; inner++)
-                {
-                    current[inner] = Math3D.LERP(prev[inner], prev[inner + 1], percent);
-                }
-
-                prev = current;
-            }
-
-            return current[0];      // by the time execution gets here, the array only has one element
-        }
-        public static Point3D GetPoint(double percent, BezierSegment3D_wpf[] bezier)
-        {
-            //TODO: If the bezier is closed, make it circular
-            if (percent < 0)
-                return bezier[0].EndPoint0;
-
-            double totalLength = bezier.Sum(o => o.Length_quick);
-
-            double fromPercent = 0d;
-            for (int cntr = 0; cntr < bezier.Length; cntr++)
-            {
-                double toPercent = fromPercent + (bezier[cntr].Length_quick / totalLength);
-
-                if (percent >= fromPercent && percent <= toPercent)
-                {
-                    double localPercent = ((percent - fromPercent) * totalLength) / bezier[cntr].Length_quick;
-
-                    return GetPoint(localPercent, bezier[cntr]);
-                }
-
-                fromPercent = toPercent;
-            }
-
-            return bezier[bezier.Length - 1].EndPoint1;
-        }
-
-        /// <summary>
-        /// This returns points across several segment definitions.  count is the total number of sample points to return
+        /// Returns points across several segment definitions.  count is the total number of sample points to return
         /// </summary>
         /// <remarks>
         /// This assumes that the segments are linked together into a single path
@@ -158,7 +81,7 @@ namespace Game.Math_WPF.Mathematics
         /// If the first and last point of segments are the same, then this will only return that shared point once (but the point count
         /// will still be how many were requested
         /// </remarks>
-        public static Point3D[] GetPath(int count, BezierSegment3D_wpf[] segments)
+        public static Point3D[] GetPoints(int count, BezierSegment3D_wpf[] segments)
         {
             // Get the total length of the curve
             double totalLength = 0;
@@ -201,11 +124,11 @@ namespace Game.Math_WPF.Mathematics
             return retVal;
         }
         /// <summary>
-        /// This returns points across sets of segment definition.  Each set is run through the other path overload.  So the endpoints
+        /// Returns points across sets of segment definition.  Each set is run through the other path overload.  So the endpoints
         /// of each set are guaranteed to be included in the return points (deduped)
         /// </summary>
         /// <param name="countPerPath">This is how many points per set (the total number of points will be countPerPath * segmentSets.Length)</param>
-        public static Point3D[] GetPath(int countPerPath, BezierSegment3D_wpf[][] segmentSets)
+        public static Point3D[] GetPoints(int countPerPath, BezierSegment3D_wpf[][] segmentSets)
         {
             //TODO: Make an overload that takes in total count instead of per path
 
@@ -220,7 +143,7 @@ namespace Game.Math_WPF.Mathematics
                 }
                 else
                 {
-                    perPathPoints.Add(GetPath(countPerPath, segments));
+                    perPathPoints.Add(GetPoints(countPerPath, segments));
                 }
             }
 
@@ -248,6 +171,69 @@ namespace Game.Math_WPF.Mathematics
             }
 
             return retVal.ToArray();
+        }
+
+        public static Point3D GetPoint(double percent, BezierSegment3D_wpf[] bezier)
+        {
+            //TODO: If the bezier is closed, make it circular
+            if (percent < 0)
+                return bezier[0].EndPoint0;
+
+            double totalLength = bezier.Sum(o => o.Length_quick);
+
+            double fromPercent = 0d;
+            for (int cntr = 0; cntr < bezier.Length; cntr++)
+            {
+                double toPercent = fromPercent + (bezier[cntr].Length_quick / totalLength);
+
+                if (percent >= fromPercent && percent <= toPercent)
+                {
+                    double localPercent = ((percent - fromPercent) * totalLength) / bezier[cntr].Length_quick;
+
+                    return GetPoint(localPercent, bezier[cntr]);
+                }
+
+                fromPercent = toPercent;
+            }
+
+            return bezier[bezier.Length - 1].EndPoint1;
+        }
+        public static Point3D GetPoint(double percent, BezierSegment3D_wpf segment)
+        {
+            return GetPoint(percent, UtilityCore.Iterate<Point3D>(segment.EndPoint0, segment.ControlPoints, segment.EndPoint1).ToArray());
+        }
+        /// <summary>
+        /// Get a single point along the curve
+        /// </summary>
+        /// <returns>
+        /// Got this here:
+        /// http://www.cubic.org/docs/bezier.htm
+        /// </returns>
+        public static Point3D GetPoint(double percent, Point3D[] controlPoints)
+        {
+            #region asserts
+#if DEBUG
+            if (controlPoints.Length < 2)
+                throw new ArgumentException("There must be at least two points passed in: " + controlPoints.Length.ToString());
+#endif
+            #endregion
+
+            Point3D[] prev = controlPoints;
+            Point3D[] current = null;
+
+            for (int outer = controlPoints.Length - 1; outer > 0; outer--)
+            {
+                current = new Point3D[outer];
+
+                for (int inner = 0; inner < outer; inner++)
+                {
+                    current[inner] = Math3D.LERP(prev[inner], prev[inner + 1], percent);
+                }
+
+                prev = current;
+            }
+
+            return current[0];      // by the time execution gets here, the array only has one element
         }
 
         /// <summary>
@@ -687,6 +673,11 @@ namespace Game.Math_WPF.Mathematics
             return Vector3D.CrossProduct(between, axis);        // length doesn't really matter for this.  It could also point in the exact opposite direction, and that wouldn't matter
         }
 
+        //TODO: instead of a constant along percent, have an option to set along based on dot product:
+        //  dot=0: use along
+        //  dot=1: use along_min
+        //
+        // This will help really spiky segments to not be so loopy
         private static Tuple<double, double> GetAdjustedRatios(Point3D p1, Point3D p2, Point3D p3, double along)
         {
             double length12 = (p2 - p1).Length;

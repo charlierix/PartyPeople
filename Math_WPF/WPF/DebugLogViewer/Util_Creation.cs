@@ -105,7 +105,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             GeometryModel3D geometry = new GeometryModel3D();
             geometry.Material = material;
             geometry.BackMaterial = material;
-            geometry.Geometry = UtilityWPF.GetSphere_Ico(SIZE_DOT * (dot.size_mult ?? 1), 1, true);
+            geometry.Geometry = UtilityWPF.GetSphere_Ico(SIZE_DOT * GetSizeMult(dot), 1, true);
             geometry.Transform = new TranslateTransform3D(dot.position.ToVector());
 
             var retVal = new ModelVisual3D
@@ -130,7 +130,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             visual.Color = color.color;
             visual.BeginAddingLines();
 
-            visual.AddLine(line.point1, line.point2, SIZE_LINE * (line.size_mult ?? 1));
+            visual.AddLine(line.point1, line.point2, SIZE_LINE * GetSizeMult(line));
 
             visual.EndAddingLines();
 
@@ -144,7 +144,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             geometry.Material = material;
             geometry.BackMaterial = material;
 
-            geometry.Geometry = UtilityWPF.GetTorus(30, 7, SIZE_CIRCLE * (circle.size_mult ?? 1), circle.radius);
+            geometry.Geometry = UtilityWPF.GetTorus(30, 7, SIZE_CIRCLE * GetSizeMult(circle), circle.radius);
 
             geometry.Transform = GetTransform_2D_to_3D(circle.center, circle.normal);
 
@@ -183,7 +183,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
 
                 Color = UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_X),
 
-                Thickness = SIZE_LINE * (axislines.size_mult ?? 1),
+                Thickness = SIZE_LINE * GetSizeMult(axislines),
             };
             geometry.Children.Add(line.Model);
 
@@ -195,7 +195,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
 
                 Color = UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_Y),
 
-                Thickness = SIZE_LINE * (axislines.size_mult ?? 1),
+                Thickness = SIZE_LINE * GetSizeMult(axislines),
             };
             geometry.Children.Add(line.Model);
 
@@ -207,7 +207,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
 
                 Color = UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_Z),
 
-                Thickness = SIZE_LINE * (axislines.size_mult ?? 1),
+                Thickness = SIZE_LINE * GetSizeMult(axislines),
             };
             geometry.Children.Add(line.Model);
 
@@ -253,6 +253,16 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                 return (item.category.color.Value, false);
             else
                 return (defaultColor, true);
+        }
+
+        private static double GetSizeMult(ItemBase item)
+        {
+            if (item.size_mult != null)
+                return item.size_mult.Value;
+            else if (item.category?.size_mult != null)
+                return item.category.size_mult.Value;
+            else
+                return 1;
         }
 
         #endregion
