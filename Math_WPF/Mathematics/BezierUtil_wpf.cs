@@ -592,12 +592,12 @@ namespace Game.Math_WPF.Mathematics
             {
                 int lastIndex = cntr == ends.Length - 1 ? 0 : cntr + 1;
 
-                Tuple<double, double> adjustedAlong = GetAdjustedRatios(ends[cntr - 1], ends[cntr], ends[lastIndex], along);
+                var adjustedAlong = GetAdjustedRatios(ends[cntr - 1], ends[cntr], ends[lastIndex], along);
 
                 controls[cntr - 1] = GetControlPoints_Middle(ends[cntr - 1], ends[cntr], ends[lastIndex], adjustedAlong.Item1, adjustedAlong.Item2);
             }
 
-            Tuple<double, double> adjustedAlong2 = GetAdjustedRatios(ends[ends.Length - 1], ends[0], ends[1], along);
+            var adjustedAlong2 = GetAdjustedRatios(ends[ends.Length - 1], ends[0], ends[1], along);
             var extraControl = GetControlPoints_Middle(ends[ends.Length - 1], ends[0], ends[1], adjustedAlong2.Item1, adjustedAlong2.Item2);      // loop back
 
             // Build the return segments
@@ -678,25 +678,38 @@ namespace Game.Math_WPF.Mathematics
         //  dot=1: use along_min
         //
         // This will help really spiky segments to not be so loopy
-        private static Tuple<double, double> GetAdjustedRatios(Point3D p1, Point3D p2, Point3D p3, double along)
+        private static (double, double) GetAdjustedRatios(Point3D p1, Point3D p2, Point3D p3, double along)
         {
-            double length12 = (p2 - p1).Length;
-            double length23 = (p3 - p2).Length;
+            Vector3D v12 = p2 - p1;
+            Vector3D v23 = p3 - p2;
+
+            double length12 = v12.Length;
+            double length23 = v23.Length;
+
+            v12 = v12 / length12;
+            v23 = v23 / length23;
+
+            // Adjust at extreme angles
+            double dot = Vector3D.DotProduct(v12, v23);
+            if (dot < -0.9)
+                along = UtilityMath.GetScaledValue(along / 3, along, -1, -0.9, dot);        // pinched.  need to reduce so it doesn't get so loopy
+
+            else if (dot > 0.5)
+                along = UtilityMath.GetScaledValue(along, along * 2, 0.5, 1, dot);      // obtuse.  expanding so it becomes a smoother curve
+
+            if (along > 0.5)
+                along = 0.5;        // if length goes beyond midpoint, the final curve looks bad
 
             // The shorter segment gets the full amount, and the longer segment gets an adjusted amount
 
             if (length12.IsNearValue(length23))
-            {
-                return Tuple.Create(along, along);
-            }
+                return (along, along);
+
             else if (length12 < length23)
-            {
-                return Tuple.Create(along, along * (length12 / length23));
-            }
+                return (along, along * (length12 / length23));
+
             else
-            {
-                return Tuple.Create(along * (length23 / length12), along);
-            }
+                return (along * (length23 / length12), along);
         }
 
         private static Point3D[][] GetVerticalSamples(BezierSegment3D_wpf[][] horizontals, int horzCount, int vertCount, double controlPointPercent)
