@@ -4,10 +4,13 @@ using Game.Core;
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
+using GeneticSharp.Domain.Mutations;
+using MathNet.Numerics.LinearAlgebra.Factorization;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -383,6 +386,153 @@ namespace Game.Bepu.Testers
             }
 
             return retVal;
+        }
+
+
+        // TODO: the reason why it's failing is because the individual componenets aren't taking advantage of the knowledge from
+        // building Length_quick
+        //
+        // Add another property off of bezier segment that holds a mapping of percents
+
+        private Point3D[] _endpoints = null;
+        private void FindBunching_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _endpoints = Enumerable.Range(0, StaticRandom.Next(4, 7)).
+                    Select(o => Math3D.GetRandomVector_Spherical(4).ToPoint()).
+                    ToArray();
+
+                FindBunching(_endpoints);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void RepeatPrev_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                FindBunching(_endpoints);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void FindBunching(Point3D[] endpoints)
+        {
+            var beziers = BezierUtil.GetBezierSegments(endpoints, 0.3, false);
+
+            Point3D[] samples = BezierUtil.GetPoints(72, beziers);
+
+            var distances = Enumerable.Range(1, samples.Length - 2).
+                Select(o =>
+                {
+                    double dist_left = (samples[o] - samples[o - 1]).Length;
+                    double dist_right = (samples[o + 1] - samples[o]).Length;
+                    //double diff = Math.Abs(dist_left - dist_right);
+                    double diff = Math.Min(dist_left, dist_right) / (dist_left + dist_right);
+
+                    return new
+                    {
+                        index = o,
+                        dist_left,
+                        dist_right,
+                        diff,
+                    };
+                }).
+                ToArray();
+
+            var dist_sorted = distances.
+                OrderBy(o => o.diff).
+                ToArray();
+
+            var avg = Math1D.Get_Average_StandardDeviation(distances.Select(o => o.diff));
+
+
+            var sizes = Debug3DWindow.GetDrawSizes(8);
+
+            // --------------- Points ---------------
+            var window = new Debug3DWindow()
+            {
+                Title = "combined",
+            };
+
+            window.AddDots(endpoints, sizes.dot * 1.5, Colors.Black);
+
+            window.AddDots(beziers.SelectMany(o => o.ControlPoints), sizes.dot * 1.25, UtilityWPF.ColorFromHex("BA655F"));
+
+            window.AddDots(samples, sizes.dot, UtilityWPF.ColorFromHex("A2D7FC"));
+
+            window.Show();
+
+            // --------------- line diffs ---------------
+
+            window = new Debug3DWindow();
+
+            window.AddLines(Enumerable.Range(0, samples.Length - 1).Select(o => (samples[o], samples[o + 1])), sizes.line, Colors.White);
+
+            window.AddDots(samples, sizes.dot * 0.33, UtilityWPF.ColorFromHex("A2D7FC"));
+
+            // this is now fixed
+            //foreach (var top_diff in dist_sorted.Take(2))
+            //{
+            //    window.AddDot(samples[top_diff.index], sizes.dot * 0.4, Colors.Red);
+            //}
+
+            double approx_len = beziers.Sum(o => o.Length_quick);
+            for(int i = 0; i < beziers.Length; i++)
+            {
+                window.AddText($"{i}: {beziers[i].Length_quick} | {Math.Round((beziers[i].Length_quick / approx_len) * 100)}%");
+            }
+
+            window.Show();
+
+            // --------------- Independent ---------------
+            //window = new Debug3DWindow()
+            //{
+            //    Title = "independent",
+            //};
+
+            //window.AddDots(endpoints, sizes.dot * 1.5, Colors.Black);
+
+            //window.AddDots(beziers.SelectMany(o => o.ControlPoints), sizes.dot * 1.25, UtilityWPF.ColorFromHex("BA655F"));
+
+            //foreach(var bezier in beziers)
+            //{
+            //    window.AddDots(BezierUtil.GetPoints(24, bezier), sizes.dot, UtilityWPF.ColorFromHex("A2D7FC"));
+            //}
+
+            //window.Show();
+        }
+
+        private void CurveHeatmap_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _endpoints = Enumerable.Range(0, StaticRandom.Next(4, 7)).
+                    Select(o => Math3D.GetRandomVector_Spherical(4).ToPoint()).
+                    ToArray();
+
+                Heatmap(_endpoints);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void Heatmap(Point3D[] endpoints)
+        {
+            var beziers = BezierUtil.GetBezierSegments(endpoints, 0.3, false);
+
+
+            // look at each local heatmap, distribute among neighbor boundries
+
+
+
+
         }
 
         #endregion

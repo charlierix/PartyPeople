@@ -86,10 +86,10 @@ namespace Game.Math_WPF.Mathematics
             // Get the total length of the curve
             double totalLength = 0;
             double[] cumulativeLengths = new double[segments.Length + 1];
-            for (int cntr = 1; cntr < segments.Length + 1; cntr++)
+            for (int i = 1; i < segments.Length + 1; i++)
             {
-                totalLength += segments[cntr - 1].Length_quick;
-                cumulativeLengths[cntr] = cumulativeLengths[cntr - 1] + segments[cntr - 1].Length_quick;
+                totalLength += segments[i - 1].Length_quick;
+                cumulativeLengths[i] = cumulativeLengths[i - 1] + segments[i - 1].Length_quick;
             }
 
             double countD = count - 1;
@@ -101,10 +101,10 @@ namespace Game.Math_WPF.Mathematics
 
             int index = 0;
 
-            for (int cntr = 1; cntr < count - 1; cntr++)
+            for (int i = 1; i < count - 1; i++)
             {
                 // Get the location along the entire path
-                double totalPercent = cntr / countD;
+                double totalPercent = i / countD;
                 double portionTotalLength = totalLength * totalPercent;
 
                 // Advance to the appropriate segment
@@ -115,10 +115,11 @@ namespace Game.Math_WPF.Mathematics
 
                 // Get the percent of the current segment
                 double localLength = portionTotalLength - cumulativeLengths[index];
-                double localPercent = localLength / segments[index].Length_quick;
+                double localPercent_desired = localLength / segments[index].Length_quick;
+                double localPercent_actual = GetInputForOutput(localPercent_desired, segments[index].Percents);
 
                 // Calculate the bezier point
-                retVal[cntr] = GetPoint(localPercent, segments[index].Combined);
+                retVal[i] = GetPoint(localPercent_actual, segments[index].Combined);
             }
 
             return retVal;
@@ -694,8 +695,8 @@ namespace Game.Math_WPF.Mathematics
             if (dot < -0.9)
                 along = UtilityMath.GetScaledValue(along / 3, along, -1, -0.9, dot);        // pinched.  need to reduce so it doesn't get so loopy
 
-            else if (dot > 0.5)
-                along = UtilityMath.GetScaledValue(along, along * 2, 0.5, 1, dot);      // obtuse.  expanding so it becomes a smoother curve
+            else if (dot > 0.25)
+                along = UtilityMath.GetScaledValue(along, along * 2, 0.25, 1, dot);      // obtuse.  expanding so it becomes a smoother curve
 
             if (along > 0.5)
                 along = 0.5;        // if length goes beyond midpoint, the final curve looks bad
@@ -832,6 +833,24 @@ namespace Game.Math_WPF.Mathematics
             return retVal.ToArray();
         }
 
+        private static double GetInputForOutput(double output, (double input, double output)[] percents)
+        {
+            if (output <= 0)
+                return 0;
+            else if (output >= 1)
+                return 1;
+
+            for (int i = 0; i < percents.Length; i++)
+            {
+                if (output > percents[i].output)
+                    continue;
+
+                return UtilityMath.GetScaledValue(percents[i - 1].input, percents[i].input, percents[i - 1].output, percents[i].output, output);
+            }
+
+            throw new ApplicationException($"Couldn't find input for output: {output}");
+        }
+
         #endregion
     }
 
@@ -859,6 +878,10 @@ namespace Game.Math_WPF.Mathematics
             AllEndPoints = allEndPoints;
 
             Combined = UtilityCore.Iterate<Point3D>(EndPoint0, ControlPoints, EndPoint1).ToArray();
+
+            var analyze = AnalyzeCurve(allEndPoints[endIndex0], allEndPoints[endIndex1], controlPoints, Combined);
+            Length_quick = analyze.length_quick;
+            Percents = analyze.percents;
         }
 
         #endregion
@@ -878,47 +901,16 @@ namespace Game.Math_WPF.Mathematics
         /// </summary>
         public readonly Point3D[] Combined;
 
-        private double? _length_quick = null;
         /// <summary>
-        /// This is a rough approximation of the length of the bezier.  It will likely be shorter than the actual length
+        /// This is a rough approximation of the length of the bezier
         /// </summary>
-        /// <remarks>
-        /// Some suggestions on how to do it right:
-        /// http://math.stackexchange.com/questions/12186/arc-length-of-b%C3%A9zier-curves
-        /// http://www.carlosicaza.com/2012/08/12/an-more-efficient-way-of-calculating-the-length-of-a-bezier-curve-part-ii/
-        /// </remarks>
-        public double Length_quick
-        {
-            get
-            {
-                lock (_lock)
-                {
-                    if (_length_quick == null)
-                    {
-                        if (ControlPoints == null || ControlPoints.Length == 0)
-                        {
-                            _length_quick = (EndPoint1 - EndPoint0).Length;
-                        }
-                        else
-                        {
-                            double length = 0;
+        public readonly double Length_quick;
 
-                            length += (ControlPoints[0] - EndPoint0).LengthSquared;
-                            length += (ControlPoints[ControlPoints.Length - 1] - EndPoint1).LengthSquared;
-
-                            for (int cntr = 0; cntr < ControlPoints.Length - 1; cntr++)
-                            {
-                                length += (ControlPoints[cntr] - ControlPoints[cntr + 1]).LengthSquared;
-                            }
-
-                            _length_quick = Math.Sqrt(length);
-                        }
-                    }
-
-                    return _length_quick.Value;
-                }
-            }
-        }
+        /// <summary>
+        /// A call to BezierUtil.GetPoint with an input percent will result in a point that is some percent along the
+        /// actual curved path
+        /// </summary>
+        public readonly (double input, double output)[] Percents;
 
         #region Public Methods
 
@@ -931,6 +923,63 @@ namespace Game.Math_WPF.Mathematics
             }
 
             return new BezierSegment3D_wpf(this.EndIndex1, this.EndIndex0, controlPoints, this.AllEndPoints);      // no need to reverse AllEndPoints, just the indexes
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private static ((double input, double output)[] percents, double length_quick) AnalyzeCurve(Point3D end0, Point3D end1, Point3D[] controlPoints, Point3D[] combined)
+        {
+            if (controlPoints == null || controlPoints.Length == 0)     // just a regular line segment
+            {
+                return
+                (
+                    new[]
+                    {
+                        (0d, 0d),
+                        (1d, 1d),
+                    },
+                    (end1 - end0).Length
+                );
+            }
+
+            Point3D[] samples = BezierUtil.GetPoints(12, combined);
+
+            double[] lengths = GetSegmentLengths(samples);
+
+            double length_quick = lengths.Sum();
+
+            var percents = new (double, double)[samples.Length];
+
+            percents[0] = (0, 0);
+            percents[^1] = (1, 1);
+
+            double input_inc = 1d / (samples.Length - 1);
+            double sum_input = 0;
+            double sum_output = 0;
+
+            for (int i = 0; i < lengths.Length - 1; i++)        // no need to calculate the last one, it's always going to become (1,1)
+            {
+                sum_input += input_inc;
+                sum_output += lengths[i];
+
+                percents[i + 1] = (sum_input, sum_output / length_quick);
+            }
+
+            return (percents, length_quick);
+        }
+
+        private static double[] GetSegmentLengths(Point3D[] samples)
+        {
+            var retVal = new double[samples.Length - 1];
+
+            for (int i = 0; i < samples.Length - 1; i++)
+            {
+                retVal[i] = (samples[i + 1] - samples[i]).Length;
+            }
+
+            return retVal;
         }
 
         #endregion
