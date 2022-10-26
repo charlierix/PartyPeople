@@ -512,7 +512,7 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                _endpoints = Enumerable.Range(0, StaticRandom.Next(4, 7)).
+                _endpoints = Enumerable.Range(0, StaticRandom.Next(3, 8)).
                     Select(o => Math3D.GetRandomVector_Spherical(4).ToPoint()).
                     ToArray();
 
@@ -642,7 +642,36 @@ namespace Game.Bepu.Testers
         }
         private void Heatmap3(Point3D[] endpoints)
         {
+            var beziers = BezierUtil.GetBezierSegments(endpoints, 0.3, false);
 
+            Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
+
+            HM2[] heatmap = GetHeatmap(beziers);
+            double max_dist_from_negone = heatmap.Max(o => o.Dist_From_NegOne);
+
+            PathSnippet[] map = GetPinchedMapping(heatmap, endpoints.Length);
+
+            var sizes = Debug3DWindow.GetDrawSizes(1);
+
+            var window = new Debug3DWindow();
+
+            window.AddLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), sizes.line, Colors.Black);
+            window.AddLine(new Point3D(0, 0, 0), new Point3D(1, 1, 0), sizes.line, Colors.Black);
+
+            for (int i = 0; i < endpoints.Length; i++)
+            {
+                window.AddDot(new Point3D((double)i / (endpoints.Length - 1), 0, 0), sizes.dot, Colors.Black);
+            }
+
+            Color[] colors = UtilityWPF.GetRandomColors(map.Length, 100, 200);
+
+            for (int i = 0; i < map.Length; i++)
+            {
+                window.AddTriangle(new Point3D(map[i].From_X, map[i].From_Y, 0), new Point3D(map[i].To_X, map[i].From_Y, 0), new Point3D(map[i].To_X, map[i].To_Y, 0), colors[i]);
+                window.AddSquare(new Point(map[i].From_X, 0), new Point(map[i].To_X, map[i].From_Y), colors[i]);
+            }
+
+            window.Show();
         }
 
         private record HM2
@@ -650,6 +679,13 @@ namespace Game.Bepu.Testers
             public Point3D Point { get; init; }
             public double Dot { get; init; }
             public double Dist_From_NegOne { get; init; }
+        }
+        private record PathSnippet
+        {
+            public double From_X { get; init; }
+            public double From_Y { get; init; }
+            public double To_X { get; init; }
+            public double To_Y { get; init; }
         }
 
         private static HM2[] GetHeatmap(BezierSegment3D_wpf[] beziers)
@@ -679,7 +715,7 @@ namespace Game.Bepu.Testers
 
                 for (int j = 1; j < samples.Length - 1; j++)
                 {
-                    retVal.Add(GetHeatmap_Item(samples[j - 1] , samples[j], samples[j + 1], lengths[j - 1], lengths[j]));
+                    retVal.Add(GetHeatmap_Item(samples[j - 1], samples[j], samples[j + 1], lengths[j - 1], lengths[j]));
                 }
             }
 
@@ -704,7 +740,7 @@ namespace Game.Bepu.Testers
         {
             var retVal = new List<string>();
 
-            for(int i = 0; i < heatmap.Length; i++)
+            for (int i = 0; i < heatmap.Length; i++)
             {
                 double x = (double)i / (heatmap.Length - 1);
                 double y = heatmap[i].Dist_From_NegOne / max_dist_from_negone;
@@ -713,6 +749,37 @@ namespace Game.Bepu.Testers
             }
 
             return retVal.ToJoin("\r\n");
+        }
+        private static PathSnippet[] GetPinchedMapping(HM2[] heatmap, int endpoint_count)
+        {
+            int return_count = ((endpoint_count - 1) * 3) + 1;      // this is kind of arbitrary, but should give a good amount of snippets to play with
+
+            double inc = 1d / return_count;
+
+            var initial = Enumerable.Range(0, return_count).
+                Select(o => new
+                {
+                    from = (double)o / return_count,
+                    to = (double)(o + 1) / return_count,
+                }).
+                Select(o => new PathSnippet()
+                {
+                    From_X = o.from,
+                    From_Y = o.from,
+                    To_X = o.to,
+                    To_Y = o.to,
+                }).
+                ToArray();
+
+            var retVal = initial;
+
+            for(int i = 0; i < 4; i++)
+            {
+                //double[] forces = GetForces(retVal, heatmap);
+                //retVal = ApplyForces(retVal, forces);
+            }
+
+            return initial;
         }
 
         #endregion
