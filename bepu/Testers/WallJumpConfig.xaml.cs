@@ -483,7 +483,7 @@ namespace Game.Bepu.Testers
             //}
 
             double approx_len = beziers.Sum(o => o.Length_quick);
-            for(int i = 0; i < beziers.Length; i++)
+            for (int i = 0; i < beziers.Length; i++)
             {
                 window.AddText($"{i}: {beziers[i].Length_quick} | {Math.Round((beziers[i].Length_quick / approx_len) * 100)}%");
             }
@@ -516,7 +516,22 @@ namespace Game.Bepu.Testers
                     Select(o => Math3D.GetRandomVector_Spherical(4).ToPoint()).
                     ToArray();
 
-                Heatmap(_endpoints);
+                //Heatmap(_endpoints);
+                Heatmap2(_endpoints);
+                Heatmap3(_endpoints);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void RepeatPrev2_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                //Heatmap(_endpoints);
+                Heatmap2(_endpoints);
+                Heatmap3(_endpoints);
             }
             catch (Exception ex)
             {
@@ -527,12 +542,177 @@ namespace Game.Bepu.Testers
         {
             var beziers = BezierUtil.GetBezierSegments(endpoints, 0.3, false);
 
+            Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
+
 
             // look at each local heatmap, distribute among neighbor boundries
 
 
+            var sizes = Debug3DWindow.GetDrawSizes(8);
+            double small_dot = sizes.dot * 0.36;
+
+            var window = new Debug3DWindow();
 
 
+            double[] distances_from_negone = beziers.
+                SelectMany(o => o.Heatmap).
+                Select(o => o.Dist_From_NegOne).
+                ToArray();
+
+            double max_dist_from_negone = distances_from_negone.Max();
+
+
+            foreach (var bezier in beziers)
+            {
+                window.AddDot(bezier.EndPoint0, small_dot, Colors.Black);
+                window.AddDot(bezier.EndPoint1, small_dot, Colors.Black);
+
+                foreach (var heat in bezier.Heatmap)
+                {
+                    window.AddDot(heat.Point, small_dot * 1.5, UtilityWPF.AlphaBlend(Colors.DarkRed, Colors.DarkSeaGreen, heat.Dist_From_NegOne / max_dist_from_negone));
+                }
+
+                var lines = new List<(Point3D, Point3D)>();
+                lines.Add((bezier.EndPoint0, bezier.Heatmap[0].Point));
+                lines.AddRange(Enumerable.Range(0, bezier.Heatmap.Length - 1).Select(o => (bezier.Heatmap[o].Point, bezier.Heatmap[o + 1].Point)));
+                lines.Add((bezier.Heatmap[^1].Point, bezier.EndPoint1));
+
+                window.AddLines(lines, sizes.line * 0.75, Colors.White);
+            }
+
+            window.AddDots(uniform_samples, small_dot * 0.9, UtilityWPF.ColorFromHex("C0C0C0"));
+            window.AddLines(uniform_samples, sizes.line * 0.5, UtilityWPF.ColorFromHex("AAA"));
+
+            window.Show();
+        }
+        private void Heatmap2(Point3D[] endpoints)
+        {
+            var beziers = BezierUtil.GetBezierSegments(endpoints, 0.3, false);
+
+            Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
+
+            HM2[] heatmap = GetHeatmap(beziers);
+            double max_dist_from_negone = heatmap.Max(o => o.Dist_From_NegOne);
+
+
+            var sizes = Debug3DWindow.GetDrawSizes(8);
+            double small_dot = sizes.dot * 0.36;
+
+            // --------------- Points ---------------
+            var window = new Debug3DWindow();
+
+            window.AddDot(beziers[0].EndPoint0, small_dot, Colors.Black);
+            window.AddDot(beziers[^1].EndPoint1, small_dot, Colors.Black);
+
+            foreach (var heat in heatmap)
+            {
+                window.AddDot(heat.Point, small_dot * 1.5, UtilityWPF.AlphaBlend(Colors.DarkRed, Colors.DarkSeaGreen, heat.Dist_From_NegOne / max_dist_from_negone));
+            }
+
+
+            var lines = new List<(Point3D, Point3D)>();
+            lines.Add((beziers[0].EndPoint0, heatmap[0].Point));
+            lines.AddRange(Enumerable.Range(0, heatmap.Length - 1).Select(o => (heatmap[o].Point, heatmap[o + 1].Point)));
+            lines.Add((heatmap[^1].Point, beziers[^1].EndPoint1));
+
+            window.AddLines(lines, sizes.line * 0.75, Colors.White);
+
+
+            window.AddDots(uniform_samples, small_dot * 0.9, UtilityWPF.ColorFromHex("C0C0C0"));
+            window.AddLines(uniform_samples, sizes.line * 0.5, UtilityWPF.ColorFromHex("AAA"));
+
+            window.Show();
+
+            // --------------- Graph ---------------
+
+            window = new Debug3DWindow();
+
+            var graphs = new[]
+            {
+                Debug3DWindow.GetGraph(heatmap.Select(o => o.Dist_From_NegOne / max_dist_from_negone).ToArray()),
+                Debug3DWindow.GetGraph(heatmap.Select(o => 1d - (o.Dist_From_NegOne / max_dist_from_negone)).ToArray()),        // 1 - %
+            };
+            window.AddGraphs(graphs, new Point3D(), 12);
+
+            window.Show();
+
+
+            //string report = GetHeatmapReport(heatmap, max_dist_from_negone);
+            //Clipboard.SetText(report);
+        }
+        private void Heatmap3(Point3D[] endpoints)
+        {
+
+        }
+
+        private record HM2
+        {
+            public Point3D Point { get; init; }
+            public double Dot { get; init; }
+            public double Dist_From_NegOne { get; init; }
+        }
+
+        private static HM2[] GetHeatmap(BezierSegment3D_wpf[] beziers)
+        {
+            var retVal = new List<HM2>();
+
+            for (int i = 0; i < beziers.Length; i++)
+            {
+                if (i > 0)
+                {
+                    // Stitch last segment of prev bezier segment with first of current
+                    // NOTE: beziers[i - 1].Samples[^1] == beziers[i].Samples[0] == beziers[i - 1].EndPoint1 == beziers[i].EndPoint0
+                    retVal.Add(GetHeatmap_Item(
+                        beziers[i - 1].Samples[^2],
+                        beziers[i].EndPoint0,
+                        beziers[i].Samples[1],
+                        beziers[i - 1].Lengths[^1],
+                        beziers[i].Lengths[0]));
+                }
+
+                // samples is 12
+                // lengths is 11
+                // heatmap is 10
+
+                Point3D[] samples = beziers[i].Samples;
+                double[] lengths = beziers[i].Lengths;
+
+                for (int j = 1; j < samples.Length - 1; j++)
+                {
+                    retVal.Add(GetHeatmap_Item(samples[j - 1] , samples[j], samples[j + 1], lengths[j - 1], lengths[j]));
+                }
+            }
+
+            return retVal.ToArray();
+        }
+        private static HM2 GetHeatmap_Item(Point3D point_left, Point3D point_middle, Point3D point_right, double len_left, double len_right)
+        {
+            Vector3D left = point_left - point_middle;
+            Vector3D right = point_right - point_middle;
+
+            double dot = Vector3D.DotProduct(left / len_left, right / len_right);
+            double dist_from_negone = 1 + dot;
+
+            return new HM2()
+            {
+                Point = point_middle,
+                Dot = dot,
+                Dist_From_NegOne = dist_from_negone,
+            };
+        }
+        private static string GetHeatmapReport(HM2[] heatmap, double max_dist_from_negone)
+        {
+            var retVal = new List<string>();
+
+            for(int i = 0; i < heatmap.Length; i++)
+            {
+                double x = (double)i / (heatmap.Length - 1);
+                double y = heatmap[i].Dist_From_NegOne / max_dist_from_negone;
+
+                retVal.Add($"{x.ToStringSignificantDigits(3)}\t{y.ToStringSignificantDigits(3)}");
+            }
+
+            return retVal.ToJoin("\r\n");
         }
 
         #endregion

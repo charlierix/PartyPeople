@@ -859,11 +859,16 @@ namespace Game.Math_WPF.Mathematics
 
     public class BezierSegment3D_wpf       // wpf already has a BezierSegment
     {
-        #region Declaration Section
+        public record HeatmapInfo
+        {
+            public int SampleIndex { get; init; }
+            public Point3D Point { get; init; }
+            public double Dot { get; init; }
 
-        private readonly object _lock = new object();
-
-        #endregion
+            public double Avg { get; init; }
+            public double Std_Dev { get; init; }
+            public double Dist_From_NegOne { get; init; }
+        }
 
         #region Constructor
 
@@ -882,6 +887,9 @@ namespace Game.Math_WPF.Mathematics
             var analyze = AnalyzeCurve(allEndPoints[endIndex0], allEndPoints[endIndex1], controlPoints, Combined);
             Length_quick = analyze.length_quick;
             Percents = analyze.percents;
+            Lengths = analyze.lengths;
+            Heatmap = analyze.heatmap;
+            Samples = analyze.samples;
         }
 
         #endregion
@@ -912,6 +920,12 @@ namespace Game.Math_WPF.Mathematics
         /// </summary>
         public readonly (double input, double output)[] Percents;
 
+        public readonly double[] Lengths;
+
+        public readonly HeatmapInfo[] Heatmap;
+
+        public readonly Point3D[] Samples;
+
         #region Public Methods
 
         public BezierSegment3D_wpf ToReverse()
@@ -929,7 +943,7 @@ namespace Game.Math_WPF.Mathematics
 
         #region Private Methods
 
-        private static ((double input, double output)[] percents, double length_quick) AnalyzeCurve(Point3D end0, Point3D end1, Point3D[] controlPoints, Point3D[] combined)
+        private static ((double input, double output)[] percents, double[] lengths, double length_quick, HeatmapInfo[] heatmap, Point3D[] samples) AnalyzeCurve(Point3D end0, Point3D end1, Point3D[] controlPoints, Point3D[] combined)
         {
             if (controlPoints == null || controlPoints.Length == 0)     // just a regular line segment
             {
@@ -940,7 +954,10 @@ namespace Game.Math_WPF.Mathematics
                         (0d, 0d),
                         (1d, 1d),
                     },
-                    (end1 - end0).Length
+                    new[] { (end1 - end0).Length },
+                    (end1 - end0).Length,
+                    null,
+                    new[] { end0, end1 }
                 );
             }
 
@@ -950,24 +967,15 @@ namespace Game.Math_WPF.Mathematics
 
             double length_quick = lengths.Sum();
 
-            var percents = new (double, double)[samples.Length];
 
-            percents[0] = (0, 0);
-            percents[^1] = (1, 1);
+            var percents = GetInputOutputPercents(samples, lengths, length_quick);
 
-            double input_inc = 1d / (samples.Length - 1);
-            double sum_input = 0;
-            double sum_output = 0;
 
-            for (int i = 0; i < lengths.Length - 1; i++)        // no need to calculate the last one, it's always going to become (1,1)
-            {
-                sum_input += input_inc;
-                sum_output += lengths[i];
+            var heatmap = GetHeatmap(samples, lengths);
 
-                percents[i + 1] = (sum_input, sum_output / length_quick);
-            }
 
-            return (percents, length_quick);
+
+            return (percents, lengths, length_quick, heatmap, samples);
         }
 
         private static double[] GetSegmentLengths(Point3D[] samples)
@@ -980,6 +988,74 @@ namespace Game.Math_WPF.Mathematics
             }
 
             return retVal;
+        }
+
+        private static (double input, double output)[] GetInputOutputPercents(Point3D[] samples, double[] lengths, double length_quick)
+        {
+            var retVal = new (double, double)[samples.Length];
+
+            retVal[0] = (0, 0);
+            retVal[^1] = (1, 1);
+
+            double input_inc = 1d / (samples.Length - 1);
+            double sum_input = 0;
+            double sum_output = 0;
+
+            for (int i = 0; i < lengths.Length - 1; i++)        // no need to calculate the last one, it's always going to become (1,1)
+            {
+                sum_input += input_inc;
+                sum_output += lengths[i];
+
+                retVal[i + 1] = (sum_input, sum_output / length_quick);
+            }
+
+            return retVal;
+        }
+
+        private static HeatmapInfo[] GetHeatmap(Point3D[] samples, double[] lengths)
+        {
+            var dots = new double[samples.Length - 2];      // zero based, so [0] is for samples[1]
+
+            for (int i = 1; i < samples.Length - 1; i++)
+            {
+                Vector3D left = samples[i - 1] - samples[i];
+                Vector3D right = samples[i + 1] - samples[i];
+
+                double len_left = lengths[i - 1];
+                double len_right = lengths[i];
+
+                dots[i - 1] = Vector3D.DotProduct(left / len_left, right / len_right);
+            }
+
+            var avg_stdev = Math1D.Get_Average_StandardDeviation(dots);
+
+            var diffs = dots.
+                Select(o => new
+                {
+                    index = o + 1,
+                    offset = o - avg_stdev.avg,
+                }).
+                OrderBy(o => Math.Abs(o.offset)).
+                ToArray();
+
+            double[] offsets_from_one = dots.
+                Select(o => 1 + o).
+                ToArray();
+
+            var offsets_avg_stdev = Math1D.Get_Average_StandardDeviation(offsets_from_one);
+
+            return Enumerable.Range(0, dots.Length).
+                Select(o => new HeatmapInfo()
+                {
+                    SampleIndex = o + 1,
+                    Point = samples[o + 1],
+                    Dot = dots[o],
+
+                    Avg = offsets_avg_stdev.avg,
+                    Std_Dev = offsets_avg_stdev.stdDev,
+                    Dist_From_NegOne = offsets_from_one[o],
+                }).
+                ToArray();
         }
 
         #endregion
