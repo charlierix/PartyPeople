@@ -1,7 +1,9 @@
 ﻿using Game.Core;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Metrics;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Windows;
 using System.Windows.Media;
@@ -83,43 +85,18 @@ namespace Game.Math_WPF.Mathematics
         /// </remarks>
         public static Point3D[] GetPoints(int count, BezierSegment3D_wpf[] segments)
         {
-            // Get the total length of the curve
-            double totalLength = 0;
-            double[] cumulativeLengths = new double[segments.Length + 1];
-            for (int i = 1; i < segments.Length + 1; i++)
-            {
-                totalLength += segments[i - 1].Length_quick;
-                cumulativeLengths[i] = cumulativeLengths[i - 1] + segments[i - 1].Length_quick;
-            }
-
-            double countD = count - 1;
-
             Point3D[] retVal = new Point3D[count];
 
             retVal[0] = segments[0].EndPoint0;
             retVal[count - 1] = segments[segments.Length - 1].EndPoint1;        //NOTE: If the segment is a closed curve, this is the same point as retVal[0].  May want a boolean that tells whether the last point should be replicated
 
-            int index = 0;
+            var samples = Enumerable.Range(0, count - 2).       // for (int i = 1; i < count - 1; i++)
+                Select(o => (double)(o + 1) / (count - 1));      // {double totalPercent = (double)i / (count - 1);
 
-            for (int i = 1; i < count - 1; i++)
+            foreach (var sample in ConvertToNormalizedPositions(samples, segments))
             {
-                // Get the location along the entire path
-                double totalPercent = i / countD;
-                double portionTotalLength = totalLength * totalPercent;
-
-                // Advance to the appropriate segment
-                while (cumulativeLengths[index + 1] < portionTotalLength)
-                {
-                    index++;
-                }
-
-                // Get the percent of the current segment
-                double localLength = portionTotalLength - cumulativeLengths[index];
-                double localPercent_desired = localLength / segments[index].Length_quick;
-                double localPercent_actual = GetInputForOutput(localPercent_desired, segments[index].Percents);
-
                 // Calculate the bezier point
-                retVal[i] = GetPoint(localPercent_actual, segments[index].Combined);
+                retVal[sample.Desired_Index + 1] = GetPoint(sample.Segment_Local_Percent, segments[sample.Segment_Index].Combined);
             }
 
             return retVal;
@@ -852,9 +829,88 @@ namespace Game.Math_WPF.Mathematics
         }
 
         #endregion
+
+
+        public record NormalizedPosPointer
+        {
+            // ------ values passed in ------
+            /// <summary>
+            /// the index into the list that was passed in
+            /// </summary>
+            public int Desired_Index { get; init; }
+            /// <summary>
+            /// The requested total percent along the curve
+            /// </summary>
+            public double Desired_Total_Percent { get; init; }
+
+            // ------ calculated values ------
+            /// <summary>
+            /// Index into the bezier array that the desired total percent lands on
+            /// </summary>
+            public int Segment_Index { get; init; }
+            /// <summary>
+            /// Percent along the bezier segment
+            /// </summary>
+            public double Segment_Local_Percent { get; init; }
+        }
+
+        /// <summary>
+        /// This walks through the list of desired percents and returns percents to use that when applied to the bezier
+        /// will be that desired percent
+        /// </summary>
+        /// <remarks>
+        /// This is a loop for optimization reasons, which requires the percents to be streamed in ascending order
+        /// </remarks>
+        public static IEnumerable<NormalizedPosPointer> ConvertToNormalizedPositions(IEnumerable<double> percents, BezierSegment3D_wpf[] segments)
+        {
+            // Get the total length of the curve
+            double total_len = 0;
+            double[] cumulative_lengths = new double[segments.Length + 1];
+            for (int i = 1; i < segments.Length + 1; i++)
+            {
+                total_len += segments[i - 1].Length_quick;
+                cumulative_lengths[i] = cumulative_lengths[i - 1] + segments[i - 1].Length_quick;
+            }
+
+            double prev_percent = 0;
+            int segment_index = 0;
+            int sample_index = 0;
+
+            foreach (double percent in percents)
+            {
+                if (percent < prev_percent)
+                    throw new ApplicationException($"The percents must be passed in ascending order.  current: {percent}, prev: {prev_percent}");
+
+                prev_percent = percent;
+
+                // Get the location along the entire path
+                double portion_total_len = total_len * percent;
+
+                // Advance to the appropriate segment
+                while (cumulative_lengths[segment_index + 1] < portion_total_len)
+                {
+                    segment_index++;
+                }
+
+                // Get the percent of the current segment
+                double local_len = portion_total_len - cumulative_lengths[segment_index];
+                double local_percent_desired = local_len / segments[segment_index].Length_quick;
+                double local_percent_actual = GetInputForOutput(local_percent_desired, segments[segment_index].Percents);
+
+                yield return new NormalizedPosPointer()
+                {
+                    Desired_Index = sample_index,
+                    Desired_Total_Percent = percent,
+                    Segment_Index = segment_index,
+                    Segment_Local_Percent = local_percent_actual,
+                };
+
+                sample_index++;
+            }
+        }
+
     }
 
-    //TODO: Make 1D and ND versions
     #region class: BezierSegment3D_wpf
 
     public class BezierSegment3D_wpf       // wpf already has a BezierSegment
@@ -868,6 +924,11 @@ namespace Game.Math_WPF.Mathematics
             public double Avg { get; init; }
             public double Std_Dev { get; init; }
             public double Dist_From_NegOne { get; init; }
+        }
+        public record SampleInfo
+        {
+            public double Percent_Along { get; init; }
+            public Point3D Point { get; init; }
         }
 
         #region Constructor
@@ -889,7 +950,13 @@ namespace Game.Math_WPF.Mathematics
             Percents = analyze.percents;
             Lengths = analyze.lengths;
             Heatmap = analyze.heatmap;
-            Samples = analyze.samples;
+            Samples = analyze.samples.
+                Select((o, i) => new SampleInfo()
+                {
+                    Percent_Along = (double)i / analyze.samples.Length,
+                    Point = o,
+                }).
+                ToArray();
         }
 
         #endregion
@@ -924,7 +991,8 @@ namespace Game.Math_WPF.Mathematics
 
         public readonly HeatmapInfo[] Heatmap;
 
-        public readonly Point3D[] Samples;
+        //public readonly Point3D[] Samples;
+        public readonly SampleInfo[] Samples;
 
         #region Public Methods
 
