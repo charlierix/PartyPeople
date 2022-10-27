@@ -388,11 +388,8 @@ namespace Game.Bepu.Testers
             return retVal;
         }
 
-
-        // TODO: the reason why it's failing is because the individual componenets aren't taking advantage of the knowledge from
-        // building Length_quick
-        //
-        // Add another property off of bezier segment that holds a mapping of percents
+        #endregion
+        #region Event Listeners - find bunching
 
         private Point3D[] _endpoints = null;
         private void FindBunching_Click(object sender, RoutedEventArgs e)
@@ -507,6 +504,9 @@ namespace Game.Bepu.Testers
 
             //window.Show();
         }
+
+        #endregion
+        #region Event Listeners - curve heatmap
 
         private void CurveHeatmap_Click(object sender, RoutedEventArgs e)
         {
@@ -687,8 +687,6 @@ namespace Game.Bepu.Testers
             public double Dot { get; init; }
             public double Dist_From_NegOne { get; init; }
         }
-
-
 
         private record PathSnippet
         {
