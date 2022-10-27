@@ -1,4 +1,5 @@
 ﻿using Game.Core;
+using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.Metrics;
@@ -28,6 +29,32 @@ namespace Game.Math_WPF.Mathematics
             public double DistSum { get; set; }
 
             public bool IsHorizontal { get; set; }
+        }
+
+        #endregion
+        #region record: NormalizedPosPointer
+
+        //TODO: this can be private in the final code
+        public record NormalizedPosPointer
+        {
+            /// <summary>
+            /// the index into the list that was passed in
+            /// </summary>
+            public int Desired_Index { get; init; }
+
+            /// <summary>
+            /// The total percent along the curve
+            /// </summary>
+            public double Total_Percent { get; init; }
+
+            /// <summary>
+            /// Index into the bezier array
+            /// </summary>
+            public int Segment_Index { get; init; }
+            /// <summary>
+            /// Percent along the bezier segment
+            /// </summary>
+            public double Segment_Local_Percent { get; init; }
         }
 
         #endregion
@@ -830,38 +857,7 @@ namespace Game.Math_WPF.Mathematics
 
         #endregion
 
-
-        public record NormalizedPosPointer
-        {
-            // ------ values passed in ------
-            /// <summary>
-            /// the index into the list that was passed in
-            /// </summary>
-            public int Desired_Index { get; init; }
-            /// <summary>
-            /// The requested total percent along the curve
-            /// </summary>
-            public double Desired_Total_Percent { get; init; }
-
-            // ------ calculated values ------
-            /// <summary>
-            /// Index into the bezier array that the desired total percent lands on
-            /// </summary>
-            public int Segment_Index { get; init; }
-            /// <summary>
-            /// Percent along the bezier segment
-            /// </summary>
-            public double Segment_Local_Percent { get; init; }
-        }
-
-        /// <summary>
-        /// This walks through the list of desired percents and returns percents to use that when applied to the bezier
-        /// will be that desired percent
-        /// </summary>
-        /// <remarks>
-        /// This is a loop for optimization reasons, which requires the percents to be streamed in ascending order
-        /// </remarks>
-        public static IEnumerable<NormalizedPosPointer> ConvertToNormalizedPositions(IEnumerable<double> percents, BezierSegment3D_wpf[] segments)
+        public static (double total_len, double[] cumulative_lengths) GetCumulativeLengths(BezierSegment3D_wpf[] segments)
         {
             // Get the total length of the curve
             double total_len = 0;
@@ -872,11 +868,26 @@ namespace Game.Math_WPF.Mathematics
                 cumulative_lengths[i] = cumulative_lengths[i - 1] + segments[i - 1].Length_quick;
             }
 
+            return (total_len, cumulative_lengths);
+        }
+
+        //TODO: this can be private in the final code
+        /// <summary>
+        /// This walks through the list of desired percents and returns percents to use that when applied to the bezier
+        /// will be that desired percent
+        /// </summary>
+        /// <remarks>
+        /// This is a loop for optimization reasons, which requires the percents to be streamed in ascending order
+        /// </remarks>
+        public static IEnumerable<NormalizedPosPointer> ConvertToNormalizedPositions(IEnumerable<double> total_percents, BezierSegment3D_wpf[] segments)
+        {
+            var len = GetCumulativeLengths(segments);
+
             double prev_percent = 0;
             int segment_index = 0;
             int sample_index = 0;
 
-            foreach (double percent in percents)
+            foreach (double percent in total_percents)
             {
                 if (percent < prev_percent)
                     throw new ApplicationException($"The percents must be passed in ascending order.  current: {percent}, prev: {prev_percent}");
@@ -884,23 +895,23 @@ namespace Game.Math_WPF.Mathematics
                 prev_percent = percent;
 
                 // Get the location along the entire path
-                double portion_total_len = total_len * percent;
+                double portion_total_len = len.total_len * percent;
 
                 // Advance to the appropriate segment
-                while (cumulative_lengths[segment_index + 1] < portion_total_len)
+                while (len.cumulative_lengths[segment_index + 1] < portion_total_len)
                 {
                     segment_index++;
                 }
 
                 // Get the percent of the current segment
-                double local_len = portion_total_len - cumulative_lengths[segment_index];
+                double local_len = portion_total_len - len.cumulative_lengths[segment_index];
                 double local_percent_desired = local_len / segments[segment_index].Length_quick;
                 double local_percent_actual = GetInputForOutput(local_percent_desired, segments[segment_index].Percents);
 
                 yield return new NormalizedPosPointer()
                 {
                     Desired_Index = sample_index,
-                    Desired_Total_Percent = percent,
+                    Total_Percent = percent,
                     Segment_Index = segment_index,
                     Segment_Local_Percent = local_percent_actual,
                 };
@@ -908,23 +919,45 @@ namespace Game.Math_WPF.Mathematics
                 sample_index++;
             }
         }
+        public static IEnumerable<NormalizedPosPointer> ConvertToNormalizedPositions(IEnumerable<(int segment_index, double percent_along_segment)> local_percents, BezierSegment3D_wpf[] segments)
+        {
+            var len = GetCumulativeLengths(segments);
 
+            int prev_index = 0;
+            double prev_percent = 0;
+            int sample_index = 0;
+
+            foreach (var percent in local_percents)
+            {
+                if (percent.segment_index < prev_index || (percent.segment_index == prev_index && percent.percent_along_segment < prev_percent))
+                    throw new ApplicationException($"The percents must be passed in ascending order.  current: {percent.segment_index} - {percent.percent_along_segment}, prev: {prev_index} - {prev_percent}");
+
+                prev_index = percent.segment_index;
+                prev_percent = percent.percent_along_segment;
+
+                double from_len = len.cumulative_lengths[percent.segment_index];
+                double to_len = len.cumulative_lengths[percent.segment_index + 1];      // there is one more entry in len.cumulative_lengths.  Element 0 is always 0
+
+                double lerp_len = UtilityMath.LERP(from_len, to_len, percent.percent_along_segment);
+
+                yield return new NormalizedPosPointer()
+                {
+                    Desired_Index = sample_index,
+                    Total_Percent = lerp_len / len.total_len,
+                    Segment_Index = percent.segment_index,
+                    Segment_Local_Percent = percent.percent_along_segment,
+                };
+
+                sample_index++;
+            }
+
+        }
     }
 
     #region class: BezierSegment3D_wpf
 
     public class BezierSegment3D_wpf       // wpf already has a BezierSegment
     {
-        public record HeatmapInfo
-        {
-            public int SampleIndex { get; init; }
-            public Point3D Point { get; init; }
-            public double Dot { get; init; }
-
-            public double Avg { get; init; }
-            public double Std_Dev { get; init; }
-            public double Dist_From_NegOne { get; init; }
-        }
         public record SampleInfo
         {
             public double Percent_Along { get; init; }
@@ -949,7 +982,6 @@ namespace Game.Math_WPF.Mathematics
             Length_quick = analyze.length_quick;
             Percents = analyze.percents;
             Lengths = analyze.lengths;
-            Heatmap = analyze.heatmap;
             Samples = analyze.samples.
                 Select((o, i) => new SampleInfo()
                 {
@@ -989,9 +1021,6 @@ namespace Game.Math_WPF.Mathematics
 
         public readonly double[] Lengths;
 
-        public readonly HeatmapInfo[] Heatmap;
-
-        //public readonly Point3D[] Samples;
         public readonly SampleInfo[] Samples;
 
         #region Public Methods
@@ -1011,7 +1040,7 @@ namespace Game.Math_WPF.Mathematics
 
         #region Private Methods
 
-        private static ((double input, double output)[] percents, double[] lengths, double length_quick, HeatmapInfo[] heatmap, Point3D[] samples) AnalyzeCurve(Point3D end0, Point3D end1, Point3D[] controlPoints, Point3D[] combined)
+        private static ((double input, double output)[] percents, double[] lengths, double length_quick, Point3D[] samples) AnalyzeCurve(Point3D end0, Point3D end1, Point3D[] controlPoints, Point3D[] combined)
         {
             if (controlPoints == null || controlPoints.Length == 0)     // just a regular line segment
             {
@@ -1024,7 +1053,6 @@ namespace Game.Math_WPF.Mathematics
                     },
                     new[] { (end1 - end0).Length },
                     (end1 - end0).Length,
-                    null,
                     new[] { end0, end1 }
                 );
             }
@@ -1035,15 +1063,9 @@ namespace Game.Math_WPF.Mathematics
 
             double length_quick = lengths.Sum();
 
-
             var percents = GetInputOutputPercents(samples, lengths, length_quick);
 
-
-            var heatmap = GetHeatmap(samples, lengths);
-
-
-
-            return (percents, lengths, length_quick, heatmap, samples);
+            return (percents, lengths, length_quick, samples);
         }
 
         private static double[] GetSegmentLengths(Point3D[] samples)
@@ -1078,52 +1100,6 @@ namespace Game.Math_WPF.Mathematics
             }
 
             return retVal;
-        }
-
-        private static HeatmapInfo[] GetHeatmap(Point3D[] samples, double[] lengths)
-        {
-            var dots = new double[samples.Length - 2];      // zero based, so [0] is for samples[1]
-
-            for (int i = 1; i < samples.Length - 1; i++)
-            {
-                Vector3D left = samples[i - 1] - samples[i];
-                Vector3D right = samples[i + 1] - samples[i];
-
-                double len_left = lengths[i - 1];
-                double len_right = lengths[i];
-
-                dots[i - 1] = Vector3D.DotProduct(left / len_left, right / len_right);
-            }
-
-            var avg_stdev = Math1D.Get_Average_StandardDeviation(dots);
-
-            var diffs = dots.
-                Select(o => new
-                {
-                    index = o + 1,
-                    offset = o - avg_stdev.avg,
-                }).
-                OrderBy(o => Math.Abs(o.offset)).
-                ToArray();
-
-            double[] offsets_from_one = dots.
-                Select(o => 1 + o).
-                ToArray();
-
-            var offsets_avg_stdev = Math1D.Get_Average_StandardDeviation(offsets_from_one);
-
-            return Enumerable.Range(0, dots.Length).
-                Select(o => new HeatmapInfo()
-                {
-                    SampleIndex = o + 1,
-                    Point = samples[o + 1],
-                    Dot = dots[o],
-
-                    Avg = offsets_avg_stdev.avg,
-                    Std_Dev = offsets_avg_stdev.stdDev,
-                    Dist_From_NegOne = offsets_from_one[o],
-                }).
-                ToArray();
         }
 
         #endregion
