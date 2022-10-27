@@ -34,9 +34,6 @@
         <StackPanel Grid.Column="0">
             <Button Content="anim" Click="Anim_Click"/>
             
-            <Button Content="find bunching" Margin="0,8,0,0" Click="FindBunching_Click"/>
-            <Button Content="repeat prev" Click="RepeatPrev_Click"/>
-
             <Button Content="curve heatmap" Margin="0,8,0,0" Click="CurveHeatmap_Click"/>
             <Button Content="repeat prev" Click="RepeatPrev2_Click"/>
         </StackPanel>
