@@ -58,6 +58,22 @@ namespace Game.Math_WPF.Mathematics
         }
 
         #endregion
+        #region record: CurvatureSample
+
+        public record CurvatureSample
+        {
+            public int SegmentIndex { get; init; }
+            public double Percent_Along_Segment { get; init; }
+
+            public double Percent_Total { get; init; }
+
+            public Point3D Point { get; init; }
+
+            public double Dot { get; init; }
+            public double Dist_From_NegOne { get; init; }
+        }
+
+        #endregion
 
         // Get points along the curve
         public static Point3D[] GetPoints(int count, Point3D from, Point3D control, Point3D to)
@@ -857,6 +873,8 @@ namespace Game.Math_WPF.Mathematics
 
         #endregion
 
+        #region temp public - will become private when final
+
         public static (double total_len, double[] cumulative_lengths) GetCumulativeLengths(BezierSegment3D_wpf[] segments)
         {
             // Get the total length of the curve
@@ -952,6 +970,101 @@ namespace Game.Math_WPF.Mathematics
             }
 
         }
+
+        public static CurvatureSample[] GetCurvatureHeatmap(BezierSegment3D_wpf[] beziers)
+        {
+            var retVal = new List<CurvatureSample>();
+
+            retVal.Add(new CurvatureSample()        // having endpoints at 0 and 1 makes processing these easier
+            {
+                Dist_From_NegOne = 0,
+                Dot = -1,
+                Percent_Along_Segment = 0,
+                Point = beziers[0].EndPoint0,
+                SegmentIndex = 0,
+                Percent_Total = 0,
+            });
+
+            for (int i = 0; i < beziers.Length; i++)
+            {
+                if (i > 0)
+                {
+                    // Stitch last segment of prev bezier segment with first of current
+                    // NOTE: beziers[i - 1].Samples[^1].Point == beziers[i].Samples[0].Point == beziers[i - 1].EndPoint1 == beziers[i].EndPoint0
+                    retVal.Add(GetCurvatureHeatmap_Item(
+                        beziers[i - 1].Samples[^2].Point,
+                        beziers[i].EndPoint0,
+                        beziers[i].Samples[1].Point,
+                        beziers[i - 1].Lengths[^1],
+                        beziers[i].Lengths[0],
+                        i,
+                        0));
+                }
+
+                // samples is 12
+                // lengths is 11
+                // heatmap is 10
+
+                var samples = beziers[i].Samples;
+                double[] lengths = beziers[i].Lengths;
+
+                for (int j = 1; j < samples.Length - 1; j++)
+                {
+                    retVal.Add(GetCurvatureHeatmap_Item(samples[j - 1].Point, samples[j].Point, samples[j + 1].Point, lengths[j - 1], lengths[j], i, samples[j].Percent_Along));
+                }
+            }
+
+            retVal.Add(new CurvatureSample()
+            {
+                Dist_From_NegOne = 0,
+                Dot = -1,
+                Percent_Along_Segment = 1,
+                Point = beziers[^1].EndPoint1,
+                SegmentIndex = beziers.Length - 1,
+                Percent_Total = 1,
+            });
+
+            return GetCurvatureHeatmap_ApplyTotalPercent(retVal.ToArray(), beziers);
+        }
+        private static CurvatureSample GetCurvatureHeatmap_Item(Point3D point_left, Point3D point_middle, Point3D point_right, double len_left, double len_right, int segment_index, double percent_middle)
+        {
+            Vector3D left = point_left - point_middle;
+            Vector3D right = point_right - point_middle;
+
+            double dot = Vector3D.DotProduct(left / len_left, right / len_right);
+            double dist_from_negone = 1 + dot;
+
+            return new CurvatureSample()
+            {
+                SegmentIndex = segment_index,
+                Percent_Along_Segment = percent_middle,
+
+                Percent_Total = -1,     // this will be populated in a post pass
+
+                Point = point_middle,
+
+                Dot = dot,
+                Dist_From_NegOne = dist_from_negone,
+            };
+        }
+        private static CurvatureSample[] GetCurvatureHeatmap_ApplyTotalPercent(CurvatureSample[] heatmap, BezierSegment3D_wpf[] beziers)
+        {
+            var local_percents = heatmap.
+                Select(o => (o.SegmentIndex, o.Percent_Along_Segment)).
+                ToArray();
+
+            var total_percents = BezierUtil.ConvertToNormalizedPositions(local_percents, beziers).
+                ToArray();
+
+            return Enumerable.Range(0, heatmap.Length).
+                Select(o => heatmap[o] with
+                {
+                    Percent_Total = total_percents[o].Total_Percent,
+                }).
+                ToArray();
+        }
+
+        #endregion
     }
 
     #region class: BezierSegment3D_wpf

@@ -12,104 +12,7 @@ namespace Game.Bepu.Testers
 {
     public static class TempBezierUtil
     {
-        #region get heatmap
-
-        public static HM2[] GetHeatmap(BezierSegment3D_wpf[] beziers)
-        {
-            var retVal = new List<HM2>();
-
-            retVal.Add(new HM2()        // having endpoints at 0 and 1 makes processing these easier
-            {
-                Dist_From_NegOne = 0,
-                Dot = -1,
-                Percent_Along_Segment = 0,
-                Point = beziers[0].EndPoint0,
-                SegmentIndex = 0,
-                Percent_Total = 0,
-            });
-
-            for (int i = 0; i < beziers.Length; i++)
-            {
-                if (i > 0)
-                {
-                    // Stitch last segment of prev bezier segment with first of current
-                    // NOTE: beziers[i - 1].Samples[^1].Point == beziers[i].Samples[0].Point == beziers[i - 1].EndPoint1 == beziers[i].EndPoint0
-                    retVal.Add(GetHeatmap_Item(
-                        beziers[i - 1].Samples[^2].Point,
-                        beziers[i].EndPoint0,
-                        beziers[i].Samples[1].Point,
-                        beziers[i - 1].Lengths[^1],
-                        beziers[i].Lengths[0],
-                        i,
-                        0));
-                }
-
-                // samples is 12
-                // lengths is 11
-                // heatmap is 10
-
-                var samples = beziers[i].Samples;
-                double[] lengths = beziers[i].Lengths;
-
-                for (int j = 1; j < samples.Length - 1; j++)
-                {
-                    retVal.Add(GetHeatmap_Item(samples[j - 1].Point, samples[j].Point, samples[j + 1].Point, lengths[j - 1], lengths[j], i, samples[j].Percent_Along));
-                }
-            }
-
-            retVal.Add(new HM2()
-            {
-                Dist_From_NegOne = 0,
-                Dot = -1,
-                Percent_Along_Segment = 1,
-                Point = beziers[^1].EndPoint1,
-                SegmentIndex = beziers.Length - 1,
-                Percent_Total = 1,
-            });
-
-            return GetHeatmap_ApplyTotalPercent(retVal.ToArray(), beziers);
-        }
-        private static HM2 GetHeatmap_Item(Point3D point_left, Point3D point_middle, Point3D point_right, double len_left, double len_right, int segment_index, double percent_middle)
-        {
-            Vector3D left = point_left - point_middle;
-            Vector3D right = point_right - point_middle;
-
-            double dot = Vector3D.DotProduct(left / len_left, right / len_right);
-            double dist_from_negone = 1 + dot;
-
-            return new HM2()
-            {
-                SegmentIndex = segment_index,
-                Percent_Along_Segment = percent_middle,
-
-                Percent_Total = -1,     // this will be populated in a post pass
-
-                Point = point_middle,
-
-                Dot = dot,
-                Dist_From_NegOne = dist_from_negone,
-            };
-        }
-        private static HM2[] GetHeatmap_ApplyTotalPercent(HM2[] heatmap, BezierSegment3D_wpf[] beziers)
-        {
-            var local_percents = heatmap.
-                Select(o => (o.SegmentIndex, o.Percent_Along_Segment)).
-                ToArray();
-
-            var total_percents = BezierUtil.ConvertToNormalizedPositions(local_percents, beziers).
-                ToArray();
-
-            return Enumerable.Range(0, heatmap.Length).
-                Select(o => heatmap[o] with
-                {
-                    Percent_Total = total_percents[o].Total_Percent,
-                }).
-                ToArray();
-        }
-
-        #endregion
-
-        public static PathSnippet[] GetPinchedMapping(HM2[] heatmap, int endpoint_count, BezierSegment3D_wpf[] beziers)
+        public static PathSnippet[] GetPinchedMapping(BezierUtil.CurvatureSample[] heatmap, int endpoint_count, BezierSegment3D_wpf[] beziers)
         {
             int return_count = ((endpoint_count - 1) * 3) + 1;      // this is kind of arbitrary, but should give a good amount of snippets to play with
 
@@ -146,7 +49,7 @@ namespace Game.Bepu.Testers
 
         #region testbuckets 1
 
-        private static void TestBuckets(PathSnippet[] snippets, HM2[] heatmap, BezierSegment3D_wpf[] beziers)
+        private static void TestBuckets(PathSnippet[] snippets, BezierUtil.CurvatureSample[] heatmap, BezierSegment3D_wpf[] beziers)
         {
 
             DrawTestBucket(snippets, heatmap);
@@ -177,7 +80,7 @@ namespace Game.Bepu.Testers
 
         }
 
-        private static void DrawTestBucket(PathSnippet[] snippets, HM2[] heatmap)
+        private static void DrawTestBucket(PathSnippet[] snippets, BezierUtil.CurvatureSample[] heatmap)
         {
 
             // black horizontal line
@@ -196,14 +99,14 @@ namespace Game.Bepu.Testers
 
         #region GetPopulation 1
 
-        private static double GetPopulation1(PathSnippet snippet, BezierUtil.NormalizedPosPointer[] percents_actual, HM2[] heatmap)
+        private static double GetPopulation1(PathSnippet snippet, BezierUtil.NormalizedPosPointer[] percents_actual, BezierUtil.CurvatureSample[] heatmap)
         {
             // Using Y from to
             var loc_from = GetPopulation_Local(snippet.From_Y, percents_actual);
             var loc_to = GetPopulation_Local(snippet.To_Y, percents_actual);
 
             // Find the set of heatmap entries that straddle from/to points
-            HM2[] straddle_heats = GetPopulation_Heats(loc_from, loc_to, heatmap);
+            BezierUtil.CurvatureSample[] straddle_heats = GetPopulation_Heats(loc_from, loc_to, heatmap);
 
             // Convert heats into points (X is total percent, Y is heat value at X)
             Point[] straddle_heat_points = straddle_heats.
@@ -263,7 +166,7 @@ namespace Game.Bepu.Testers
             throw new ApplicationException($"Couldn't find percent mapping: {total_percent}");
         }
 
-        private static HM2[] GetPopulation_Heats(BezierUtil.NormalizedPosPointer from, BezierUtil.NormalizedPosPointer to, HM2[] heatmap)
+        private static BezierUtil.CurvatureSample[] GetPopulation_Heats(BezierUtil.NormalizedPosPointer from, BezierUtil.NormalizedPosPointer to, BezierUtil.CurvatureSample[] heatmap)
         {
             int index_left = GetPopulation_Heats_Left(from, heatmap);
             if (index_left < 0)
@@ -278,7 +181,7 @@ namespace Game.Bepu.Testers
                 ToArray();
         }
         //TODO: rewrite these using total percent
-        private static int GetPopulation_Heats_Left(BezierUtil.NormalizedPosPointer from, HM2[] heatmap)
+        private static int GetPopulation_Heats_Left(BezierUtil.NormalizedPosPointer from, BezierUtil.CurvatureSample[] heatmap)
         {
             int retVal = -1;
 
@@ -307,7 +210,7 @@ namespace Game.Bepu.Testers
 
             return retVal;
         }
-        private static int GetPopulation_Heats_Right(BezierUtil.NormalizedPosPointer to, HM2[] heatmap)
+        private static int GetPopulation_Heats_Right(BezierUtil.NormalizedPosPointer to, BezierUtil.CurvatureSample[] heatmap)
         {
             int retVal = -1;
 
@@ -367,7 +270,7 @@ namespace Game.Bepu.Testers
 
             return retVal.ToArray();
         }
-        //private static double LERP_Heat_Y(HM2 heat_left, HM2 heat_right, int segment_index, double segment_local_percent)
+        //private static double LERP_Heat_Y(BezierUtil.HM2 heat_left, BezierUtil.HM2 heat_right, int segment_index, double segment_local_percent)
         //{
 
         //}
@@ -376,21 +279,6 @@ namespace Game.Bepu.Testers
         #endregion
     }
 
-    #region record: HM2
-
-    public record HM2
-    {
-        public int SegmentIndex { get; init; }
-        public double Percent_Along_Segment { get; init; }
-
-        public double Percent_Total { get; init; }
-
-        public Point3D Point { get; init; }
-        public double Dot { get; init; }
-        public double Dist_From_NegOne { get; init; }
-    }
-
-    #endregion
     #region record: PathSnippet
 
     public record PathSnippet

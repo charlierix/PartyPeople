@@ -429,7 +429,7 @@ namespace Game.Bepu.Testers
 
             Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
 
-            HM2[] heatmap = TempBezierUtil.GetHeatmap(beziers);
+            BezierUtil.CurvatureSample[] heatmap = BezierUtil.GetCurvatureHeatmap(beziers);
             double max_dist_from_negone = heatmap.Max(o => o.Dist_From_NegOne);
 
 
@@ -484,7 +484,7 @@ namespace Game.Bepu.Testers
 
             Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
 
-            HM2[] heatmap = TempBezierUtil.GetHeatmap(beziers);
+            BezierUtil.CurvatureSample[] heatmap = BezierUtil.GetCurvatureHeatmap(beziers);
             double max_dist_from_negone = heatmap.Max(o => o.Dist_From_NegOne);
 
             PathSnippet[] map = TempBezierUtil.GetPinchedMapping(heatmap, endpoints.Length, beziers);
@@ -512,7 +512,7 @@ namespace Game.Bepu.Testers
             window.Show();
         }
 
-        private static string GetHeatmapReport(HM2[] heatmap, double max_dist_from_negone)
+        private static string GetHeatmapReport(BezierUtil.CurvatureSample[] heatmap, double max_dist_from_negone)
         {
             var retVal = new List<string>();
 
