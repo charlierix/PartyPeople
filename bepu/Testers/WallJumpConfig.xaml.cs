@@ -505,8 +505,8 @@ namespace Game.Bepu.Testers
 
             for (int i = 0; i < map.Length; i++)
             {
-                window.AddTriangle(new Point3D(map[i].From_X, map[i].From_Y, 0), new Point3D(map[i].To_X, map[i].From_Y, 0), new Point3D(map[i].To_X, map[i].To_Y, 0), colors[i]);
-                window.AddSquare(new Point(map[i].From_X, 0), new Point(map[i].To_X, map[i].From_Y), colors[i]);
+                window.AddTriangle(new Point3D(map[i].From_Percent_In, map[i].From_Percent_Out, 0), new Point3D(map[i].To_Percent_In, map[i].From_Percent_Out, 0), new Point3D(map[i].To_Percent_In, map[i].To_Percent_Out, 0), colors[i]);
+                window.AddSquare(new Point(map[i].From_Percent_In, 0), new Point(map[i].To_Percent_In, map[i].From_Percent_Out), colors[i]);
             }
 
             window.Show();
