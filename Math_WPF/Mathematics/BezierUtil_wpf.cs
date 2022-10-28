@@ -71,6 +71,8 @@ namespace Game.Math_WPF.Mathematics
 
             public double Dot { get; init; }
             public double Dist_From_NegOne { get; init; }
+
+            public double Weight { get; init; }
         }
 
         #endregion
@@ -973,9 +975,9 @@ namespace Game.Math_WPF.Mathematics
 
         public static CurvatureSample[] GetCurvatureHeatmap(BezierSegment3D_wpf[] beziers)
         {
-            var retVal = new List<CurvatureSample>();
+            var heatmap = new List<CurvatureSample>();
 
-            retVal.Add(new CurvatureSample()        // having endpoints at 0 and 1 makes processing these easier
+            heatmap.Add(new CurvatureSample()        // having endpoints at 0 and 1 makes processing these easier
             {
                 Dist_From_NegOne = 0,
                 Dot = -1,
@@ -991,7 +993,7 @@ namespace Game.Math_WPF.Mathematics
                 {
                     // Stitch last segment of prev bezier segment with first of current
                     // NOTE: beziers[i - 1].Samples[^1].Point == beziers[i].Samples[0].Point == beziers[i - 1].EndPoint1 == beziers[i].EndPoint0
-                    retVal.Add(GetCurvatureHeatmap_Item(
+                    heatmap.Add(GetCurvatureHeatmap_Item(
                         beziers[i - 1].Samples[^2].Point,
                         beziers[i].EndPoint0,
                         beziers[i].Samples[1].Point,
@@ -1010,11 +1012,11 @@ namespace Game.Math_WPF.Mathematics
 
                 for (int j = 1; j < samples.Length - 1; j++)
                 {
-                    retVal.Add(GetCurvatureHeatmap_Item(samples[j - 1].Point, samples[j].Point, samples[j + 1].Point, lengths[j - 1], lengths[j], i, samples[j].Percent_Along));
+                    heatmap.Add(GetCurvatureHeatmap_Item(samples[j - 1].Point, samples[j].Point, samples[j + 1].Point, lengths[j - 1], lengths[j], i, samples[j].Percent_Along));
                 }
             }
 
-            retVal.Add(new CurvatureSample()
+            heatmap.Add(new CurvatureSample()
             {
                 Dist_From_NegOne = 0,
                 Dot = -1,
@@ -1024,7 +1026,11 @@ namespace Game.Math_WPF.Mathematics
                 Percent_Total = 1,
             });
 
-            return GetCurvatureHeatmap_ApplyTotalPercent(retVal.ToArray(), beziers);
+            // Post Processing
+            var retVal = GetCurvatureHeatmap_ApplyScore(heatmap.ToArray());
+            retVal = GetCurvatureHeatmap_ApplyTotalPercent(retVal, beziers);
+
+            return retVal;
         }
         private static CurvatureSample GetCurvatureHeatmap_Item(Point3D point_left, Point3D point_middle, Point3D point_right, double len_left, double len_right, int segment_index, double percent_middle)
         {
@@ -1046,6 +1052,19 @@ namespace Game.Math_WPF.Mathematics
                 Dot = dot,
                 Dist_From_NegOne = dist_from_negone,
             };
+        }
+        private static CurvatureSample[] GetCurvatureHeatmap_ApplyScore(CurvatureSample[] heatmap)
+        {
+            double min = heatmap.Min(o => o.Dist_From_NegOne);
+            double max = heatmap.Max(o => o.Dist_From_NegOne);
+
+            // For now, just flip it
+            return heatmap.
+                Select(o => o with
+                {
+                    Weight = UtilityMath.GetScaledValue(0, 1, max, min, o.Dist_From_NegOne),
+                }).
+                ToArray();
         }
         private static CurvatureSample[] GetCurvatureHeatmap_ApplyTotalPercent(CurvatureSample[] heatmap, BezierSegment3D_wpf[] beziers)
         {

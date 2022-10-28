@@ -463,16 +463,16 @@ namespace Game.Bepu.Testers
 
             // --------------- Graph ---------------
 
-            window = new Debug3DWindow();
+            //window = new Debug3DWindow();
 
-            var graphs = new[]
-            {
-                Debug3DWindow.GetGraph(heatmap.Select(o => o.Dist_From_NegOne / max_dist_from_negone).ToArray()),
-                Debug3DWindow.GetGraph(heatmap.Select(o => 1d - (o.Dist_From_NegOne / max_dist_from_negone)).ToArray()),        // 1 - %
-            };
-            window.AddGraphs(graphs, new Point3D(), 12);
+            //var graphs = new[]
+            //{
+            //    Debug3DWindow.GetGraph(heatmap.Select(o => o.Dist_From_NegOne / max_dist_from_negone).ToArray()),
+            //    Debug3DWindow.GetGraph(heatmap.Select(o => 1d - (o.Dist_From_NegOne / max_dist_from_negone)).ToArray()),        // 1 - %
+            //};
+            //window.AddGraphs(graphs, new Point3D(), 12);
 
-            window.Show();
+            //window.Show();
 
 
             //string report = GetHeatmapReport(heatmap, max_dist_from_negone);
