@@ -489,27 +489,27 @@ namespace Game.Bepu.Testers
 
             PathSnippet[] map = TempBezierUtil.GetPinchedMapping(heatmap, endpoints.Length, beziers);
 
-            var sizes = Debug3DWindow.GetDrawSizes(1);
+            //var sizes = Debug3DWindow.GetDrawSizes(1);
 
-            var window = new Debug3DWindow();
+            //var window = new Debug3DWindow();
 
-            window.AddLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), sizes.line, Colors.Black);
-            window.AddLine(new Point3D(0, 0, 0), new Point3D(1, 1, 0), sizes.line, Colors.Black);
+            //window.AddLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), sizes.line, Colors.Black);
+            //window.AddLine(new Point3D(0, 0, 0), new Point3D(1, 1, 0), sizes.line, Colors.Black);
 
-            for (int i = 0; i < endpoints.Length; i++)
-            {
-                window.AddDot(new Point3D((double)i / (endpoints.Length - 1), 0, 0), sizes.dot, Colors.Black);
-            }
+            //for (int i = 0; i < endpoints.Length; i++)
+            //{
+            //    window.AddDot(new Point3D((double)i / (endpoints.Length - 1), 0, 0), sizes.dot, Colors.Black);
+            //}
 
-            Color[] colors = UtilityWPF.GetRandomColors(map.Length, 100, 200);
+            //Color[] colors = UtilityWPF.GetRandomColors(map.Length, 100, 200);
 
-            for (int i = 0; i < map.Length; i++)
-            {
-                window.AddTriangle(new Point3D(map[i].From_Percent_In, map[i].From_Percent_Out, 0), new Point3D(map[i].To_Percent_In, map[i].From_Percent_Out, 0), new Point3D(map[i].To_Percent_In, map[i].To_Percent_Out, 0), colors[i]);
-                window.AddSquare(new Point(map[i].From_Percent_In, 0), new Point(map[i].To_Percent_In, map[i].From_Percent_Out), colors[i]);
-            }
+            //for (int i = 0; i < map.Length; i++)
+            //{
+            //    window.AddTriangle(new Point3D(map[i].From_Percent_In, map[i].From_Percent_Out, 0), new Point3D(map[i].To_Percent_In, map[i].From_Percent_Out, 0), new Point3D(map[i].To_Percent_In, map[i].To_Percent_Out, 0), colors[i]);
+            //    window.AddSquare(new Point(map[i].From_Percent_In, 0), new Point(map[i].To_Percent_In, map[i].From_Percent_Out), colors[i]);
+            //}
 
-            window.Show();
+            //window.Show();
         }
 
         private static string GetHeatmapReport(BezierUtil.CurvatureSample[] heatmap, double max_dist_from_negone)

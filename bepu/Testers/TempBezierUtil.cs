@@ -15,7 +15,7 @@ namespace Game.Bepu.Testers
 {
     public static class TempBezierUtil
     {
-        private const int COUNT_RESIZEPASS = 4;
+        private const int COUNT_RESIZEPASS = 8;     // it oscillates around, which makes me think the scale expansion is too aggressive
         private const int COUNT_SLIDEPASS = 3;
 
         public static PathSnippet[] GetPinchedMapping(BezierUtil.CurvatureSample[] heatmap, int endpoint_count, BezierSegment3D_wpf[] beziers)
@@ -47,10 +47,11 @@ namespace Game.Bepu.Testers
                     Select(o => GetPopulation(o, heatmap)).
                     ToArray();
 
-                DrawTestBucket(retVal, areas, heatmap, $"pass {i}");
+                //DrawTestBucket(retVal, areas, heatmap, $"pass {i}");
 
-                double[] scales = GetScales(areas);
-                retVal = ApplyForces(retVal, scales, i);
+                //double[] scales = GetScales1(areas);
+                double[] scales = GetScales2(areas, retVal);
+                retVal = ApplyForces2(retVal, scales, i);
             }
 
             return retVal;
@@ -156,7 +157,7 @@ namespace Game.Bepu.Testers
 
         #endregion
 
-        private static double[] GetScales(double[] areas)
+        private static double[] GetScales1(double[] areas)
         {
             double MAX_SHRINK_PERCENT = 0.5;
             double MAX_GROW_PERCENT = 2;
@@ -197,8 +198,40 @@ namespace Game.Bepu.Testers
 
             return retVal;
         }
+        private static double[] GetScales2(double[] areas, PathSnippet[] snippets)
+        {
+            double GROW_PERCENT = 1;
+            double SHRINK_PERCENT = 6;
 
-        private static PathSnippet[] ApplyForces(PathSnippet[] snippets, double[] scales, int iteration)
+            //double sum_area = areas.Sum();
+            //double min_area = areas.Min();
+            //double max_area = areas.Max();
+            double avg_area = areas.Average();
+
+            double[] retVal = new double[areas.Length];
+
+            for (int i = 0; i < areas.Length; i++)
+            {
+                double distance = areas[i] - avg_area;
+                double width = snippets[i].To_Percent_Out - snippets[i].From_Percent_Out;
+                double height = areas[i] / width;
+
+                double percent = distance < 0 ?
+                    GROW_PERCENT :
+                    SHRINK_PERCENT;
+
+                double new_area = areas[i] + (-distance * percent);
+                double new_width = new_area / height;
+
+                double scale = new_width / width;
+
+                retVal[i] = UtilityMath.Clamp(scale, 0.15, 2);
+            }
+
+            return retVal;
+        }
+
+        private static PathSnippet[] ApplyForces1(PathSnippet[] snippets, double[] scales, int iteration)
         {
             var positions = ConvertSnippets(snippets);
 
@@ -215,6 +248,36 @@ namespace Game.Bepu.Testers
 
             return AdjustSnippets(snippets, positions);
         }
+        private static PathSnippet[] ApplyForces2(PathSnippet[] snippets, double[] scales, int iteration)
+        {
+            var positions = ConvertSnippets(snippets);
+
+            positions = ScaleSnippets(positions, scales);
+
+            double[] half_widths = positions.
+                Select(o => o.Width / 2).
+                ToArray();
+
+            //DrawSnippetSlide(positions, $"before {iteration}");
+
+            for (int i = 0; i < COUNT_SLIDEPASS; i++)
+            {
+                positions = positions.
+                    Select((o,j) => o with
+                    {
+                        From = o.Center - half_widths[j],
+                        To = o.Center + half_widths[j],
+                    }).
+                    ToArray();
+
+                positions = SlideSnippets3(positions, iteration, i);
+                positions = SolidifySnippets(positions);
+            }
+
+            DrawSnippetSlide(positions, $"after {iteration}");
+
+            return AdjustSnippets(snippets, positions);
+        }
 
         private static SnippetPos[] ConvertSnippets(PathSnippet[] snippets)
         {
@@ -228,7 +291,6 @@ namespace Game.Bepu.Testers
                         From = o.From_Percent_Out,
                         To = o.To_Percent_Out,
                         Center = o.From_Percent_Out + (width / 2),
-                        Width = width,
                     };
                 }).
                 ToArray();
@@ -269,7 +331,7 @@ namespace Game.Bepu.Testers
             retVal[0] = SlideSnippet_Left(positions[0], 0);
             retVal[^1] = SlideSnippet_Right(positions[^1], 1);
 
-            DrawSnippetSlide(retVal, $"scaled {iteration_outer} - {iteration_inner}");
+            //DrawSnippetSlide(retVal, $"scaled {iteration_outer} - {iteration_inner}");
 
             // Find the two most squeezed snippets, push them away
             var gaps = Enumerable.Range(0, positions.Length - 1).
@@ -301,6 +363,64 @@ namespace Game.Bepu.Testers
 
                 retVal[move.index_left] = SlideSnippet_Right(retVal[move.index_left], boundry_pos);
                 retVal[move.index_right] = SlideSnippet_Left(retVal[move.index_right], boundry_pos);
+            }
+
+            return retVal;
+        }
+        private static SnippetPos[] SlideSnippets2(SnippetPos[] positions, int iteration_outer, int iteration_inner)
+        {
+            var retVal = positions.ToArray();
+
+            // Move the left and right edges, don't touch them the rest of the function
+            retVal[0] = SlideSnippet_Left(positions[0], 0);
+            retVal[^1] = SlideSnippet_Right(positions[^1], 1);
+
+            var gaps = Enumerable.Range(0, positions.Length - 1).
+                Select(o => new
+                {
+                    index_left = o,
+                    index_right = o + 1,
+                    gap = Math.Abs(positions[o].To - positions[o + 1].From),
+                }).
+                ToArray();
+
+            double[] forces = new double[positions.Length - 2];
+
+            for (int i = 1; i < positions.Length - 1; i++)
+            {
+                forces[i - 1] = gaps[i - 1].gap + gaps[i].gap;
+            }
+
+
+
+
+
+            return retVal;
+        }
+        private static SnippetPos[] SlideSnippets3(SnippetPos[] positions, int iteration_outer, int iteration_inner)
+        {
+            var retVal = positions.ToArray();
+
+            // Move the left and right edges, don't touch them the rest of the function
+            retVal[0] = SlideSnippet_Left(retVal[0], 0);
+            retVal[^1] = SlideSnippet_Right(retVal[^1], 1);
+
+            VectorND min = new VectorND(retVal[0].To);
+            VectorND max = new VectorND(retVal[^1].From);
+
+            VectorND[] movable = Enumerable.Range(0, retVal.Length - 1).
+                Select(o => new VectorND(retVal[o + 1].Center)).
+                ToArray();
+
+            double[] mults = Enumerable.Range(0, retVal.Length - 1).
+                Select(o => retVal[o + 1].Width).
+                ToArray();
+
+            var moved = MathND.GetRandomVectors_Cube_EventDist(movable, (min, max), mults, stopIterationCount: COUNT_SLIDEPASS);
+
+            for (int i = 0; i < moved.Length; i++)
+            {
+                retVal[i + 1] = SlideSnippet_Center(retVal[i + 1], moved[i][0]);
             }
 
             return retVal;
@@ -361,7 +481,6 @@ namespace Game.Bepu.Testers
                     From = x1,
                     To = x2,
                     Center = x1 + (width / 2),
-                    Width = width,
                 };
             }
 
@@ -434,7 +553,7 @@ namespace Game.Bepu.Testers
                 window.AddLine(new Point3D(s.To, y - 0.1, 0), new Point3D(s.To, y + 0.1, 0), sizes.line * 0.5, c);
             });
 
-            var colors = UtilityWPF.GetRandomColors(positions.Length, 100, 200);
+            var colors = UtilityWPF.GetRandomColors(positions.Length, 90, 180);
 
             for (int i = 0; i < positions.Length; i++)
             {
@@ -467,7 +586,7 @@ namespace Game.Bepu.Testers
         public double From { get; init; }
         public double To { get; init; }
         public double Center { get; init; }
-        public double Width { get; init; }
+        public double Width => To - From;
     }
 
 
