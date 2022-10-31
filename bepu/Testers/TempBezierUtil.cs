@@ -15,7 +15,7 @@ namespace Game.Bepu.Testers
 {
     public static class TempBezierUtil
     {
-        private const int COUNT_RESIZEPASS = 8;     // it oscillates around, which makes me think the scale expansion is too aggressive
+        private const int COUNT_RESIZEPASS = 2;     // it oscillates around, which makes me think the scale expansion is too aggressive
         private const int COUNT_SLIDEPASS = 3;
 
         public static PathSnippet[] GetPinchedMapping(BezierUtil.CurvatureSample[] heatmap, int endpoint_count, BezierSegment3D_wpf[] beziers)
@@ -200,8 +200,18 @@ namespace Game.Bepu.Testers
         }
         private static double[] GetScales2(double[] areas, PathSnippet[] snippets)
         {
-            double GROW_PERCENT = 1;
-            double SHRINK_PERCENT = 6;
+            //double GROW_PERCENT = 1;
+            //double SHRINK_PERCENT = 6;
+
+            //double CLAMP_MIN = 0.15;
+            //double CLAMP_MAX = 1.5;
+
+            double GROW_PERCENT = 1.1;
+            double SHRINK_PERCENT = 4;
+
+            double CLAMP_MIN = 0.15;
+            double CLAMP_MAX = 1.5;
+
 
             //double sum_area = areas.Sum();
             //double min_area = areas.Min();
@@ -225,7 +235,7 @@ namespace Game.Bepu.Testers
 
                 double scale = new_width / width;
 
-                retVal[i] = UtilityMath.Clamp(scale, 0.15, 2);
+                retVal[i] = UtilityMath.Clamp(scale, CLAMP_MIN, CLAMP_MAX);
             }
 
             return retVal;
@@ -563,32 +573,4 @@ namespace Game.Bepu.Testers
             window.Show();
         }
     }
-
-    #region record: PathSnippet
-
-    /// <summary>
-    /// This represents a transform from gap_in to gap_out
-    /// </summary>
-    public record PathSnippet
-    {
-        public double From_Percent_In { get; init; }
-        public double From_Percent_Out { get; init; }
-        public double To_Percent_In { get; init; }
-        public double To_Percent_Out { get; init; }
-    }
-
-    #endregion
-    #region record: SnippetPos
-
-    // This is just an easier structure to move around
-    public record SnippetPos
-    {
-        public double From { get; init; }
-        public double To { get; init; }
-        public double Center { get; init; }
-        public double Width => To - From;
-    }
-
-
-    #endregion
 }

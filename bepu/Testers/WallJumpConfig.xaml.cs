@@ -489,6 +489,8 @@ namespace Game.Bepu.Testers
 
             PathSnippet[] map = TempBezierUtil.GetPinchedMapping(heatmap, endpoints.Length, beziers);
 
+            Point3D[] pinch_improved_samples = BezierUtil.GetPoints_PinchImproved(beziers.Length * 12, beziers, map);
+
             //var sizes = Debug3DWindow.GetDrawSizes(1);
 
             //var window = new Debug3DWindow();
@@ -510,6 +512,19 @@ namespace Game.Bepu.Testers
             //}
 
             //window.Show();
+
+
+
+            var sizes = Debug3DWindow.GetDrawSizes(8);
+            double small_dot = sizes.dot * 0.36;
+
+            var window = new Debug3DWindow();
+
+            window.AddDots(uniform_samples, small_dot * 0.9, UtilityWPF.ColorFromHex("666"));
+            window.AddLines(uniform_samples, sizes.line * 0.5, UtilityWPF.ColorFromHex("AAA"));
+
+            window.Show();
+
         }
 
         private static string GetHeatmapReport(BezierUtil.CurvatureSample[] heatmap, double max_dist_from_negone)

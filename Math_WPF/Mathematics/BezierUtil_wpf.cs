@@ -1,11 +1,7 @@
 ﻿using Game.Core;
-using Microsoft.VisualBasic;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.Metrics;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
@@ -146,6 +142,50 @@ namespace Game.Math_WPF.Mathematics
 
             return retVal;
         }
+
+
+        public static Point3D[] GetPoints_PinchImproved(int count, BezierSegment3D_wpf[] segments, PathSnippet[] pinch_map)
+        {
+            Point3D[] retVal = new Point3D[count];
+
+            retVal[0] = segments[0].EndPoint0;
+            retVal[count - 1] = segments[segments.Length - 1].EndPoint1;        //NOTE: If the segment is a closed curve, this is the same point as retVal[0].  May want a boolean that tells whether the last point should be replicated
+
+            var samples = Enumerable.Range(0, count - 2).       // for (int i = 1; i < count - 1; i++)
+                Select(o => (double)(o + 1) / (count - 1)).     // {double totalPercent = (double)i / (count - 1);
+                Select(o => ApplyPinchMap(o, pinch_map));       // run this point through the pinch map (the map exaggerates how much total percent goes to pinch points, less goes to flat spots)
+
+            foreach (var sample in ConvertToNormalizedPositions(samples, segments))
+            {
+                // Calculate the bezier point
+                retVal[sample.Desired_Index + 1] = GetPoint(sample.Segment_Local_Percent, segments[sample.Segment_Index].Combined);
+            }
+
+            return retVal;
+        }
+        private static double ApplyPinchMap(double percent, PathSnippet[] pinch_map)
+        {
+            if (percent <= 0)
+                return 0;
+            else if (percent >= 1)
+                return 1;
+
+            for (int i = 0; i < pinch_map.Length; i++)
+            {
+                // find the exact spot along the pinch map
+                if (percent >= pinch_map[i].From_Percent_In && percent <= pinch_map[i].To_Percent_In)
+                {
+                    double local_percent = (percent - pinch_map[i].From_Percent_In) / (pinch_map[i].To_Percent_In - pinch_map[i].From_Percent_In);
+
+                    // convert to the corresponding output
+                    return UtilityMath.LERP(pinch_map[i].From_Percent_Out, pinch_map[i].To_Percent_Out, local_percent);
+                }
+            }
+
+            throw new ApplicationException($"Couldn't find percent: {percent}");
+        }
+
+
         /// <summary>
         /// Returns points across sets of segment definition.  Each set is run through the other path overload.  So the endpoints
         /// of each set are guaranteed to be included in the return points (deduped)
@@ -1477,4 +1517,33 @@ namespace Game.Math_WPF.Mathematics
     }
 
     #endregion
+
+
+    #region record: PathSnippet
+
+    /// <summary>
+    /// This represents a transform from gap_in to gap_out
+    /// </summary>
+    public record PathSnippet
+    {
+        public double From_Percent_In { get; init; }
+        public double From_Percent_Out { get; init; }
+        public double To_Percent_In { get; init; }
+        public double To_Percent_Out { get; init; }
+    }
+
+    #endregion
+    #region record: SnippetPos
+
+    // This is just an easier structure to move around
+    public record SnippetPos
+    {
+        public double From { get; init; }
+        public double To { get; init; }
+        public double Center { get; init; }
+        public double Width => To - From;
+    }
+
+    #endregion
+
 }
