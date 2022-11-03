@@ -403,7 +403,8 @@ namespace Game.Bepu.Testers
 
                 //Heatmap(_endpoints);
                 Heatmap2(_endpoints);
-                Heatmap3(_endpoints);
+                //Heatmap3(_endpoints);
+                Heatmap4(_endpoints);
             }
             catch (Exception ex)
             {
@@ -416,7 +417,8 @@ namespace Game.Bepu.Testers
             {
                 //Heatmap(_endpoints);
                 Heatmap2(_endpoints);
-                Heatmap3(_endpoints);
+                //Heatmap3(_endpoints);
+                Heatmap4(_endpoints);
             }
             catch (Exception ex)
             {
@@ -487,7 +489,7 @@ namespace Game.Bepu.Testers
             BezierUtil.CurvatureSample[] heatmap = BezierUtil.GetCurvatureHeatmap(beziers);
             double max_dist_from_negone = heatmap.Max(o => o.Dist_From_NegOne);
 
-            PathSnippet[] map = TempBezierUtil.GetPinchedMapping(heatmap, endpoints.Length, beziers);
+            PathSnippet[] map = TempBezierUtil.GetPinchedMapping1(heatmap, endpoints.Length, beziers);
 
             Point3D[] pinch_improved_samples = BezierUtil.GetPoints_PinchImproved(beziers.Length * 12, beziers, map);
 
@@ -520,11 +522,34 @@ namespace Game.Bepu.Testers
 
             var window = new Debug3DWindow();
 
-            window.AddDots(uniform_samples, small_dot * 0.9, UtilityWPF.ColorFromHex("666"));
-            window.AddLines(uniform_samples, sizes.line * 0.5, UtilityWPF.ColorFromHex("AAA"));
+            window.AddDots(pinch_improved_samples, small_dot * 0.9, UtilityWPF.ColorFromHex("444"));
+            window.AddLines(pinch_improved_samples, sizes.line * 0.5, UtilityWPF.ColorFromHex("EEE"));
 
             window.Show();
+        }
+        private void Heatmap4(Point3D[] endpoints)
+        {
+            var beziers = BezierUtil.GetBezierSegments(endpoints, 0.3, false);
 
+            Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
+
+            BezierUtil.CurvatureSample[] heatmap = BezierUtil.GetCurvatureHeatmap(beziers);
+            double max_dist_from_negone = heatmap.Max(o => o.Dist_From_NegOne);
+
+            PathSnippet[] map = TempBezierUtil.GetPinchedMapping2(heatmap, endpoints.Length, beziers);
+
+            Point3D[] pinch_improved_samples = BezierUtil.GetPoints_PinchImproved(beziers.Length * 12, beziers, map);
+
+
+            var sizes = Debug3DWindow.GetDrawSizes(8);
+            double small_dot = sizes.dot * 0.36;
+
+            var window = new Debug3DWindow();
+
+            window.AddDots(pinch_improved_samples, small_dot * 0.9, UtilityWPF.ColorFromHex("444"));
+            window.AddLines(pinch_improved_samples, sizes.line * 0.5, UtilityWPF.ColorFromHex("EEE"));
+
+            window.Show();
         }
 
         private static string GetHeatmapReport(BezierUtil.CurvatureSample[] heatmap, double max_dist_from_negone)

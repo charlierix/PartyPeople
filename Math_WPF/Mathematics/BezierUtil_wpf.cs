@@ -1545,5 +1545,4 @@ namespace Game.Math_WPF.Mathematics
     }
 
     #endregion
-
 }

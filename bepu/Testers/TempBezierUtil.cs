@@ -2,6 +2,7 @@
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
+using GameItems;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,10 +16,12 @@ namespace Game.Bepu.Testers
 {
     public static class TempBezierUtil
     {
-        private const int COUNT_RESIZEPASS = 2;     // it oscillates around, which makes me think the scale expansion is too aggressive
-        private const int COUNT_SLIDEPASS = 3;
+        private const int COUNT_RESIZEPASS_A1 = 2;     // it oscillates around, which makes me think the scale expansion is too aggressive
+        private const int COUNT_SLIDEPASS_A1 = 3;
 
-        public static PathSnippet[] GetPinchedMapping(BezierUtil.CurvatureSample[] heatmap, int endpoint_count, BezierSegment3D_wpf[] beziers)
+        private const int COUNT_RESIZEPASS_A2 = 1;
+
+        public static PathSnippet[] GetPinchedMapping1(BezierUtil.CurvatureSample[] heatmap, int endpoint_count, BezierSegment3D_wpf[] beziers)
         {
             int return_count = ((endpoint_count - 1) * 3) + 1;      // this is kind of arbitrary, but should give a good amount of snippets to play with
 
@@ -41,7 +44,7 @@ namespace Game.Bepu.Testers
 
             var retVal = initial;
 
-            for (int i = 0; i < COUNT_RESIZEPASS; i++)
+            for (int i = 0; i < COUNT_RESIZEPASS_A1; i++)
             {
                 double[] areas = retVal.
                     Select(o => GetPopulation(o, heatmap)).
@@ -53,6 +56,51 @@ namespace Game.Bepu.Testers
                 double[] scales = GetScales2(areas, retVal);
                 retVal = ApplyForces2(retVal, scales, i);
             }
+
+            return retVal;
+        }
+        public static PathSnippet[] GetPinchedMapping2(BezierUtil.CurvatureSample[] heatmap, int endpoint_count, BezierSegment3D_wpf[] beziers)
+        {
+            int return_count = ((endpoint_count - 1) * 3) + 1;      // this is kind of arbitrary, but should give a good amount of snippets to play with
+
+            var initial = Enumerable.Range(0, return_count).
+                Select(o => new
+                {
+                    from = (double)o / return_count,
+                    to = (double)(o + 1) / return_count,
+                }).
+                Select(o => new PathSnippet()
+                {
+                    From_Percent_In = o.from,
+                    From_Percent_Out = o.from,
+                    To_Percent_In = o.to,
+                    To_Percent_Out = o.to,
+                }).
+                ToArray();
+
+            Debug3DWindow window = new Debug3DWindow();
+            var sizes = Debug3DWindow.GetDrawSizes(1);
+            double draw_y = 0;
+
+            var retVal = initial;
+
+            for (int i = 0; i < COUNT_RESIZEPASS_A2 + 1; i++)
+            {
+                double[] areas = retVal.
+                    Select(o => GetPopulation(o, heatmap)).
+                    ToArray();
+
+                Point3D[] samples = BezierUtil.GetPoints_PinchImproved(beziers.Length * 12, beziers, retVal);
+
+                DrawSnippetUsage(window, sizes, retVal, areas, samples, i.ToString(), ref draw_y);
+
+                if (i >= COUNT_RESIZEPASS_A2)
+                    break;
+
+                retVal = RedistributeSizes(retVal, areas, window, sizes, draw_y);
+            }
+
+            window.Show();
 
             return retVal;
         }
@@ -157,6 +205,8 @@ namespace Game.Bepu.Testers
 
         #endregion
 
+        #region resize snippets attempt 1
+
         private static double[] GetScales1(double[] areas)
         {
             double MAX_SHRINK_PERCENT = 0.5;
@@ -249,7 +299,7 @@ namespace Game.Bepu.Testers
 
             positions = ScaleSnippets(positions, scales);
 
-            for (int i = 0; i < COUNT_SLIDEPASS; i++)
+            for (int i = 0; i < COUNT_SLIDEPASS_A1; i++)
             {
                 positions = SlideSnippets1(positions, iteration, i);
             }
@@ -270,17 +320,17 @@ namespace Game.Bepu.Testers
 
             //DrawSnippetSlide(positions, $"before {iteration}");
 
-            for (int i = 0; i < COUNT_SLIDEPASS; i++)
+            for (int i = 0; i < COUNT_SLIDEPASS_A1; i++)
             {
                 positions = positions.
-                    Select((o,j) => o with
+                    Select((o, j) => o with
                     {
                         From = o.Center - half_widths[j],
                         To = o.Center + half_widths[j],
                     }).
                     ToArray();
 
-                positions = SlideSnippets3(positions, iteration, i);
+                positions = SlideSnippets3(positions);
                 positions = SolidifySnippets(positions);
             }
 
@@ -407,7 +457,7 @@ namespace Game.Bepu.Testers
 
             return retVal;
         }
-        private static SnippetPos[] SlideSnippets3(SnippetPos[] positions, int iteration_outer, int iteration_inner)
+        private static SnippetPos[] SlideSnippets3(SnippetPos[] positions)
         {
             var retVal = positions.ToArray();
 
@@ -426,7 +476,7 @@ namespace Game.Bepu.Testers
                 Select(o => retVal[o + 1].Width).
                 ToArray();
 
-            var moved = MathND.GetRandomVectors_Cube_EventDist(movable, (min, max), mults, stopIterationCount: COUNT_SLIDEPASS);
+            var moved = MathND.GetRandomVectors_Cube_EventDist(movable, (min, max), mults, stopIterationCount: COUNT_SLIDEPASS_A1);
 
             for (int i = 0; i < moved.Length; i++)
             {
@@ -571,6 +621,202 @@ namespace Game.Bepu.Testers
             }
 
             window.Show();
+        }
+
+        #endregion
+
+        private static PathSnippet[] RedistributeSizes(PathSnippet[] snippets, double[] areas, Debug3DWindow window, (double dot, double line) sizes, double draw_y)
+        {
+            // Get the height of each bar
+            var heights = Enumerable.Range(0, snippets.Length).
+                Select(o => areas[o] / (snippets[o].To_Percent_Out - snippets[o].From_Percent_Out)).
+                ToArray();
+
+            // Figure out how to redistribute heights (flows from high to low)
+            var moves = Enumerable.Range(0, snippets.Length).
+                Select(o =>
+                (
+                    left: o == 0 ?
+                        0d :
+                        RedistributeSizes_GetMovement(heights[o], heights[o - 1]),
+
+                    right: o == snippets.Length - 1 ?
+                        0d :
+                        RedistributeSizes_GetMovement(heights[o], heights[o + 1])
+                )).
+                ToArray();
+
+            // Move the heights
+            double[] new_heights = heights.ToArray();
+
+            for (int i = 0; i < snippets.Length; i++)
+            {
+                if (i > 0 && moves[i].left > 0)
+                {
+                    new_heights[i - 1] += moves[i].left;
+                    new_heights[i] -= moves[i].left;
+                }
+
+                if (i < snippets.Length - 1 && moves[i].right > 0)
+                {
+                    new_heights[i + 1] += moves[i].right;
+                    new_heights[i] -= moves[i].right;
+                }
+            }
+
+            // Generate snippets according to their new heights
+            PathSnippet[] retVal = Enumerable.Range(0, snippets.Length).
+                Select(o => RedistributeSizes_Rebuild(snippets[o], heights[o], new_heights[o])).
+                ToArray();
+
+            // Make sure there are no overlaps or gaps
+            DrawSnippetSlide2(window, sizes, -3.75, draw_y, retVal);
+
+            retVal = RedistributeSizes_LockIn(retVal);
+
+            DrawSnippetSlide2(window, sizes, -2.5, draw_y, retVal);
+
+            return snippets;
+        }
+        private static double RedistributeSizes_GetMovement(double height_source, double height_dest)
+        {
+            double PERCENT = 0.2;
+            double MAX_MOVE_PERCENT = 0.1;
+
+            double diff = height_source - height_dest;
+
+            if (diff < 0)
+                return 0;
+
+            return Math.Min(diff * PERCENT, height_dest * MAX_MOVE_PERCENT);
+        }
+        private static PathSnippet RedistributeSizes_Rebuild(PathSnippet snippet, double old_height, double new_height)
+        {
+            double width = snippet.To_Percent_Out - snippet.From_Percent_Out;
+
+            double center = snippet.From_Percent_Out + width / 2;
+
+            // treat the difference in height as a percent
+            double percent = new_height / old_height;
+            width *= percent;
+
+            double half_width = width * percent / 2;
+
+            return snippet with
+            {
+                From_Percent_Out = center - half_width,
+                To_Percent_Out = center + half_width,
+            };
+        }
+        private static PathSnippet[] RedistributeSizes_LockIn(PathSnippet[] snippets)
+        {
+            SnippetPos[] positions = ConvertSnippets(snippets);
+
+            positions = SlideSnippets3(positions);
+
+            positions = SolidifySnippets(positions);
+
+            return AdjustSnippets(snippets, positions);
+        }
+
+        private static void DrawSnippetUsage(Debug3DWindow window, (double dot, double line) sizes, PathSnippet[] snippets, double[] areas, Point3D[] samples, string label, ref double draw_y)
+        {
+            window.AddText3D(label, new Point3D(0, draw_y + 0.5, 0), new Vector3D(0, 0, 1), 0.2, Colors.Black, false);
+
+            DrawSnippetUsage_Snippets_Area(window, sizes, draw_y, snippets, areas);
+            DrawSnippetUsage_Snippets_Bezier(window, sizes, draw_y, samples);
+
+            draw_y += 1.25;
+        }
+        private static void DrawSnippetUsage_Snippets_Area(Debug3DWindow window, (double dot, double line) sizes, double draw_y, PathSnippet[] snippets, double[] areas)
+        {
+            const double OFFSET_X = -1.25;
+
+            var heights = new List<double>();
+
+            for (int i = 0; i < snippets.Length; i++)
+            {
+                double width = snippets[i].To_Percent_Out - snippets[i].From_Percent_Out;
+                double height = areas[i] / width;
+
+                Rect rect = new Rect(OFFSET_X + snippets[i].From_Percent_Out, draw_y, width, height);
+
+                window.AddSquare(rect, Colors.DimGray);
+
+                heights.Add(height);
+            }
+
+            double avg_height = Math1D.Avg(heights.ToArray());
+
+            window.AddLine(new Point3D(OFFSET_X - 0.05, draw_y + avg_height, 0), new Point3D(OFFSET_X + 1.05, draw_y + avg_height, 0), sizes.line * 0.5, Colors.Gray);
+        }
+        private static void DrawSnippetUsage_Snippets_Bezier(Debug3DWindow window, (double dot, double line) sizes, double draw_y, Point3D[] samples)
+        {
+            const double OFFSET_X = 0.25;
+            const double RADIUS = 0.5;
+
+            // scale the samples to fit inside of a 1x1x1 cube
+            Point3D[] samples_transformed = GetScaledPoints(samples, 0.5, new Point3D(OFFSET_X + RADIUS, draw_y + RADIUS, 0));
+
+            window.AddDots(samples_transformed.Skip(1).Take(samples_transformed.Length - 2), sizes.dot * 0.66, UtilityWPF.ColorFromHex("222"));
+            window.AddLines(samples_transformed, sizes.line, UtilityWPF.ColorFromHex("DDD"));
+
+            window.AddDot(samples_transformed[0], sizes.dot, Colors.DarkGreen);
+            window.AddDot(samples_transformed[^1], sizes.dot, Colors.DarkRed);
+        }
+
+        private static void DrawSnippetSlide2(Debug3DWindow window, (double dot, double line) sizes, double draw_x, double draw_y, PathSnippet[] snippets)
+        {
+            draw_y += 0.5;
+
+            double bar_y = 0.5;
+            window.AddLine(new Point3D(draw_x + 0, draw_y - bar_y, 0), new Point3D(draw_x + 1, draw_y - bar_y, 0), sizes.line, Colors.Black);
+            window.AddLine(new Point3D(draw_x + 0, draw_y + bar_y, 0), new Point3D(draw_x + 1, draw_y + bar_y, 0), sizes.line, Colors.Black);
+            window.AddLine(new Point3D(draw_x + 0, draw_y - bar_y, 0), new Point3D(draw_x + 0, draw_y + bar_y, 0), sizes.line, Colors.Black);
+            window.AddLine(new Point3D(draw_x + 1, draw_y - bar_y, 0), new Point3D(draw_x + 1, draw_y + bar_y, 0), sizes.line, Colors.Black);
+
+            var draw_snippet = new Action<SnippetPos, Color>((s, c) =>
+            {
+                double y = draw_y + StaticRandom.NextDouble(-0.15, 0.15);
+
+                window.AddDot(new Point3D(draw_x + s.Center, y, 0), sizes.dot, c);
+                window.AddLine(new Point3D(draw_x + s.From, y, 0), new Point3D(draw_x + s.To, y, 0), sizes.line, c);
+                window.AddLine(new Point3D(draw_x + s.From, y - 0.1, 0), new Point3D(draw_x + s.From, y + 0.1, 0), sizes.line * 0.5, c);
+                window.AddLine(new Point3D(draw_x + s.To, y - 0.1, 0), new Point3D(draw_x + s.To, y + 0.1, 0), sizes.line * 0.5, c);
+            });
+
+            var colors = UtilityWPF.GetRandomColors(snippets.Length, 90, 180);
+
+            for (int i = 0; i < snippets.Length; i++)
+            {
+                var pos = new SnippetPos()
+                {
+                    From = snippets[i].From_Percent_Out,
+                    To = snippets[i].To_Percent_Out,
+                    Center = Math1D.Avg(snippets[i].From_Percent_Out, snippets[i].To_Percent_Out),
+                };
+
+                draw_snippet(pos, colors[i]);
+            }
+        }
+
+        private static Point3D[] GetScaledPoints(Point3D[] points, double new_radius, Point3D new_center)
+        {
+            Point3D center = Math3D.GetCenter(points);
+
+            Vector3D[] offsets = points.
+                Select(o => o - center).
+                ToArray();
+
+            var aabb = Math3D.GetAABB(offsets);
+
+            double max = Math1D.Max(aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y, aabb.max.Z - aabb.min.Z);
+
+            double scale = new_radius / (max / 2);
+
+            return offsets.
+                Select(o => new_center + o * scale).
+                ToArray();
         }
     }
 }
