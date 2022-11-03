@@ -153,7 +153,7 @@ namespace Game.Math_WPF.Mathematics
 
             var samples = Enumerable.Range(0, count - 2).       // for (int i = 1; i < count - 1; i++)
                 Select(o => (double)(o + 1) / (count - 1)).     // {double totalPercent = (double)i / (count - 1);
-                Select(o => ApplyPinchMap(o, pinch_map));       // run this point through the pinch map (the map exaggerates how much total percent goes to pinch points, less goes to flat spots)
+                Select(o => ApplyPinchMap2(o, pinch_map));       // run this point through the pinch map (the map exaggerates how much total percent goes to pinch points, less goes to flat spots)
 
             foreach (var sample in ConvertToNormalizedPositions(samples, segments))
             {
@@ -163,7 +163,7 @@ namespace Game.Math_WPF.Mathematics
 
             return retVal;
         }
-        private static double ApplyPinchMap(double percent, PathSnippet[] pinch_map)
+        private static double ApplyPinchMap1(double percent, PathSnippet[] pinch_map)
         {
             if (percent <= 0)
                 return 0;
@@ -179,6 +179,32 @@ namespace Game.Math_WPF.Mathematics
 
                     // convert to the corresponding output
                     return UtilityMath.LERP(pinch_map[i].From_Percent_Out, pinch_map[i].To_Percent_Out, local_percent);
+                }
+            }
+
+            throw new ApplicationException($"Couldn't find percent: {percent}");
+        }
+        private static double ApplyPinchMap2(double percent, PathSnippet[] pinch_map)
+        {
+
+            //NOTE: this method is correct, but uses the In/Out backward from how they are intended
+            //TODO: the worker that builds these snippets needs to play with In instead of Out
+
+
+            if (percent <= 0)
+                return 0;
+            else if (percent >= 1)
+                return 1;
+
+            for (int i = 0; i < pinch_map.Length; i++)
+            {
+                // find the exact spot along the pinch map
+                if (percent >= pinch_map[i].From_Percent_Out && percent <= pinch_map[i].To_Percent_Out)
+                {
+                    double local_percent = (percent - pinch_map[i].From_Percent_Out) / (pinch_map[i].To_Percent_Out - pinch_map[i].From_Percent_Out);
+
+                    // convert to the corresponding output
+                    return UtilityMath.LERP(pinch_map[i].From_Percent_In, pinch_map[i].To_Percent_In, local_percent);
                 }
             }
 
