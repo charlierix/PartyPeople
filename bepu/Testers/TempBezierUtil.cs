@@ -19,7 +19,8 @@ namespace Game.Bepu.Testers
         private const int COUNT_RESIZEPASS_A1 = 2;     // it oscillates around, which makes me think the scale expansion is too aggressive
         private const int COUNT_SLIDEPASS_A1 = 3;
 
-        private const int COUNT_RESIZEPASS_A2 = 12;
+        private const int COUNT_RESIZEPASS_A2 = 288;        //TODO: the final should be 24 to 60 total
+        private const int COUNT_SLIDEPASS_A2 = 144;
 
         private const double DRAW_Y_INC = 1.25;
 
@@ -61,6 +62,11 @@ namespace Game.Bepu.Testers
 
             return retVal;
         }
+
+        //TODO: figure out why some pinch points are off
+        //  is the heatmap to actual position mapping accurate?
+        //  points are currently being distributed cell by cell.  add a global pass that pulls everything together proportionally
+        //      this will help take from the endpoint (which is a long flat spot with too much representation) and give to a pinch in the middle of the curve
         public static PathSnippet[] GetPinchedMapping2(BezierUtil.CurvatureSample[] heatmap, int endpoint_count, BezierSegment3D_wpf[] beziers)
         {
             int return_count = ((endpoint_count - 1) * 3) + 1;      // this is kind of arbitrary, but should give a good amount of snippets to play with
@@ -84,28 +90,32 @@ namespace Game.Bepu.Testers
             var sizes = Debug3DWindow.GetDrawSizes(1);
             double draw_y = 0;
 
-            double min_width = (1d / return_count) * 0.25;
-            double max_width = (1d / return_count) * 3;
-
+            //double min_width = (1d / return_count) * 0.72;        // can't have too much, or there end of being cluster islands of points (dense patch, sparse patch)
+            //double max_width = (1d / return_count) * 1.58;
+            double min_width = (1d / return_count) * 0.8;
+            double max_width = (1d / return_count) * 1.4;
 
             //TODO: Modify PathSnippet.In instead of Out
-            
+
             var retVal = initial;
 
             for (int i = 0; i < COUNT_RESIZEPASS_A2 + 1; i++)
             {
+                bool should_draw = i % (COUNT_RESIZEPASS_A2 / 12) == 0;
+
                 double[] areas = retVal.
                     Select(o => GetPopulation(o, heatmap)).
                     ToArray();
 
                 Point3D[] samples = BezierUtil.GetPoints_PinchImproved(beziers.Length * 12, beziers, retVal);
 
-                DrawSnippetUsage(window, sizes, retVal, areas, samples, i.ToString(), ref draw_y);
+                if (should_draw)
+                    DrawSnippetUsage(window, sizes, retVal, areas, samples, i.ToString(), ref draw_y);
 
                 if (i >= COUNT_RESIZEPASS_A2)
                     break;
 
-                retVal = RedistributeSizes(retVal, areas, min_width, max_width, window, sizes, draw_y - DRAW_Y_INC);
+                retVal = RedistributeSizes(retVal, areas, min_width, max_width, window, sizes, draw_y - DRAW_Y_INC, should_draw);
             }
 
             window.Show();
@@ -633,7 +643,19 @@ namespace Game.Bepu.Testers
 
         #endregion
 
-        private static PathSnippet[] RedistributeSizes(PathSnippet[] snippets, double[] areas, double min_width, double max_width, Debug3DWindow window, (double dot, double line) sizes, double draw_y)
+        /// <summary>
+        /// Widens/Shortens snippets to even out the area distribution
+        /// </summary>
+        /// <remarks>
+        /// Each snippet represents a portion of the total path percent.  Pinch points need more of the total percent (pinch
+        /// points have low area, flat spots have too much area)
+        /// 
+        /// So after this function, pinch points will have wider snippets (taken from the flat spots)
+        /// 
+        /// NOTE: Turning area into height to try to get something more comparable (this may be flawed and maybe area should
+        /// be used instead)
+        /// </remarks>
+        private static PathSnippet[] RedistributeSizes(PathSnippet[] snippets, double[] areas, double min_width, double max_width, Debug3DWindow window, (double dot, double line) sizes, double draw_y, bool should_draw)
         {
             SnippetPos[] positions = ConvertSnippets(snippets);
 
@@ -648,11 +670,11 @@ namespace Game.Bepu.Testers
                 (
                     left: o == 0 ?
                         0d :
-                        RedistributeSizes_GetMovement2(heights[o], heights[o - 1]),
+                        RedistributeSizes_GetMovement(heights[o], heights[o - 1]),
 
                     right: o == positions.Length - 1 ?
                         0d :
-                        RedistributeSizes_GetMovement2(heights[o], heights[o + 1])
+                        RedistributeSizes_GetMovement(heights[o], heights[o + 1])
                 )).
                 ToArray();
 
@@ -680,24 +702,22 @@ namespace Game.Bepu.Testers
                 ToArray();
 
             // Make sure there are no overlaps or gaps
-            DrawSnippetSlide2(window, sizes, -3.75, draw_y, retVal);
+            if (should_draw)
+                DrawSnippetSlide2(window, sizes, -3.75, draw_y, retVal);
 
+            //retVal = SlideSnippets4(retVal);
+            retVal = SolidifySnippets2(retVal);
 
-
-            //TODO: this is too dangerous.  Right idea, but there's a chance of points passing each other
-            //apply spring forces between neighbors
-            //MathND.ApplyBallOfSprings
-            retVal = SlideSnippets3(retVal);
-
-
-            retVal = SolidifySnippets(retVal);
-
-            DrawSnippetSlide2(window, sizes, -2.5, draw_y, retVal);
+            if (should_draw)
+                DrawSnippetSlide2(window, sizes, -2.5, draw_y, retVal);
 
             return AdjustSnippets(snippets, retVal);
         }
 
-        private static double RedistributeSizes_GetMovement1(double height_source, double height_dest)
+        /// <summary>
+        /// Decides how much height should be transferred
+        /// </summary>
+        private static double RedistributeSizes_GetMovement(double height_source, double height_dest)
         {
             double PERCENT = 0.2;
             double MAX_MOVE_PERCENT = 0.1;
@@ -709,19 +729,10 @@ namespace Game.Bepu.Testers
 
             return Math.Min(diff * PERCENT, height_dest * MAX_MOVE_PERCENT);
         }
-        private static double RedistributeSizes_GetMovement2(double height_source, double height_dest)
-        {
-            double PERCENT = 0.2;
-            double MAX_MOVE_PERCENT = 0.1;
 
-            double diff = height_source - height_dest;
-
-            if (diff < 0)
-                return 0;
-
-            return Math.Min(diff * PERCENT, height_dest * MAX_MOVE_PERCENT);
-        }
-
+        /// <summary>
+        /// Applies a height change
+        /// </summary>
         private static SnippetPos RedistributeSizes_Rebuild(SnippetPos position, double old_height, double new_height, double min_width, double max_width)
         {
             double width = position.To - position.From;
@@ -739,6 +750,67 @@ namespace Game.Bepu.Testers
                 From = position.Center - half_width,
                 To = position.Center + half_width,
             };
+        }
+
+        /// <summary>
+        /// Applies ball of springs based on relative widths
+        /// NOTE: these won't stay between 0 and 1, but will arrange themselves properly relative to each other
+        /// </summary>
+        private static SnippetPos[] SlideSnippets4(SnippetPos[] positions)
+        {
+            VectorND[] movable = positions.
+                Select(o => new VectorND(o.Center)).
+                ToArray();
+
+            var getLink = new Func<int, int, (int, int, double)>((i1, i2) =>
+            {
+                double w1 = positions[i1].Width / 2;
+                double w2 = positions[i2].Width / 2;
+                return (i1, i2, w1 + w2);
+            });
+
+            var links = new List<(int, int, double)>();
+
+            for (int i = 1; i < positions.Length - 1; i++)
+            {
+                links.Add(getLink(i - 1, i));
+                links.Add(getLink(i, i + 1));
+            }
+
+            var moved = MathND.ApplyBallOfSprings(movable, links.ToArray(), COUNT_SLIDEPASS_A2);
+
+            return Enumerable.Range(0, positions.Length).
+                Select(o => SlideSnippet_Center(positions[o], moved[o][0])).
+                ToArray();
+        }
+
+        /// <summary>
+        /// Fits these to have a total length of 1.  All widths need to be adjusted proportionally.  First starts at zero, last ends at 1
+        /// </summary>
+        private static SnippetPos[] SolidifySnippets2(SnippetPos[] positions)
+        {
+            double total_width = positions.Sum(o => o.Width);
+            double width_mult = 1 / total_width;
+
+            SnippetPos[] retVal = new SnippetPos[positions.Length];
+
+            double x = 0;
+
+            for (int i = 0; i < positions.Length; i++)
+            {
+                double width = positions[i].Width * width_mult;
+
+                retVal[i] = positions[i] with
+                {
+                    From = x,
+                    To = x + width,
+                    Center = x + width / 2,
+                };
+
+                x += width;
+            }
+
+            return retVal;
         }
 
         private static void DrawSnippetUsage(Debug3DWindow window, (double dot, double line) sizes, PathSnippet[] snippets, double[] areas, Point3D[] samples, string label, ref double draw_y)

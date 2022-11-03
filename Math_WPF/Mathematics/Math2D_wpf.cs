@@ -3227,23 +3227,23 @@ namespace Game.Math_WPF.Mathematics
             return retVal;
         }
 
-        public static Tuple<int, int, double>[] GetDistancesBetween(Point[] positions)
+        public static (int index1, int index2, double distance)[] GetDistancesBetween(Point[] positions)
         {
-            List<Tuple<int, int, double>> retVal = new List<Tuple<int, int, double>>();
+            var retVal = new List<(int, int, double)>();
 
             for (int outer = 0; outer < positions.Length - 1; outer++)
             {
                 for (int inner = outer + 1; inner < positions.Length; inner++)
                 {
                     double distance = (positions[outer] - positions[inner]).Length;
-                    retVal.Add(Tuple.Create(outer, inner, distance));
+                    retVal.Add((outer, inner, distance));
                 }
             }
 
             return retVal.ToArray();
         }
 
-        public static Point[] ApplyBallOfSprings(Point[] positions, Tuple<int, int, double>[] desiredDistances, int numIterations)
+        public static Point[] ApplyBallOfSprings(Point[] positions, (int index1, int index2, double distance)[] desiredDistances, int numIterations)
         {
             VectorND[] pos = positions.
                 Select(o => new VectorND(o.X, o.Y)).

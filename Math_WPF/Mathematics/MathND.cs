@@ -23,7 +23,7 @@ namespace Game.Math_WPF.Mathematics
 
         private static class BallOfSprings
         {
-            public static VectorND[] ApplyBallOfSprings(VectorND[] positions, Tuple<int, int, double>[] desiredDistances, int numIterations)
+            public static VectorND[] ApplyBallOfSprings(VectorND[] positions, (int index1, int index2, double distance)[] desiredDistances, int numIterations)
             {
                 const double MULT = .005;
                 const double MAXSPEED = .05;
@@ -53,12 +53,12 @@ namespace Game.Math_WPF.Mathematics
 
             #region Private Methods
 
-            private static VectorND[] GetForces(VectorND[] positions, Tuple<int, int, double>[] desiredDistances, double mult)
+            private static VectorND[] GetForces(VectorND[] positions, (int index1, int index2, double distance)[] desiredDistances, double mult)
             {
                 // Calculate forces
-                Tuple<int, VectorND>[] forces = desiredDistances.
+                var forces = desiredDistances.
                     //AsParallel().     //TODO: if distances.Length > threshold, do this in parallel
-                    SelectMany(o => GetForces_Calculate(o.Item1, o.Item2, o.Item3, positions, mult)).
+                    SelectMany(o => GetForces_Calculate(o.index1, o.index2, o.distance, positions, mult)).
                     ToArray();
 
                 // Give them a very slight pull toward the origin so that the cloud doesn't drift away
@@ -69,7 +69,7 @@ namespace Game.Math_WPF.Mathematics
 
                 // Group by item
                 var grouped = forces.
-                    GroupBy(o => o.Item1).
+                    GroupBy(o => o.index).
                     OrderBy(o => o.Key);
 
                 return grouped.
@@ -79,14 +79,14 @@ namespace Game.Math_WPF.Mathematics
 
                         foreach (var force in o)
                         {
-                            retVal += force.Item2;
+                            retVal += force.force;
                         }
 
                         return retVal;
                     }).
                     ToArray();
             }
-            private static Tuple<int, VectorND>[] GetForces_Calculate(int index1, int index2, double desiredDistance, VectorND[] positions, double mult)
+            private static (int index, VectorND force)[] GetForces_Calculate(int index1, int index2, double desiredDistance, VectorND[] positions, double mult)
             {
                 // Spring from 1 to 2
                 VectorND spring = positions[index2] - positions[index1];
@@ -112,8 +112,8 @@ namespace Game.Math_WPF.Mathematics
 
                 return new[]
                 {
-                    Tuple.Create(index1, spring),
-                    Tuple.Create(index2, -spring),
+                    (index1, spring),
+                    (index2, -spring),
                 };
             }
 
@@ -1326,7 +1326,7 @@ namespace Game.Math_WPF.Mathematics
             return retVal.ToArray();
         }
 
-        public static VectorND[] ApplyBallOfSprings(VectorND[] positions, Tuple<int, int, double>[] desiredDistances, int numIterations)
+        public static VectorND[] ApplyBallOfSprings(VectorND[] positions, (int index1, int index2, double distance)[] desiredDistances, int numIterations)
         {
             return BallOfSprings.ApplyBallOfSprings(positions, desiredDistances, numIterations);
         }
