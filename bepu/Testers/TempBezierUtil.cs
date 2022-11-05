@@ -50,7 +50,7 @@ namespace Game.Bepu.Testers
             for (int i = 0; i < COUNT_RESIZEPASS_A1; i++)
             {
                 double[] areas = retVal.
-                    Select(o => GetPopulation(o, heatmap)).
+                    Select(o => GetPopulation1(o, heatmap)).
                     ToArray();
 
                 //DrawTestBucket(retVal, areas, heatmap, $"pass {i}");
@@ -62,7 +62,6 @@ namespace Game.Bepu.Testers
 
             return retVal;
         }
-
         //TODO: figure out why some pinch points are off
         //  is the heatmap to actual position mapping accurate?
         //  points are currently being distributed cell by cell.  add a global pass that pulls everything together proportionally
@@ -90,8 +89,8 @@ namespace Game.Bepu.Testers
             var sizes = Debug3DWindow.GetDrawSizes(1);
             double draw_y = 0;
 
-            //double min_width = (1d / return_count) * 0.72;        // can't have too much, or there end of being cluster islands of points (dense patch, sparse patch)
-            //double max_width = (1d / return_count) * 1.58;
+            //double min_width = (1d / return_count) * 0.5;        // can't have too much, or there end of being cluster islands of points (dense patch, sparse patch)
+            //double max_width = (1d / return_count) * 3;
             double min_width = (1d / return_count) * 0.8;
             double max_width = (1d / return_count) * 1.4;
 
@@ -104,7 +103,7 @@ namespace Game.Bepu.Testers
                 bool should_draw = i % (COUNT_RESIZEPASS_A2 / 12) == 0;
 
                 double[] areas = retVal.
-                    Select(o => GetPopulation(o, heatmap)).
+                    Select(o => GetPopulation2(o, heatmap)).
                     ToArray();
 
                 Point3D[] samples = BezierUtil.GetPoints_PinchImproved(beziers.Length * 12, beziers, retVal);
@@ -121,6 +120,19 @@ namespace Game.Bepu.Testers
             window.Show();
 
             return retVal;
+        }
+
+        public static void GetPinchedMapping3(BezierUtil.CurvatureSample[] heatmap, int endpoint_count, BezierSegment3D_wpf[] beziers)
+        {
+
+
+
+
+
+
+
+
+
         }
 
         #region get snippet population
@@ -142,7 +154,7 @@ namespace Game.Bepu.Testers
         /// The snippet defines a left and right edge
         /// This function finds the area of the polygon
         /// </remarks>
-        private static double GetPopulation(PathSnippet snippet, BezierUtil.CurvatureSample[] heatmap)
+        private static double GetPopulation1(PathSnippet snippet, BezierUtil.CurvatureSample[] heatmap)
         {
             // get left and right
             var edge_left = GetPopulation_Edge(snippet.From_Percent_Out, heatmap);
@@ -181,6 +193,46 @@ namespace Game.Bepu.Testers
 
             return retVal;
         }
+        private static double GetPopulation2(PathSnippet snippet, BezierUtil.CurvatureSample[] heatmap)
+        {
+            // get left and right
+            var edge_left = GetPopulation_Edge(snippet.From_Percent_In, heatmap);
+            var edge_right = GetPopulation_Edge(snippet.To_Percent_In, heatmap);
+
+            double retVal = 0;
+
+            // add the lerp portions of left and right to the total
+            if (edge_left.From_Index != edge_left.To_Index)
+            {
+                // Need the right portion of the left edge
+                double y1 = UtilityMath.LERP(
+                    edge_left.From.Weight,
+                    edge_left.To.Weight,
+                    (edge_left.To.Percent_Total - snippet.From_Percent_In) / (edge_left.To.Percent_Total - edge_left.From.Percent_Total));
+
+                retVal += GetPopulation_Area(snippet.From_Percent_In, y1, edge_left.To.Percent_Total, edge_left.To.Weight);
+            }
+
+            if (edge_right.From_Index != edge_right.To_Index)
+            {
+                // Need the left portion of the right edge
+                double y2 = UtilityMath.LERP(
+                    edge_right.From.Weight,
+                    edge_right.To.Weight,
+                    (snippet.To_Percent_In - edge_right.From.Percent_Total) / (edge_right.To.Percent_Total - edge_right.From.Percent_Total));
+
+                retVal += GetPopulation_Area(edge_right.From.Percent_Total, edge_right.From.Weight, snippet.To_Percent_In, y2);
+            }
+
+            // iterate over everything in between, adding the their entire area to the total
+            for (int i = edge_left.To_Index; i < edge_right.From_Index; i++)
+            {
+                retVal += GetPopulation_Area(heatmap[i].Percent_Total, heatmap[i].Weight, heatmap[i + 1].Percent_Total, heatmap[i + 1].Weight);
+            }
+
+            return retVal;
+        }
+
         private static HeatBoundry GetPopulation_Edge(double percent, BezierUtil.CurvatureSample[] heatmap)
         {
             for (int i = 0; i < heatmap.Length; i++)
@@ -223,7 +275,7 @@ namespace Game.Bepu.Testers
 
         #endregion
 
-        #region resize snippets attempt 1
+        #region snippets attempt 1
 
         private static double[] GetScales1(double[] areas)
         {
@@ -642,6 +694,7 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+        #region snippets attempt 2
 
         /// <summary>
         /// Widens/Shortens snippets to even out the area distribution
@@ -705,7 +758,7 @@ namespace Game.Bepu.Testers
             if (should_draw)
                 DrawSnippetSlide2(window, sizes, -3.75, draw_y, retVal);
 
-            //retVal = SlideSnippets4(retVal);
+            //retVal = SlideSnippets4(retVal);      // there is no need to do this, solidify lays them down perfectly
             retVal = SolidifySnippets2(retVal);
 
             if (should_draw)
@@ -820,6 +873,19 @@ namespace Game.Bepu.Testers
             DrawSnippetUsage_Snippets_Area(window, sizes, draw_y, snippets, areas);
             DrawSnippetUsage_Snippets_Bezier(window, sizes, draw_y, samples);
 
+            // This will show regular interval points, snippet boundries, how the snippets transform those regular points
+            //DrawSnippetUsage_Snippets_BezierSnippetLineup(window, sizes, draw_y, snippets);
+
+
+
+            //TOO MUCH
+            // This may need to be broken into a couple drawings.  Trying to figure out if the snippets really line up how I think they line up
+            // Draw the bezier at regular samples, bars, how those bars relate to the sample locations, sum of the area contained in each bar
+            //DrawSnippetUsage_Snippets_BezierBarHeat(window, sizes, draw_y, snippets, areas);
+
+
+
+
             draw_y += DRAW_Y_INC;
         }
         private static void DrawSnippetUsage_Snippets_Area(Debug3DWindow window, (double dot, double line) sizes, double draw_y, PathSnippet[] snippets, double[] areas)
@@ -905,5 +971,24 @@ namespace Game.Bepu.Testers
                 Select(o => new_center + o * scale).
                 ToArray();
         }
+
+        #endregion
+    }
+
+    public record PathSnippet2
+    {
+        public double Percent_Repulse_In { get; init; }
+        public double Percent_Attract_In { get; init; }
+
+        public double Percent_Repulse_Out { get; init; }
+        public double Percent_Attract_Out { get; init; }
+
+        // Need a way to define a smooth curve from repulse to attract.  Also need a way to give weight to repulse and attract
+
+        // I think the best way is to use a bezier
+        //  Normalize it so the endpoints are (0,0) to (1,1)
+        //  Control point for (0,0) sits somewhere along (X,0)
+        //  Control point for (1,1) sits somewhere along (X,1)
+
     }
 }
