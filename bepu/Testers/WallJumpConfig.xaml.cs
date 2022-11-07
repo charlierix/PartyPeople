@@ -392,6 +392,7 @@ namespace Game.Bepu.Testers
         #region Event Listeners - curve heatmap
 
         private Point3D[] _endpoints = null;
+        private BezierSegment3D_wpf[] _beziers = null;
 
         private void CurveHeatmap_Click(object sender, RoutedEventArgs e)
         {
@@ -401,10 +402,21 @@ namespace Game.Bepu.Testers
                     Select(o => Math3D.GetRandomVector_Spherical(4).ToPoint()).
                     ToArray();
 
-                //Heatmap(_endpoints);
-                Heatmap2(_endpoints);
-                //Heatmap3(_endpoints);
-                Heatmap4(_endpoints);
+                _beziers = BezierUtil.GetBezierSegments(_endpoints, 0.3, false);
+
+                if (chkExtraControls.IsChecked.Value)
+                {
+                    for (int i = 0; i < _beziers.Length; i++)
+                    {
+                        _beziers[i] = AddExtraControls(_beziers[i]);
+                    }
+                }
+
+                //Heatmap(_endpoints, _beziers);
+                Heatmap2(_endpoints, _beziers);
+                //Heatmap3(_endpoints, _beziers);
+                //Heatmap4(_endpoints, _beziers);
+                Heatmap5(_endpoints, _beziers);
             }
             catch (Exception ex)
             {
@@ -415,20 +427,19 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                //Heatmap(_endpoints);
-                Heatmap2(_endpoints);
-                //Heatmap3(_endpoints);
-                Heatmap4(_endpoints);
+                //Heatmap(_endpoints, _beziers);
+                Heatmap2(_endpoints, _beziers);
+                //Heatmap3(_endpoints, _beziers);
+                //Heatmap4(_endpoints, _beziers);
+                Heatmap5(_endpoints, _beziers);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        private void Heatmap2(Point3D[] endpoints)
+        private static void Heatmap2(Point3D[] endpoints, BezierSegment3D_wpf[] beziers)
         {
-            var beziers = BezierUtil.GetBezierSegments(endpoints, 0.3, false);
-
             Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
 
             BezierUtil.CurvatureSample[] heatmap = BezierUtil.GetCurvatureHeatmap(beziers);
@@ -480,10 +491,8 @@ namespace Game.Bepu.Testers
             //string report = GetHeatmapReport(heatmap, max_dist_from_negone);
             //Clipboard.SetText(report);
         }
-        private void Heatmap3(Point3D[] endpoints)
+        private static void Heatmap3(Point3D[] endpoints, BezierSegment3D_wpf[] beziers)
         {
-            var beziers = BezierUtil.GetBezierSegments(endpoints, 0.3, false);
-
             Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
 
             BezierUtil.CurvatureSample[] heatmap = BezierUtil.GetCurvatureHeatmap(beziers);
@@ -527,10 +536,8 @@ namespace Game.Bepu.Testers
 
             window.Show();
         }
-        private void Heatmap4(Point3D[] endpoints)
+        private static void Heatmap4(Point3D[] endpoints, BezierSegment3D_wpf[] beziers)
         {
-            var beziers = BezierUtil.GetBezierSegments(endpoints, 0.3, false);
-
             Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
 
             BezierUtil.CurvatureSample[] heatmap = BezierUtil.GetCurvatureHeatmap(beziers);
@@ -551,6 +558,34 @@ namespace Game.Bepu.Testers
 
             window.Show();
         }
+        private static void Heatmap5(Point3D[] endpoints, BezierSegment3D_wpf[] beziers)
+        {
+            Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
+
+            BezierUtil.CurvatureSample[] heatmap = BezierUtil.GetCurvatureHeatmap(beziers);
+            double max_dist_from_negone = heatmap.Max(o => o.Dist_From_NegOne);
+
+            TempBezierUtil.GetPinchedMapping3(heatmap, endpoints.Length, beziers);
+        }
+
+        private static BezierSegment3D_wpf AddExtraControls(BezierSegment3D_wpf bezier)
+        {
+            int count = StaticRandom.Next(1, 2);
+
+            Point3D center = Math3D.GetCenter(bezier.EndPoint0, bezier.EndPoint1);
+            double radius = (bezier.EndPoint1 - bezier.EndPoint0).Length * 1.5;
+
+            var control_points = bezier.ControlPoints.ToList();
+
+            for (int i = 0; i < count; i++)
+            {
+                Point3D point = center + Math3D.GetRandomVector_Spherical(radius);
+
+                control_points.Insert(control_points.Count - 1, point);
+            }
+
+            return new BezierSegment3D_wpf(bezier.EndPoint0, bezier.EndPoint1, control_points.ToArray());
+        }
 
         private static string GetHeatmapReport(BezierUtil.CurvatureSample[] heatmap, double max_dist_from_negone)
         {
@@ -568,6 +603,24 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+
+        private void StretchSegment_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Create a segment that has two enpoints, one is attractor, one is repulsor
+                // Use a bezier (0,0) to (1,1) with control points (X1,0) and (1-X2,1)
+
+                // Draw dots at a regular interval from 0 to 1
+                // Draw the same dots run through the stretch function
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
         #region Private Methods
 
