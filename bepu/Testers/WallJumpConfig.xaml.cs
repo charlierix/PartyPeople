@@ -2,9 +2,17 @@
 using BepuUtilities;
 using Game.Core;
 using Game.Math_WPF.Mathematics;
+using Game.Math_WPF.Mathematics.GeneticSharp;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
+using GeneticSharp.Domain.Chromosomes;
+using GeneticSharp.Domain.Crossovers;
+using GeneticSharp.Domain.Fitnesses;
+using GeneticSharp.Domain;
 using GeneticSharp.Domain.Mutations;
+using GeneticSharp.Domain.Populations;
+using GeneticSharp.Domain.Selections;
+using GeneticSharp.Domain.Terminations;
 using MathNet.Numerics.LinearAlgebra.Factorization;
 using System;
 using System.Collections.Generic;
@@ -604,22 +612,247 @@ namespace Game.Bepu.Testers
 
         #endregion
 
+        private void StretchSegment_Click_ORIG(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                //double x1 = StaticRandom.NextDouble(0, 1);
+                //double x2 = StaticRandom.NextDouble(0, 1);
+                double x1 = 0;
+                double x2 = 0;
+
+                // Create a segment that has two enpoints, one is attractor, one is repulsor
+                // Use a bezier (0,0) to (1,1) with control points (X1,0) and (1-X2,1)
+                Point3D[] controls = new[]
+                {
+                    new Point3D(x1, 0, 0),
+                    new Point3D(1 - x2, 1, 0),
+                };
+
+                DrawStretch(controls[0], controls[1]);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        // The call to GetPoint isn't returning linear when it should.  The zero length control arms are probably the problem
         private void StretchSegment_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 // Create a segment that has two enpoints, one is attractor, one is repulsor
                 // Use a bezier (0,0) to (1,1) with control points (X1,0) and (1-X2,1)
+                Point3D control1 = new Point3D(0.15, 0.15, 0);
+                Point3D control2 = new Point3D(0.85, 0.85, 0);
 
-                // Draw dots at a regular interval from 0 to 1
-                // Draw the same dots run through the stretch function
-
-
+                DrawStretch(control1, control2);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void FindZeroStretch_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Find a control point's X that returns a uniform distribution
+
+                double min = 0;
+                double max = 1;
+
+                double best_error = double.MaxValue;
+                double best_x = -1;
+
+                double count = 12;
+
+                for (int i = 0; i < count; i++)
+                {
+                    double percent = (double)i / (count - 1);
+
+                    double x = min + ((max - min) * percent);
+
+                    double error = EvaluateStretch(x, 0);
+
+                    if (error < best_error)
+                    {
+                        best_error = error;
+                        best_x = x;
+                    }
+
+                    DrawStretch(new Point3D(x, 0, 0), new Point3D(1 - x, 1, 0));
+                }
+
+                //DrawStretch(new Point3D(best_x, 0, 0), new Point3D(1 - best_x, 1, 0));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void FindZeroStretch2_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Find a control point's X that returns a uniform distribution
+
+                int bits = GeneticSharpUtil.GetChromosomeBits(1, 4);
+
+                //NOTE: The arrays are length 2 because x and y
+                var chromosome = new FloatingPointChromosome(
+                    new double[] { 0, 0 },
+                    new double[] { 1, 1 },
+                    new int[] { bits, bits },       // The total bits used to represent each number
+                    new int[] { 4, 4 });      // The number of fraction (scale or decimal) part of the number. In our case we will not use any.  TODO: See if this means that only integers are considered
+
+                var population = new Population(72, 144, chromosome);
+
+                var fitness = new FuncFitness(c =>
+                {
+                    var fc = c as FloatingPointChromosome;
+
+                    double[] values = fc.ToFloatingPoints();
+                    double x = values[0];
+                    double y = values[1];
+
+                    double error = EvaluateStretch(x, y);
+
+                    return 1 - error;       // needs to be ascending score.  so zero error gives best score
+                });
+
+                var selection = new EliteSelection();       // the larger the score, the better
+
+                var crossover = new UniformCrossover(0.5f);     // .5 will pull half from each parent
+
+                var mutation = new FlipBitMutation();       // FloatingPointChromosome inherits from BinaryChromosomeBase, which is a series of bits.  This mutator will flip random bits
+
+                var termination = new FitnessStagnationTermination(144);        // keeps going until it generates the same winner this many generations in a row
+
+                var ga = new GeneticAlgorithm(population, fitness, selection, crossover, mutation)
+                {
+                    Termination = termination,
+                };
+
+                StringBuilder log = new StringBuilder();
+
+                double latestFitness = 0;
+                var winners = new List<double[]>();
+
+                ga.GenerationRan += (s1, e1) =>
+                {
+                    var bestChromosome = ga.BestChromosome as FloatingPointChromosome;
+                    double bestFitness = bestChromosome.Fitness.Value;
+
+                    if (bestFitness != latestFitness)
+                    {
+                        latestFitness = bestFitness;
+                        double[] phenotype = bestChromosome.ToFloatingPoints();
+
+                        log.AppendLine(string.Format(
+                            "Generation {0,2}: ({1}, {2}) = {3}",
+                            ga.GenerationsNumber,
+                            phenotype[0],
+                            phenotype[1],
+                            Math.Round(bestFitness, 2)));
+
+                        winners.Add(phenotype);
+                    }
+                };
+
+                ga.TerminationReached += (s2, e2) =>
+                {
+                    DrawStretch(new Point3D(winners[0][0], winners[0][1], 0), new Point3D(1 - winners[0][0], 1 - winners[0][1], 0), log.ToString());
+                };
+
+                ga.Start();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private static double EvaluateStretch(double x, double y)
+        {
+            Point3D[] controls = new[]
+            {
+                new Point3D(x, y, 0),
+                new Point3D(1 - x, 1 - y, 0),
+            };
+
+            var bezier = new BezierSegment3D_wpf(new Point3D(0, 0, 0), new Point3D(1, 1, 0), controls);
+
+            double max_dist = 0;
+
+            double count = 12;
+
+            for (int i = 0; i < count; i++)
+            {
+                double percent = i / (count - 1);
+                double percent_stretched = BezierUtil.GetPoint(percent, bezier.Combined).Y;
+
+                max_dist = Math.Max(Math.Abs(percent - percent_stretched), max_dist);
+            }
+
+            return max_dist;
+        }
+
+        private static void DrawStretch(Point3D control1, Point3D control2, string log = null)
+        {
+            Point3D[] controls = new[]
+            {
+                control1,
+                control2,
+            };
+
+            var bezier = new BezierSegment3D_wpf(new Point3D(0, 0, 0), new Point3D(1, 1, 0), controls);
+
+            // Draw dots at a regular interval from 0 to 1
+            // Draw the same dots run through the stretch function
+
+            var window = new Debug3DWindow();
+            var sizes = Debug3DWindow.GetDrawSizes(1);
+
+            window.AddText(control1.ToStringSignificantDigits(3));
+            window.AddText(control2.ToStringSignificantDigits(3));
+
+            if (!string.IsNullOrWhiteSpace(log))
+                window.AddText(log);
+
+            Point3D[] points = BezierUtil.GetPoints(12, bezier);
+
+            window.AddLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), sizes.line, Colors.Black);
+            window.AddLine(new Point3D(0, 1, 0), new Point3D(1, 1, 0), sizes.line, Colors.Black);
+            window.AddLine(new Point3D(0, -0.5, 0), new Point3D(0, 1, 0), sizes.line, Colors.Black);
+            window.AddLine(new Point3D(1, -0.5, 0), new Point3D(1, 1, 0), sizes.line, Colors.Black);
+
+
+            Vector3D offset = new Vector3D(1.1, 0, 0);
+            window.AddLine(new Point3D(0, 0, 0) + offset, controls[0] + offset, sizes.line, Colors.IndianRed);
+            window.AddLine(new Point3D(1, 1, 0) + offset, controls[1] + offset, sizes.line, Colors.IndianRed);
+            window.AddDots(points, sizes.dot, Colors.White);
+
+            double count = 12;
+
+            for (int i = 0; i < count; i++)
+            {
+                double percent = i / (count - 1);
+
+                Point3D point = BezierUtil.GetPoint(percent, bezier.Combined);
+                Vector3D vector = point.ToVector();
+                double percent_stretched = point.Y;
+
+                Point3D point_orig = new Point3D(percent, -0.35, 0);
+                Point3D point_stretched = new Point3D(percent_stretched, -0.25, 0);
+
+                window.AddDot(point_orig, sizes.dot, Colors.Gray);
+                window.AddDot(point_stretched, sizes.dot, Colors.White);
+                window.AddLine(point_orig, point_stretched, sizes.line, Colors.Gray);
+            }
+
+            window.Show();
         }
 
         #region Private Methods

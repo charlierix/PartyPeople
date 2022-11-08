@@ -128,8 +128,10 @@ namespace Game.Bepu.Testers
             var stretch_segments = FindExtremes(heatmap);
 
             // Turn each pair into a snippet: max-min, min-max, max-min, min-max...
+            // Only need to go from max to max.  The min points in the middle will naturally be passed over quickly
 
-            // Figure out how to stretch each segment
+
+            // The end caps can have a stretch segment that mirrors the pinch, so that the endpoint is at the fast part
 
 
 
