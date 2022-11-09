@@ -773,6 +773,111 @@ namespace Game.Bepu.Testers
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private void FindZeroStretch3_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Point3D[] examples = Enumerable.Range(0, 144).
+                    Select(o => GetZeroStretchExample()).
+                    ToArray();
+
+                var window = new Debug3DWindow();
+                var sizes = Debug3DWindow.GetDrawSizes(1);
+
+                window.AddLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), sizes.line, Colors.Black);
+                window.AddLine(new Point3D(0, 1, 0), new Point3D(1, 1, 0), sizes.line, Colors.Black);
+                window.AddLine(new Point3D(0, 0, 0), new Point3D(0, 1, 0), sizes.line, Colors.Black);
+                window.AddLine(new Point3D(1, 0, 0), new Point3D(1, 1, 0), sizes.line, Colors.Black);
+
+
+                window.AddDots(examples, sizes.dot, Colors.White);
+
+                window.AddText($"avg y: {examples.Select(o => o.Y).Average()}");
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private static Point3D GetZeroStretchExample()
+        {
+            // Find a control point's X that returns a uniform distribution
+
+            int bits = GeneticSharpUtil.GetChromosomeBits(1, 4);
+
+            //NOTE: The arrays are length 2 because x and y
+            var chromosome = new FloatingPointChromosome(
+                new double[] { 0, 0 },
+                new double[] { 1, 1 },
+                new int[] { bits, bits },       // The total bits used to represent each number
+                new int[] { 4, 4 });      // The number of fraction (scale or decimal) part of the number. In our case we will not use any.  TODO: See if this means that only integers are considered
+
+            var population = new Population(72, 144, chromosome);
+
+            var fitness = new FuncFitness(c =>
+            {
+                var fc = c as FloatingPointChromosome;
+
+                double[] values = fc.ToFloatingPoints();
+                double x = values[0];
+                double y = values[1];
+
+                double error = EvaluateStretch(x, y);
+
+                return 1 - error;       // needs to be ascending score.  so zero error gives best score
+            });
+
+            var selection = new EliteSelection();       // the larger the score, the better
+
+            var crossover = new UniformCrossover(0.5f);     // .5 will pull half from each parent
+
+            var mutation = new FlipBitMutation();       // FloatingPointChromosome inherits from BinaryChromosomeBase, which is a series of bits.  This mutator will flip random bits
+
+            var termination = new FitnessStagnationTermination(144);        // keeps going until it generates the same winner this many generations in a row
+
+            var ga = new GeneticAlgorithm(population, fitness, selection, crossover, mutation)
+            {
+                Termination = termination,
+            };
+
+            StringBuilder log = new StringBuilder();
+
+            double latestFitness = 0;
+            var winners = new List<double[]>();
+
+            ga.GenerationRan += (s1, e1) =>
+            {
+                var bestChromosome = ga.BestChromosome as FloatingPointChromosome;
+                double bestFitness = bestChromosome.Fitness.Value;
+
+                if (bestFitness != latestFitness)
+                {
+                    latestFitness = bestFitness;
+                    double[] phenotype = bestChromosome.ToFloatingPoints();
+
+                    log.AppendLine(string.Format(
+                        "Generation {0,2}: ({1}, {2}) = {3}",
+                        ga.GenerationsNumber,
+                        phenotype[0],
+                        phenotype[1],
+                        Math.Round(bestFitness, 2)));
+
+                    winners.Add(phenotype);
+                }
+            };
+
+            ga.TerminationReached += (s2, e2) =>
+            {
+                //DrawStretch(new Point3D(winners[0][0], winners[0][1], 0), new Point3D(1 - winners[0][0], 1 - winners[0][1], 0), log.ToString());
+            };
+
+            ga.Start();
+
+            return new Point3D(winners[0][0], winners[0][1], 0);
+        }
 
         private static double EvaluateStretch(double x, double y)
         {
@@ -853,6 +958,18 @@ namespace Game.Bepu.Testers
             }
 
             window.Show();
+        }
+
+        private void BezierAnalysis_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                new BezierAnalysis().Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         #region Private Methods

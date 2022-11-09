@@ -152,6 +152,14 @@ namespace Game.Math_WPF.WPF.Controls3D
 
         #region Public Methods
 
+        public void Clear()
+        {
+            Visuals3D.Clear();
+            Messages_Top.Clear();
+            Messages_Bottom.Clear();
+            panelSnapshots.Children.Clear();
+        }
+
         public void AddAxisLines(double length, double thickness)
         {
             Visuals3D.AddRange(
@@ -489,12 +497,12 @@ namespace Game.Math_WPF.WPF.Controls3D
         /// Angles are in degrees.  Zero angle is 1,0 (90 degrees is 0,1)
         /// direction_x and y are the directions (out from center) in world space
         /// </summary>
-        public void AddArc(Point3D center, Vector3D direction_x, Vector3D direction_y, double radius, double fromAngle, double toAngle, double thickness, Color color, bool isShiny = true)
+        public void AddArc(Point3D center, Vector3D direction_x, Vector3D direction_y, double radius, double fromAngle, double toAngle, double thickness, Color color, bool isShiny = true, int num_segments = 30)
         {
             Visuals3D.Add(
-                GetArc(center, direction_x, direction_y, radius, fromAngle, toAngle, thickness, color, isShiny));
+                GetArc(center, direction_x, direction_y, radius, fromAngle, toAngle, thickness, color, isShiny, num_segments));
         }
-        public static Visual3D GetArc(Point3D center, Vector3D direction_x, Vector3D direction_y, double radius, double fromAngle, double toAngle, double thickness, Color color, bool isShiny = true)
+        public static Visual3D GetArc(Point3D center, Vector3D direction_x, Vector3D direction_y, double radius, double fromAngle, double toAngle, double thickness, Color color, bool isShiny = true, int num_segments = 30)
         {
             Material material = GetMaterial(isShiny, color);
 
@@ -502,7 +510,7 @@ namespace Game.Math_WPF.WPF.Controls3D
             geometry.Material = material;
             geometry.BackMaterial = material;
 
-            geometry.Geometry = UtilityWPF.GetTorusArc(30, 7, thickness / 2, radius, fromAngle, toAngle);
+            geometry.Geometry = UtilityWPF.GetTorusArc(num_segments, 7, thickness / 2, radius, fromAngle, toAngle);
 
             Transform3DGroup transform = new Transform3DGroup();
 

@@ -41,6 +41,8 @@
             <Button Content="stretch segment" Margin="0,8,0,0" Click="StretchSegment_Click"/>
             <Button Content="find zero stretch" Click="FindZeroStretch_Click"/>
             <Button Content="find zero stretch 2" Click="FindZeroStretch2_Click"/>
+            <Button Content="find zero stretch 3" Click="FindZeroStretch3_Click"/>
+            <Button Content="bezier analysis" Click="BezierAnalysis_Click"/>
         </StackPanel>
 
         <!-- Horizontal -->
