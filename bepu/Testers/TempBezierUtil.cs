@@ -977,40 +977,52 @@ namespace Game.Bepu.Testers
 
         #endregion
 
-        private static StretchSegment[] FindExtremes(BezierUtil.CurvatureSample[] heatmap)
+        private record HeatDiff
         {
-            double[] weights = heatmap.
-                Select(o => o.Weight).
-                ToArray();
+            public int Index1 { get; init; }
+            public int Index2 { get; init; }
+            public double Diff { get; init; }
+            public int Compare { get; init; }
+        }
 
+        private static StretchSegment2[] FindExtremes(BezierUtil.CurvatureSample[] heatmap)
+        {
+            //double[] weights = heatmap.
+            //    Select(o => o.Weight).
+            //    ToArray();
+
+            // Weights are marching from a low point (straight line) to a high point (max pinch)
+            //
+            // Since that march is in a single direction, taking the diff between two points tells what side of a rise/fall
+            // curve the line segment is on
             var diffs = Enumerable.Range(0, heatmap.Length - 1).
                 Select(o =>
                 {
                     double diff = heatmap[o + 1].Weight - heatmap[o].Weight;
 
-                    return
-                    (
-                        index1: o,
-                        index2: o + 1,
-                        diff: diff,
-                        compare: diff > 0 ? 1 :
-                            diff < 0 ? -1 :
-                            0
-                    );
+                    return new HeatDiff()
+                    {
+                        Index1 = o,
+                        Index2 = o + 1,
+                        Diff = diff,
+                        Compare = diff > 0 ? 1 :
+                                diff < 0 ? -1 :
+                                0
+                    };
                 }).
                 ToArray();
 
-            var diffs_distinct = new List<(int index1, int index2, double diff, int compare)>();
+            var diffs_distinct = new List<HeatDiff>();
             diffs_distinct.Add(diffs[0]);
 
             for (int i = 1; i < diffs.Length; i++)
             {
-                if (diffs[i].compare != diffs_distinct[^1].compare)
+                if (diffs[i].Compare != diffs_distinct[^1].Compare)
                     diffs_distinct.Add(diffs[i]);
             }
 
-            if (diffs_distinct[^1].index2 != diffs[^1].index2)      // always want the last point
-                diffs_distinct.Add((diffs[^1].index1, diffs[^1].index2, diffs[^1].diff, -diffs[^1].compare));
+            if (diffs_distinct[^1].Index2 != diffs[^1].Index2)      // always want the last point
+                diffs_distinct.Add(diffs[^1] with { Compare = -diffs[^1].Compare });
 
 
 
@@ -1019,49 +1031,38 @@ namespace Game.Bepu.Testers
 
             var window = new Debug3DWindow();
 
-            DrawStretch_Heatmap(window, sizes, heatmap);
-            DrawStretch_Diffs(window, sizes, diffs_distinct, heatmap);
+            DrawStretch_Heatmap(window, sizes, diffs.ToArray(), heatmap);
+            DrawStretch_Diffs(window, sizes, diffs_distinct.ToArray(), heatmap);
             DrawStretch_BezierBoundries(window, sizes, heatmap);        // draw a black circle around the first and last point of each bezier segment
-
-
 
             window.Show();
 
 
-
-
-
-            // record all the points where compare changes (for this pass, keep the zeros)
-
-
-            // throw out zeros if left and right are the same (-1 0 -1) or (1 0 1)
-
-
-            // if any zeros remain, pick a point in the middle of them
-
-
-
-            var retVal = new List<StretchSegment>();
+            var retVal = new List<StretchSegment2>();
 
             // ???
 
             return retVal.ToArray();
         }
-        private static void DrawStretch_Heatmap(Debug3DWindow window, (double dot, double line) sizes, BezierUtil.CurvatureSample[] heatmap)
+        private static void DrawStretch_Heatmap(Debug3DWindow window, (double dot, double line) sizes, HeatDiff[] diffs, BezierUtil.CurvatureSample[] heatmap)
         {
             foreach (var heat in heatmap)
             {
                 window.AddDot(heat.Point, sizes.dot, UtilityWPF.AlphaBlend(Colors.DarkSeaGreen, Colors.DarkRed, heat.Weight));
             }
 
-            var lines = new List<(Point3D, Point3D)>();
-            //lines.Add((beziers[0].EndPoint0, heatmap[0].Point));
-            lines.AddRange(Enumerable.Range(0, heatmap.Length - 1).Select(o => (heatmap[o].Point, heatmap[o + 1].Point)));
-            //lines.Add((heatmap[^1].Point, beziers[^1].EndPoint1));
+            //var lines = new List<(Point3D, Point3D)>();
+            //lines.AddRange(Enumerable.Range(0, heatmap.Length - 1).Select(o => (heatmap[o].Point, heatmap[o + 1].Point)));
+            //window.AddLines(lines, sizes.line * 0.75, Colors.White);
 
-            window.AddLines(lines, sizes.line * 0.75, Colors.White);
+            foreach (HeatDiff diff in diffs)
+            {
+                Color color = diff.Compare == 1 ? Colors.RosyBrown :
+                    diff.Compare == -1 ? Colors.DarkSeaGreen :
+                    Colors.WhiteSmoke;
 
-
+                window.AddLine(heatmap[diff.Index1].Point, heatmap[diff.Index2].Point, sizes.line * 0.75, color);
+            }
 
             Vector3D dir = (heatmap[0].Point - heatmap[1].Point).ToUnit();
             window.AddText3D("start", heatmap[0].Point + dir * sizes.dot * 3, dir, sizes.dot * 3, Colors.Black, false);
@@ -1069,7 +1070,7 @@ namespace Game.Bepu.Testers
             dir = (heatmap[^1].Point - heatmap[^2].Point).ToUnit();
             window.AddText3D("stop", heatmap[^1].Point + dir * sizes.dot * 3, dir, sizes.dot * 3, Colors.Black, false);
         }
-        private static void DrawStretch_Diffs(Debug3DWindow window, (double dot, double line) sizes, List<(int index1, int index2, double diff, int compare)> diffs_distinct, BezierUtil.CurvatureSample[] heatmap)
+        private static void DrawStretch_Diffs(Debug3DWindow window, (double dot, double line) sizes, HeatDiff[] diffs_distinct, BezierUtil.CurvatureSample[] heatmap)
         {
             var drawSlice = new Action<Point3D, Vector3D, int>((pos, dir, compare) =>
             {
@@ -1080,14 +1081,13 @@ namespace Game.Bepu.Testers
                 window.AddCircle(pos, sizes.dot * 6, sizes.line, color, new Triangle_wpf(dir, pos));
             });
 
-            drawSlice(heatmap[diffs_distinct[0].index1].Point, heatmap[diffs_distinct[0].index2].Point - heatmap[diffs_distinct[0].index1].Point, diffs_distinct[0].compare);
-            drawSlice(heatmap[diffs_distinct[^1].index2].Point, heatmap[diffs_distinct[^1].index2].Point - heatmap[diffs_distinct[^1].index1].Point, diffs_distinct[^1].compare);      // draw at index2 for the very last point (instead of index1 for all the other points)
+            drawSlice(heatmap[diffs_distinct[0].Index1].Point, heatmap[diffs_distinct[0].Index2].Point - heatmap[diffs_distinct[0].Index1].Point, diffs_distinct[0].Compare);
+            drawSlice(heatmap[diffs_distinct[^1].Index2].Point, heatmap[diffs_distinct[^1].Index2].Point - heatmap[diffs_distinct[^1].Index1].Point, diffs_distinct[^1].Compare);      // draw at index2 for the very last point (instead of index1 for all the other points)
 
-            for (int i = 1; i < diffs_distinct.Count - 1; i++)
+            for (int i = 1; i < diffs_distinct.Length - 1; i++)
             {
-                Vector3D dir = GetDirection(heatmap[diffs_distinct[i].index2].Point, heatmap[diffs_distinct[i].index1].Point, heatmap[diffs_distinct[i].index1 - 1].Point);
-                //drawSlice(heatmap[diffs_distinct[i].index1].Point, heatmap[diffs_distinct[i].index2].Point - heatmap[diffs_distinct[i].index1 - 1].Point, diffs_distinct[i].compare);
-                drawSlice(heatmap[diffs_distinct[i].index1].Point, dir, diffs_distinct[i].compare);
+                Vector3D dir = GetDirection(heatmap[diffs_distinct[i].Index2].Point, heatmap[diffs_distinct[i].Index1].Point, heatmap[diffs_distinct[i].Index1 - 1].Point);
+                drawSlice(heatmap[diffs_distinct[i].Index1].Point, dir, diffs_distinct[i].Compare);
             }
         }
         private static void DrawStretch_BezierBoundries(Debug3DWindow window, (double dot, double line) sizes, BezierUtil.CurvatureSample[] heatmap)
@@ -1111,7 +1111,6 @@ namespace Game.Bepu.Testers
 
                 Vector3D dir = GetDirection(heatmap[i + 1].Point, heatmap[i].Point, heatmap[i - 1].Point);
 
-                //drawSlice(heatmap[i].Point, heatmap[i + 1].Point - heatmap[i - 1].Point);
                 drawSlice(heatmap[i].Point, dir);
             }
         }
@@ -1129,22 +1128,7 @@ namespace Game.Bepu.Testers
         }
     }
 
-    //public record PathSnippet2
-    //{
-    //    public double Percent_Repulse_In { get; init; }
-    //    public double Percent_Attract_In { get; init; }
-
-    //    public double Percent_Repulse_Out { get; init; }
-    //    public double Percent_Attract_Out { get; init; }
-
-    //    // Need a way to define a smooth curve from repulse to attract.  Also need a way to give weight to repulse and attract
-
-    //    // I think the best way is to use a bezier
-    //    //  Normalize it so the endpoints are (0,0) to (1,1)
-    //    //  Control point for (0,0) sits somewhere along (X,0)
-    //    //  Control point for (1,1) sits somewhere along (X,1)
-
-    //}
+    #region record: StretchSegment
 
     public record StretchSegment
     {
@@ -1162,4 +1146,29 @@ namespace Game.Bepu.Testers
 
         // something to do with a bezier
     }
+
+    #endregion
+    #region record: StretchSegment2
+
+    public record StretchSegment2
+    {
+        public double From { get; init; }
+        public double To { get; init; }
+
+        /// <summary>
+        /// Get a point from this bezier with local percent as input, use Y for what that percent should turn into
+        /// </summary>
+        public BezierSegment3D_wpf Transform { get; init; }
+
+        public double TransformPercent(double global_percent)
+        {
+            double local_percent = UtilityMath.GetScaledValue(0, 1, From, To, global_percent);
+
+            double local_transformed = BezierUtil.GetPoint(local_percent, Transform).Y;
+
+            return UtilityMath.GetScaledValue(From, To, 0, 1, local_transformed);
+        }
+    }
+
+    #endregion
 }

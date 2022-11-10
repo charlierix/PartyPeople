@@ -2,6 +2,7 @@
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
+using GameItems;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +14,7 @@ using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using System.Windows.Shapes;
@@ -57,17 +59,20 @@ namespace Game.Bepu.Testers
 
         private TrackBallRoam _trackball = null;
 
+        private readonly DropShadowEffect _errorEffect;
+
         private (double dot, double line) _sizes;
 
         private List<Visual3D> _temp_visuals = new List<Visual3D>();
-        private ControlDot _control_left = null;
-        private ControlDot _control_right = null;
+        private ControlDot[] _controls = null;
 
         private ControlDot _dragging_dot = null;
         private Vector3D _dragging_offset = new Vector3D();
 
         private Debug3DWindow _window_offset1D = null;
         private Debug3DWindow _window_curve = null;
+
+        private bool _initialized = false;
 
         #endregion
 
@@ -76,6 +81,15 @@ namespace Game.Bepu.Testers
         public BezierAnalysis()
         {
             InitializeComponent();
+
+            _errorEffect = new DropShadowEffect()
+            {
+                Color = UtilityWPF.ColorFromHex("C02020"),
+                Direction = 0,
+                ShadowDepth = 0,
+                BlurRadius = 8,
+                Opacity = .8,
+            };
 
             _sizes = Debug3DWindow.GetDrawSizes(1);
 
@@ -92,6 +106,8 @@ namespace Game.Bepu.Testers
             };
             _window_curve.SetCamera(new Point3D(0.5, 0.5, 1.45), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
             _window_curve.Show();
+
+            _initialized = true;
         }
 
         #endregion
@@ -112,7 +128,7 @@ namespace Game.Bepu.Testers
                 //_trackball.InertiaPercentRetainPerSecond_Linear = _trackball_InertiaPercentRetainPerSecond_Linear;
                 //_trackball.InertiaPercentRetainPerSecond_Angular = _trackball_InertiaPercentRetainPerSecond_Angular;
 
-                DrawInitialScene();
+                RefreshControls(2);
                 RefreshBezier();
             }
             catch (Exception ex)
@@ -121,11 +137,37 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void txtNumControls_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            try
+            {
+                if (!_initialized)
+                    return;
+
+                if (int.TryParse(txtNumControls.Text, out int num_controls))
+                {
+                    txtNumControls.Effect = null;
+                    RefreshControls(num_controls);
+                    RefreshBezier();
+                }
+                else
+                {
+                    txtNumControls.Effect = _errorEffect;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
         private void grdViewPort_MouseDown(object sender, MouseButtonEventArgs e)
         {
             try
             {
+                if (!_initialized)
+                    return;
+
                 if (e.ChangedButton != MouseButton.Left || e.ButtonState != MouseButtonState.Pressed)
                     return;
 
@@ -134,21 +176,16 @@ namespace Game.Bepu.Testers
 
                 Point3D? click_point = Math3D.GetIntersection_Plane_Ray(new Triangle_wpf(new Vector3D(0, 0, 1), new Point3D()), ray.Origin, ray.Direction);
 
-                double dist1 = (click_point.Value - _control_left.Center).Length;
-                double dist2 = (click_point.Value - _control_right.Center).Length;
-
-                _dragging_dot = null;
-
-                if (dist1 < dist2)
-                {
-                    if (dist1 <= _control_left.DetectRadius)
-                        _dragging_dot = _control_left;
-                }
-                else
-                {
-                    if (dist2 <= _control_right.DetectRadius)
-                        _dragging_dot = _control_right;
-                }
+                _dragging_dot = _controls.
+                    Select(o => new
+                    {
+                        control = o,
+                        dist_sqr = (click_point.Value - o.Center).LengthSquared,
+                    }).
+                    Where(o => o.dist_sqr <= o.control.DetectRadius * o.control.DetectRadius).
+                    OrderBy(o => o.dist_sqr).
+                    Select(o => o.control).
+                    FirstOrDefault();
 
                 if (_dragging_dot != null)
                     _dragging_offset = click_point.Value - _dragging_dot.Center;
@@ -162,6 +199,9 @@ namespace Game.Bepu.Testers
         {
             try
             {
+                if (!_initialized)
+                    return;
+
                 if (e.ChangedButton == MouseButton.Left && e.ButtonState == MouseButtonState.Released)
                     _dragging_dot = null;
             }
@@ -174,6 +214,9 @@ namespace Game.Bepu.Testers
         {
             try
             {
+                if (!_initialized)
+                    return;
+
                 if (_dragging_dot == null)
                     return;
 
@@ -195,39 +238,21 @@ namespace Game.Bepu.Testers
 
         #region Private Methods
 
-        private void DrawInitialScene()
+        private void RefreshControls(int count)
         {
-            const double ONE_THIRD = 1d / 3d;
+            if (_controls != null)
+                _viewport.Children.RemoveAll(_controls.Select(o => o.Visual));
 
-            Color color_left = UtilityWPF.ColorFromHex("BAA");
-            Color color_right = UtilityWPF.ColorFromHex("9A9");
+            var controls = new List<ControlDot>();
 
-            _viewport.Children.Add(Debug3DWindow.GetLine(new Point3D(0.5, 0, 0), new Point3D(0.5, 1, 0), _sizes.line / 2, Colors.Gray));
-            _viewport.Children.Add(Debug3DWindow.GetLine(new Point3D(0, 0.5, 0), new Point3D(1, 0.5, 0), _sizes.line / 2, Colors.Gray));
+            for (int i = 0; i < count; i++)
+            {
+                double pos = (double)(i + 1) / (count + 1);
 
-            // Left
-            _viewport.Children.Add(Debug3DWindow.GetArc(new Point3D(0, 0, 0), new Vector3D(1, 0, 0), new Vector3D(0, 1, 0), ONE_THIRD, 0, 90, _sizes.line / 2, color_left, num_segments: 72));
-            _viewport.Children.Add(Debug3DWindow.GetArc(new Point3D(0, 0, 0), new Vector3D(1, 0, 0), new Vector3D(0, 1, 0), ONE_THIRD * 2, 0, 90, _sizes.line / 2, color_left, num_segments: 104));
-            _viewport.Children.Add(Debug3DWindow.GetArc(new Point3D(0, 0, 0), new Vector3D(1, 0, 0), new Vector3D(0, 1, 0), 1, 0, 90, _sizes.line / 2, color_left, num_segments: 144));
+                controls.Add(GetControlDot(new Point3D(pos, pos, 0)));
+            }
 
-            _viewport.Children.Add(Debug3DWindow.GetLine(new Point3D(0, ONE_THIRD, 0), new Point3D(1, ONE_THIRD, 0), _sizes.line / 2, color_left));
-
-            // Right
-            _viewport.Children.Add(Debug3DWindow.GetArc(new Point3D(1, 1, 0), new Vector3D(1, 0, 0), new Vector3D(0, 1, 0), ONE_THIRD, 180, 270, _sizes.line / 2, color_right, num_segments: 72));
-            _viewport.Children.Add(Debug3DWindow.GetArc(new Point3D(1, 1, 0), new Vector3D(1, 0, 0), new Vector3D(0, 1, 0), ONE_THIRD * 2, 180, 270, _sizes.line / 2, color_right, num_segments: 104));
-            _viewport.Children.Add(Debug3DWindow.GetArc(new Point3D(1, 1, 0), new Vector3D(1, 0, 0), new Vector3D(0, 1, 0), 1, 180, 270, _sizes.line / 2, color_right, num_segments: 144));
-
-            _viewport.Children.Add(Debug3DWindow.GetLine(new Point3D(0, 1 - ONE_THIRD, 0), new Point3D(1, 1 - ONE_THIRD, 0), _sizes.line / 2, color_right));
-
-            // Outer
-            _viewport.Children.Add(Debug3DWindow.GetLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), _sizes.line, Colors.Black));
-            _viewport.Children.Add(Debug3DWindow.GetLine(new Point3D(0, 1, 0), new Point3D(1, 1, 0), _sizes.line, Colors.Black));
-            _viewport.Children.Add(Debug3DWindow.GetLine(new Point3D(0, 0, 0), new Point3D(0, 1, 0), _sizes.line, Colors.Black));
-            _viewport.Children.Add(Debug3DWindow.GetLine(new Point3D(1, 0, 0), new Point3D(1, 1, 0), _sizes.line, Colors.Black));
-
-            // control dots
-            _control_left = GetControlDot(new Point3D(0.5, ONE_THIRD, 0));
-            _control_right = GetControlDot(new Point3D(1 - 0.5, 1 - ONE_THIRD, 0));
+            _controls = controls.ToArray();
         }
 
         private void RefreshBezier()
@@ -237,11 +262,10 @@ namespace Game.Bepu.Testers
             _window_offset1D.Clear();
             _window_curve.Clear();
 
-            Point3D[] controls = new[]
-            {
-                _control_left.Center,
-                _control_right.Center,
-            };
+
+            Point3D[] controls = _controls.
+                Select(o => o.Center).
+                ToArray();
 
             var bezier = new BezierSegment3D_wpf(new Point3D(0, 0, 0), new Point3D(1, 1, 0), controls);
 
@@ -251,16 +275,49 @@ namespace Game.Bepu.Testers
         }
         private void RefreshBezier_MainWindow(Point3D[] controls, BezierSegment3D_wpf bezier)
         {
-            messages.Children.Add(new TextBlock() { Text = controls[0].ToStringSignificantDigits(3) });
-            messages.Children.Add(new TextBlock() { Text = controls[1].ToStringSignificantDigits(3) });
+            // Control Positions
+            foreach (Point3D control in controls)
+            {
+                messages.Children.Add(new TextBlock() { Text = control.ToStringSignificantDigits(3) });
+            }
 
+            // Control Lines
+            var control_points = new List<Point3D>();
+
+            control_points.Add(new Point3D(0, 0, 0));
+            control_points.AddRange(controls);
+            control_points.Add(new Point3D(1, 1, 0));
+
+            _temp_visuals.Add(Debug3DWindow.GetLines(control_points, _sizes.line, Colors.IndianRed));
+            _viewport.Children.Add(_temp_visuals[^1]);
+
+            // Control Vertical Lines
+            for (int i = 0; i < controls.Length; i++)
+            {
+                double pos = (double)(i + 1) / (controls.Length + 1);
+
+                _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(pos, 0, 0), new Point3D(pos, 1, 0), _sizes.line, UtilityWPF.ColorFromHex("BAA")));
+                _viewport.Children.Add(_temp_visuals[^1]);
+
+                _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(0, pos, 0), new Point3D(1, pos, 0), _sizes.line, Colors.Gray));
+                _viewport.Children.Add(_temp_visuals[^1]);
+            }
+
+            // Outer
+            _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), _sizes.line, Colors.Black));
+            _viewport.Children.Add(_temp_visuals[^1]);
+
+            _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(0, 1, 0), new Point3D(1, 1, 0), _sizes.line, Colors.Black));
+            _viewport.Children.Add(_temp_visuals[^1]);
+
+            _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(0, 0, 0), new Point3D(0, 1, 0), _sizes.line, Colors.Black));
+            _viewport.Children.Add(_temp_visuals[^1]);
+
+            _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(1, 0, 0), new Point3D(1, 1, 0), _sizes.line, Colors.Black));
+            _viewport.Children.Add(_temp_visuals[^1]);
+
+            // Bezier
             Point3D[] points = BezierUtil.GetPoints(144, bezier);
-
-            _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(0, 0, 0), controls[0], _sizes.line, Colors.IndianRed));
-            _viewport.Children.Add(_temp_visuals[^1]);
-
-            _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(1, 1, 0), controls[1], _sizes.line, Colors.IndianRed));
-            _viewport.Children.Add(_temp_visuals[^1]);
 
             _temp_visuals.Add(Debug3DWindow.GetDots(points, _sizes.dot, Colors.White));
             _viewport.Children.Add(_temp_visuals[^1]);

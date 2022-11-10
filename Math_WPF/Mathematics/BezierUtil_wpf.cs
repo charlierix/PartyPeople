@@ -68,6 +68,18 @@ namespace Game.Math_WPF.Mathematics
             public double Dot { get; init; }
             public double Dist_From_NegOne { get; init; }
 
+            /// <summary>
+            /// inverted normalized distance from -1
+            /// </summary>
+            /// <remarks>
+            /// dot of -1 means the angle is 180, so the left and right segment are colinear
+            /// dot of 1 means the angle is 0, so the left and right segments are laying on top of each other (the most pinch possible)
+            /// 
+            /// that dot is inverted to make it easier to think about, so 0 is colinear and 1 is pinched
+            /// 
+            /// it is also normalized, so 1 is the hardest pinch of the curve.  This makes it easy to find the extremes of the current
+            /// curve, but wouldn't be very useful for creating accurate stretch
+            /// </remarks>
             public double Weight { get; init; }
         }
 

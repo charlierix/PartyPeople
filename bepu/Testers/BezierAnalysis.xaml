@@ -22,6 +22,10 @@
             </ModelVisual3D>
         </Viewport3D>
 
+        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6">
+            <TextBox x:Name="txtNumControls" Text="2" MinWidth="30" ToolTip="number of control points" TextChanged="txtNumControls_TextChanged"/>
+        </StackPanel>
+        
         <StackPanel x:Name="messages" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="6"/>
     </Grid>
 </Window>
