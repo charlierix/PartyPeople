@@ -127,6 +127,8 @@ namespace Game.Math_WPF.Mathematics
         {
             return GetPoints(count, UtilityCore.Iterate<Point3D>(segment.EndPoint0, segment.ControlPoints, segment.EndPoint1).ToArray());
         }
+
+
         /// <summary>
         /// Returns points across several segment definitions.  count is the total number of sample points to return
         /// </summary>
@@ -221,6 +223,31 @@ namespace Game.Math_WPF.Mathematics
             }
 
             throw new ApplicationException($"Couldn't find percent: {percent}");
+        }
+
+
+        public static Point3D[] GetPoints_PinchImproved2(int count, BezierSegment3D_wpf[] segments, BezierSegment3D_wpf stretch_map)
+        {
+            Point3D[] retVal = new Point3D[count];
+
+            retVal[0] = segments[0].EndPoint0;
+            retVal[count - 1] = segments[segments.Length - 1].EndPoint1;        //NOTE: If the segment is a closed curve, this is the same point as retVal[0].  May want a boolean that tells whether the last point should be replicated
+
+            var samples = Enumerable.Range(0, count - 2).       // for (int i = 1; i < count - 1; i++)
+                Select(o => (double)(o + 1) / (count - 1)).     // {double totalPercent = (double)i / (count - 1);
+                Select(o => ApplyStretchMap(o, stretch_map));       // run this point through the pinch map (the map exaggerates how much total percent goes to pinch points, less goes to flat spots)
+
+            foreach (var sample in ConvertToNormalizedPositions(samples, segments))
+            {
+                // Calculate the bezier point
+                retVal[sample.Desired_Index + 1] = GetPoint(sample.Segment_Local_Percent, segments[sample.Segment_Index].Combined);
+            }
+
+            return retVal;
+        }
+        private static double ApplyStretchMap(double percent, BezierSegment3D_wpf stretch_map)
+        {
+            return GetPoint(percent, stretch_map.Combined).Y;
         }
 
 

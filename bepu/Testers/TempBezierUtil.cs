@@ -122,10 +122,10 @@ namespace Game.Bepu.Testers
             return retVal;
         }
 
-        public static void GetPinchedMapping3(BezierUtil.CurvatureSample[] heatmap, int endpoint_count, BezierSegment3D_wpf[] beziers)
+        public static Point3D[] GetPinchedMapping3(BezierUtil.CurvatureSample[] heatmap, int endpoint_count, BezierSegment3D_wpf[] beziers)
         {
             // Walk the heatmap, finding local minimums/maximums
-            var stretch_segments = FindExtremes(heatmap);
+            HeatDiff[] inflection_points = FindExtremes(heatmap);
 
             // Turn each pair into a snippet: max-min, min-max, max-min, min-max...
             // Only need to go from max to max.  The min points in the middle will naturally be passed over quickly
@@ -135,7 +135,13 @@ namespace Game.Bepu.Testers
 
 
 
+            //return num_extremes - 2;        // don't want to include the endpoints in the count
 
+            return inflection_points.
+                Skip(1).
+                Select(o => heatmap[o.Index1].Point).
+                Take(inflection_points.Length - 2).
+                ToArray();
         }
 
         #region get snippet population
@@ -985,7 +991,7 @@ namespace Game.Bepu.Testers
             public int Compare { get; init; }
         }
 
-        private static StretchSegment2[] FindExtremes(BezierUtil.CurvatureSample[] heatmap)
+        private static HeatDiff[] FindExtremes(BezierUtil.CurvatureSample[] heatmap)
         {
             //double[] weights = heatmap.
             //    Select(o => o.Weight).
@@ -1038,11 +1044,13 @@ namespace Game.Bepu.Testers
             window.Show();
 
 
-            var retVal = new List<StretchSegment2>();
+            //var retVal = new List<StretchSegment2>();
 
             // ???
 
-            return retVal.ToArray();
+            //return retVal.ToArray();
+
+            return diffs_distinct.ToArray();
         }
         private static void DrawStretch_Heatmap(Debug3DWindow window, (double dot, double line) sizes, HeatDiff[] diffs, BezierUtil.CurvatureSample[] heatmap)
         {

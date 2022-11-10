@@ -23,7 +23,10 @@
         </Viewport3D>
 
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top" Margin="6">
-            <TextBox x:Name="txtNumControls" Text="2" MinWidth="30" ToolTip="number of control points" TextChanged="txtNumControls_TextChanged"/>
+            <TextBox x:Name="txtNumControls" Text="2" MinWidth="30" HorizontalAlignment="Left" ToolTip="number of control points" TextChanged="txtNumControls_TextChanged"/>
+
+            <CheckBox x:Name="chkExtraControls" Content="extra controls" Margin="0,8,0,0"/>
+            <Button Content="random sample" Margin="0,2,0,0" Click="RandomSample_Click"/>
         </StackPanel>
         
         <StackPanel x:Name="messages" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="6"/>
