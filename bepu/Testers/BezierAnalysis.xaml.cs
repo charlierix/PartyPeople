@@ -22,6 +22,8 @@ namespace Game.Bepu.Testers
         {
             public Visual3D Visual { get; set; }
 
+            public Color Color { get; set; }
+
             private Point3D _center = new Point3D();
             public Point3D Center
             {
@@ -277,11 +279,13 @@ namespace Game.Bepu.Testers
 
             var controls = new List<ControlDot>();
 
+            Color[] colors = UtilityWPF.GetRandomColors(count, 96, 160);
+
             for (int i = 0; i < count; i++)
             {
                 double pos = (double)(i + 1) / (count + 1);
 
-                controls.Add(GetControlDot(new Point3D(pos, pos, 0)));
+                controls.Add(GetControlDot(new Point3D(pos, pos, 0), colors[i]));
             }
 
             _controls = controls.ToArray();
@@ -297,7 +301,7 @@ namespace Game.Bepu.Testers
 
             var bezier = new BezierSegment3D_wpf(new Point3D(0, 0, 0), new Point3D(1, 1, 0), controls);
 
-            RefreshBezier_MainWindow(controls, bezier);
+            RefreshBezier_MainWindow(_controls, bezier);
             RefreshBezier_1DOffsets(bezier);
             RefreshBezier_Curve(bezier);
 
@@ -331,7 +335,7 @@ namespace Game.Bepu.Testers
                 }
 
                 RefreshBezier_Uniform();
-                RefreshBezier_Stretch(bezier);
+                RefreshBezier_Stretch(bezier, _controls);
                 RefreshBezier_Heat();
             }
         }
@@ -352,10 +356,14 @@ namespace Game.Bepu.Testers
             if (_window_sample_heat != null)
                 _window_sample_heat.Clear();
         }
-        private void RefreshBezier_MainWindow(Point3D[] controls, BezierSegment3D_wpf bezier)
+        private void RefreshBezier_MainWindow(ControlDot[] controls, BezierSegment3D_wpf bezier)
         {
+            Point3D[] control_centers = controls.
+                Select(o => o.Center).
+                ToArray();
+
             // Control Positions
-            foreach (Point3D control in controls)
+            foreach (Point3D control in control_centers)
             {
                 messages.Children.Add(new TextBlock() { Text = control.ToStringSignificantDigits(3) });
             }
@@ -364,7 +372,7 @@ namespace Game.Bepu.Testers
             var control_points = new List<Point3D>();
 
             control_points.Add(new Point3D(0, 0, 0));
-            control_points.AddRange(controls);
+            control_points.AddRange(control_centers);
             control_points.Add(new Point3D(1, 1, 0));
 
             _temp_visuals.Add(Debug3DWindow.GetLines(control_points, _sizes.line, Colors.IndianRed));
@@ -375,7 +383,7 @@ namespace Game.Bepu.Testers
             {
                 double pos = (double)(i + 1) / (controls.Length + 1);
 
-                _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(pos, 0, 0), new Point3D(pos, 1, 0), _sizes.line, UtilityWPF.ColorFromHex("BAA")));
+                _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(pos, 0, 0), new Point3D(pos, 1, 0), _sizes.line, controls[i].Color));
                 _viewport.Children.Add(_temp_visuals[^1]);
 
                 _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(0, pos, 0), new Point3D(1, pos, 0), _sizes.line, Colors.Gray));
@@ -450,14 +458,23 @@ namespace Game.Bepu.Testers
             _window_sample_uniform.AddDots(points, sizes.dot, Colors.Black);
             _window_sample_uniform.AddLines(points, sizes.line, Colors.White);
         }
-        private void RefreshBezier_Stretch(BezierSegment3D_wpf bezier)
+        private void RefreshBezier_Stretch(BezierSegment3D_wpf bezier, ControlDot[] controls)
         {
+            // Stretched bezier
             Point3D[] points = BezierUtil.GetPoints_PinchImproved2(_beziers.Length * 12, _beziers, bezier);
 
             var sizes = Debug3DWindow.GetDrawSizes(points);
 
             _window_sample_stretched.AddDots(points, sizes.dot, Colors.Black);
             _window_sample_stretched.AddLines(points, sizes.line, Colors.White);
+
+            // Control point locations
+            points = BezierUtil.GetPoints(controls.Length + 2, _beziers);
+
+            for (int i = 1; i < points.Length - 1; i++)
+            {
+                _window_sample_stretched.AddDot(points[i], sizes.dot * 6, Color.FromArgb(32, controls[i - 1].Color.R, controls[i - 1].Color.G, controls[i - 1].Color.B), false, true);
+            }
         }
         private void RefreshBezier_Heat()
         {
@@ -481,12 +498,12 @@ namespace Game.Bepu.Testers
             _window_sample_heat.AddLines(lines, sizes.line * 0.75, Colors.White);
         }
 
-        private ControlDot GetControlDot(Point3D position)
+        private ControlDot GetControlDot(Point3D position, Color color)
         {
             double dot_radius = _sizes.dot * 3;
             double click_radius = dot_radius * 3;
 
-            Visual3D visual = Debug3DWindow.GetDot(new Point3D(), dot_radius, Colors.IndianRed);
+            Visual3D visual = Debug3DWindow.GetDot(new Point3D(), dot_radius, color);
 
             var translate = new TranslateTransform3D(position.X, position.Y, position.Z);
             visual.Transform = translate;
@@ -499,6 +516,7 @@ namespace Game.Bepu.Testers
                 DetectRadius = click_radius,
                 Translate = translate,
                 Visual = visual,
+                Color = color,
             };
         }
 

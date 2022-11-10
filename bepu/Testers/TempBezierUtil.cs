@@ -127,21 +127,41 @@ namespace Game.Bepu.Testers
             // Walk the heatmap, finding local minimums/maximums
             HeatDiff[] inflection_points = FindExtremes(heatmap);
 
-            // Turn each pair into a snippet: max-min, min-max, max-min, min-max...
-            // Only need to go from max to max.  The min points in the middle will naturally be passed over quickly
-
-
-            // The end caps can have a stretch segment that mirrors the pinch, so that the endpoint is at the fast part
-
-
-
-            //return num_extremes - 2;        // don't want to include the endpoints in the count
-
             return inflection_points.
                 Skip(1).
                 Select(o => heatmap[o.Index1].Point).
                 Take(inflection_points.Length - 2).
                 ToArray();
+        }
+
+        public static BezierSegment3D_wpf GetPinchedMapping4(BezierUtil.CurvatureSample[] heatmap, int endpoint_count, BezierSegment3D_wpf[] beziers)
+        {
+            // Walk the heatmap, finding local minimums/maximums
+            HeatDiff[] inflection_points = FindExtremes(heatmap);
+
+
+
+            // There isn't a way to know how many control points to use just by the number of inflection points
+            // It's more about where they are along the total path, and which pinch points need extra attention
+
+
+            // Can't use weight, need to use the actual dot products
+
+
+
+            // -------- Attempt 1 --------
+            // Create bars around pinch points
+            //  width is how wide the pinch point is (use a fixed threshold)
+            //  height is how strong the pinch point is
+
+            // Create enough control points to be able to isolate those bars
+
+            // Adjust the Y value of relevant control points to pull influence toward the pinch points
+
+
+
+
+            return new BezierSegment3D_wpf(beziers[0].EndPoint0, beziers[^1].EndPoint1, new Point3D[0]);
         }
 
         #region get snippet population
