@@ -1522,11 +1522,11 @@ namespace Game.Math_WPF.WPF.Controls3D
 
             double height = thickness * 4;
 
-            Point3D p1 = arrow_right ?
+            Point3D p1 = arrow_left ?
                 point1 + (dir_unit * height) :
                 point1;
 
-            Point3D p2 = arrow_left ?
+            Point3D p2 = arrow_right ?
                 point2 - (dir_unit * height) :
                 point2;
 
@@ -1552,9 +1552,9 @@ namespace Game.Math_WPF.WPF.Controls3D
 
             var transform = new Transform3DGroup();
 
-            var quat = Math3D.GetRotation(new Vector3D(0, 0, 1), -direction);
+            var quat = Math3D.GetRotation(new Vector3D(0, 0, 1), direction);
             transform.Children.Add(new RotateTransform3D(new QuaternionRotation3D(quat)));
-            transform.Children.Add(new TranslateTransform3D(point_from.ToVector()));
+            transform.Children.Add(new TranslateTransform3D(point_to.ToVector()));
 
             return new GeometryModel3D()
             {

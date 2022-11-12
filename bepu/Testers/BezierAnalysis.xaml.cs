@@ -649,7 +649,7 @@ namespace Game.Bepu.Testers
 
                 window.AddLine(new Point3D(0, -0.1, 0), new Point3D(1, -0.1, 0), sizes.line, Colors.Black);
 
-                window.AddLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), sizes.line, Colors.White, false, true);
+                window.AddLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), sizes.line, Colors.White, true, false);
 
                 window.Show();
             }
