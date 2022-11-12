@@ -1,6 +1,4 @@
-﻿using Accord.Math.Distances;
-using BepuUtilities;
-using Game.Core;
+﻿using Game.Core;
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.Mathematics.GeneticSharp;
 using Game.Math_WPF.WPF;
@@ -13,21 +11,13 @@ using GeneticSharp.Domain.Mutations;
 using GeneticSharp.Domain.Populations;
 using GeneticSharp.Domain.Selections;
 using GeneticSharp.Domain.Terminations;
-using MathNet.Numerics.LinearAlgebra.Factorization;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
-using System.Net;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
 using System.Windows.Shapes;
 
@@ -770,18 +760,6 @@ namespace Game.Bepu.Testers
             }
 
             window.Show();
-        }
-
-        private void BezierAnalysis_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                new BezierAnalysis().Show();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
         }
 
         #endregion

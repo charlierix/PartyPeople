@@ -116,6 +116,7 @@
             <StackPanel>
                 <Label Content="Misc" Style="{StaticResource subHeaderLabel}"/>
                 <ListBox>
+                    <ListBoxItem Content="Refine Bezier" MouseUp="RefineBezier_MouseUp"/>
                     <ListBoxItem Content="Pendulum" MouseUp="Pendulum_MouseUp"/>
                     <ListBoxItem Content="Even Distribution" MouseUp="Distribution_MouseUp"/>
                     <ListBoxItem Content="Debug Log Viewer" MouseUp="DebugLogViewer_MouseUp"/>

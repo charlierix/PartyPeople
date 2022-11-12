@@ -1,18 +1,5 @@
-﻿using Game.Bepu.Testers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
+﻿using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace Game.Tester
 {
@@ -87,6 +74,10 @@ namespace Game.Tester
             new Game.Bepu.Testers.FindDistinctStrings().Show();
         }
 
+        private void RefineBezier_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.BezierAnalysis().Show();
+        }
         private void Pendulum_MouseUp(object sender, MouseButtonEventArgs e)
         {
             new Game.Bepu.Testers.Pendulum().Show();

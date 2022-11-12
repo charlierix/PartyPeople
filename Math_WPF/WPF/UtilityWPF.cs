@@ -26,9 +26,7 @@ namespace Game.Math_WPF.WPF
             public static MeshGeometry3D Build(int numSides, List<TubeRingBase> rings, bool softSides, bool shouldCenterZ, Transform3D transform = null)
             {
                 if (transform == null)
-                {
                     transform = Transform3D.Identity;
-                }
 
                 // Do some validation/prep work
                 double height, curZ;
@@ -47,9 +45,7 @@ namespace Game.Math_WPF.WPF
                 for (int cntr = 0; cntr < rings.Count - 1; cntr++)
                 {
                     if (cntr > 0 && cntr < rings.Count - 1 && !(rings[cntr] is TubeRingRegularPolygon))
-                    {
                         throw new ArgumentException("Only rings are allowed in the middle of the tube");
-                    }
 
                     Middle(ref pointOffset, ref rotateAnglesForPerp, retVal, transform, numSides, rings[cntr], rings[cntr + 1], curZ, softSides);
 
@@ -73,23 +69,17 @@ namespace Game.Math_WPF.WPF
                 {
                     TubeRingRegularPolygon ringCast = rings[0] as TubeRingRegularPolygon;
                     if (ringCast == null || !ringCast.IsClosedIfEndCap)
-                    {
                         throw new ArgumentException("Only a single ring was passed in, so the only valid type is a closed ring: " + rings[0].GetType().ToString());
-                    }
                 }
                 else if (rings.Count == 2)
                 {
+                    // Say both are points - you'd have a line.  Domes must attach to a ring, not a point or another dome
                     if (!rings.Any(o => o is TubeRingRegularPolygon))
-                    {
-                        // Say both are points - you'd have a line.  Domes must attach to a ring, not a point or another dome
                         throw new ArgumentException(string.Format("When only two rings definitions are passed in, at least one of them must be a ring:\r\n{0}\r\n{1}", rings[0].GetType().ToString(), rings[1].GetType().ToString()));
-                    }
                 }
 
                 if (numSides < 3)
-                {
                     throw new ArgumentException("numSides must be at least 3: " + numSides.ToString(), "numSides");
-                }
 
                 #endregion
 
@@ -99,9 +89,7 @@ namespace Game.Math_WPF.WPF
                 // Figure out the starting Z
                 startZ = 0d;
                 if (shouldCenterZ)
-                {
                     startZ = height * -.5d;      // starting in the negative
-                }
             }
 
             private static Point[] GetPointsRegPoly(int numSides, TubeRingRegularPolygon ring)
@@ -892,6 +880,8 @@ namespace Game.Math_WPF.WPF
             {
                 #region positions/normals
 
+                int pointOffset_prev = pointOffset;
+
                 if (isFirst || !ring.MergeNormalWithPrevIfSoft)
                 {
                     for (int thetaCntr = 0; thetaCntr < pointsTheta.Length; thetaCntr++)
@@ -900,6 +890,10 @@ namespace Game.Math_WPF.WPF
                         geometry.Positions.Add(transform.Transform(point));
                         geometry.Normals.Add(normalTransform.Transform(point).ToVector().ToUnit());		// the normal is the same as the point for a sphere (but no tranlate transform)
                     }
+                }
+                else
+                {
+                    pointOffset_prev -= pointsTheta.Length;     // this needs to reference the previous polygon
                 }
 
                 // Cone tip
@@ -914,14 +908,14 @@ namespace Game.Math_WPF.WPF
 
                 for (int cntr = 0; cntr < pointsTheta.Length - 1; cntr++)
                 {
-                    geometry.TriangleIndices.Add(pointOffset + cntr + 0);
-                    geometry.TriangleIndices.Add(pointOffset + cntr + 1);
+                    geometry.TriangleIndices.Add(pointOffset_prev + cntr + 0);
+                    geometry.TriangleIndices.Add(pointOffset_prev + cntr + 1);
                     geometry.TriangleIndices.Add(topIndex);
                 }
 
                 // The last triangle links back to zero
-                geometry.TriangleIndices.Add(pointOffset + pointsTheta.Length - 1 + 0);
-                geometry.TriangleIndices.Add(pointOffset + 0);
+                geometry.TriangleIndices.Add(pointOffset_prev + pointsTheta.Length - 1 + 0);
+                geometry.TriangleIndices.Add(pointOffset_prev + 0);
                 geometry.TriangleIndices.Add(topIndex);
 
                 #endregion

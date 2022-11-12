@@ -37,8 +37,6 @@
             <CheckBox x:Name="chkExtraControls" Content="extra controls" Margin="0,8,0,0"/>
             <Button Content="curve heatmap" Click="CurveHeatmap_Click"/>
             <Button Content="repeat prev" Click="RepeatPrev2_Click"/>
-
-            <Button Content="bezier analysis" Margin="0,8,0,0" Click="BezierAnalysis_Click"/>
         </StackPanel>
 
         <!-- Horizontal -->

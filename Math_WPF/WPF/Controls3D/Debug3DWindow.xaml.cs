@@ -6,16 +6,10 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
-using System.Text;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
-using System.Windows.Shapes;
 using System.Xaml;
 
 namespace Game.Math_WPF.WPF.Controls3D
@@ -43,6 +37,18 @@ namespace Game.Math_WPF.WPF.Controls3D
             public Rect3D Location { get; set; }
             public ModelVisual3D Visual { get; set; }
             public Action<GraphMouseArgs> Delegate { get; set; }
+        }
+
+        #endregion
+        #region record: ArrowProps
+
+        private record ArrowProps
+        {
+            public Point3D Point1_Adjusted { get; init; }
+            public Point3D Point2_Adjusted { get; init; }
+            public double Radius { get; init; }
+            public double Height { get; init; }
+            public Vector3D Direction_Unit { get; init; }
         }
 
         #endregion
@@ -291,49 +297,97 @@ namespace Game.Math_WPF.WPF.Controls3D
             };
         }
 
-        public void AddLine(Point3D point1, Point3D point2, double thickness, Color color)
+        public void AddLine(Point3D point1, Point3D point2, double thickness, Color color, bool arrow_left = false, bool arrow_right = false)
         {
             Visuals3D.Add(
-                GetLine(point1, point2, thickness, color));
+                GetLine(point1, point2, thickness, color, arrow_left, arrow_right));
         }
-        public void AddLine(Vector3D point1, Vector3D point2, double thickness, Color color)
+        public void AddLine(Vector3D point1, Vector3D point2, double thickness, Color color, bool arrow_left = false, bool arrow_right = false)
         {
-            AddLine(point1.ToPoint(), point2.ToPoint(), thickness, color);
+            AddLine(point1.ToPoint(), point2.ToPoint(), thickness, color, arrow_left, arrow_right);
         }
-        public void AddLine(Point3D point1, Point3D point2, double thickness, Color colorFrom, Color colorTo)
+        public void AddLine(Point3D point1, Point3D point2, double thickness, Color colorFrom, Color colorTo, bool arrow_left = false, bool arrow_right = false)
         {
             Visuals3D.Add(
-                GetLine(point1, point2, thickness, colorFrom, colorTo));
+                GetLine(point1, point2, thickness, colorFrom, colorTo, arrow_left, arrow_right));
         }
-        public void AddLine(Vector3D point1, Vector3D point2, double thickness, Color colorFrom, Color colorTo)
+        public void AddLine(Vector3D point1, Vector3D point2, double thickness, Color colorFrom, Color colorTo, bool arrow_left = false, bool arrow_right = false)
         {
-            AddLine(point1.ToPoint(), point2.ToPoint(), thickness, colorFrom, colorTo);
+            AddLine(point1.ToPoint(), point2.ToPoint(), thickness, colorFrom, colorTo, arrow_left, arrow_right);
         }
-        public static Visual3D GetLine(Point3D point1, Point3D point2, double thickness, Color color)
+
+
+        //TODO: left and right arrows are switched
+
+        public static Visual3D GetLine(Point3D point1, Point3D point2, double thickness, Color color, bool arrow_left = false, bool arrow_right = false)
         {
-            BillboardLine3DSet visual = new BillboardLine3DSet();
-            visual.Color = color;
-            visual.BeginAddingLines();
+            var arrow = arrow_left || arrow_right ?
+                GetArrowProps(point1, point2, arrow_left, arrow_right, thickness) :
+                new ArrowProps() { Point1_Adjusted = point1, Point2_Adjusted = point2 };
 
-            visual.AddLine(point1, point2, thickness);
+            Model3D model_line = new BillboardLine3D()
+            {
+                //Material = BillboardLine3D.GetLinearGradientMaterial_Unlit(colorFrom, colorTo),
+                Color = color,
+                FromPoint = arrow.Point1_Adjusted,
+                ToPoint = arrow.Point2_Adjusted,
+                Thickness = thickness,
+            }.Model;
 
-            visual.EndAddingLines();
+            if (!arrow_left && !arrow_right)
+                return new ModelVisual3D()
+                {
+                    Content = model_line,
+                };
 
-            return visual;
-        }
-        public static Visual3D GetLine(Point3D point1, Point3D point2, double thickness, Color colorFrom, Color colorTo)
-        {
+            Model3DGroup model_group = new Model3DGroup();
+            model_group.Children.Add(model_line);
+
+            if (arrow_left)
+                model_group.Children.Add(GetArrowTip(arrow.Point2_Adjusted, arrow.Point1_Adjusted, -arrow.Direction_Unit, arrow.Radius, arrow.Height, color));
+
+            if (arrow_right)
+                model_group.Children.Add(GetArrowTip(arrow.Point1_Adjusted, arrow.Point2_Adjusted, arrow.Direction_Unit, arrow.Radius, arrow.Height, color));
+
             return new ModelVisual3D()
             {
-                Content = new BillboardLine3D()
+                Content = model_group,
+            };
+        }
+        public static Visual3D GetLine(Point3D point1, Point3D point2, double thickness, Color colorFrom, Color colorTo, bool arrow_left = false, bool arrow_right = false)
+        {
+            var arrow = arrow_left || arrow_right ?
+                GetArrowProps(point1, point2, arrow_left, arrow_right, thickness) :
+                new ArrowProps() { Point1_Adjusted = point1, Point2_Adjusted = point2 };
+
+            Model3D model_line = new BillboardLine3D()
+            {
+                //Material = BillboardLine3D.GetLinearGradientMaterial_Unlit(colorFrom, colorTo),
+                ColorTo = colorTo,
+                Color = colorFrom,
+                FromPoint = arrow.Point1_Adjusted,
+                ToPoint = arrow.Point2_Adjusted,
+                Thickness = thickness,
+            }.Model;
+
+            if (!arrow_left && !arrow_right)
+                return new ModelVisual3D()
                 {
-                    //Material = BillboardLine3D.GetLinearGradientMaterial_Unlit(colorFrom, colorTo),
-                    ColorTo = colorTo,
-                    Color = colorFrom,
-                    FromPoint = point1,
-                    ToPoint = point2,
-                    Thickness = thickness,
-                }.Model,
+                    Content = model_line,
+                };
+
+            Model3DGroup model_group = new Model3DGroup();
+            model_group.Children.Add(model_line);
+
+            if (arrow_left)
+                model_group.Children.Add(GetArrowTip(arrow.Point2_Adjusted, arrow.Point1_Adjusted, -arrow.Direction_Unit, arrow.Radius, arrow.Height, colorFrom));
+
+            if (arrow_right)
+                model_group.Children.Add(GetArrowTip(arrow.Point1_Adjusted, arrow.Point2_Adjusted, arrow.Direction_Unit, arrow.Radius, arrow.Height, colorTo));
+
+            return new ModelVisual3D()
+            {
+                Content = model_group,
             };
         }
 
@@ -1460,6 +1514,55 @@ namespace Game.Math_WPF.WPF.Controls3D
             }
 
             return retVal.ToArray();
+        }
+
+        private static ArrowProps GetArrowProps(Point3D point1, Point3D point2, bool arrow_left, bool arrow_right, double thickness)
+        {
+            Vector3D dir_unit = (point2 - point1).ToUnit();
+
+            double height = thickness * 4;
+
+            Point3D p1 = arrow_right ?
+                point1 + (dir_unit * height) :
+                point1;
+
+            Point3D p2 = arrow_left ?
+                point2 - (dir_unit * height) :
+                point2;
+
+            return new ArrowProps()
+            {
+                Point1_Adjusted= p1,
+                Point2_Adjusted = p2,
+
+                Direction_Unit= dir_unit,
+
+                Radius = thickness * 1.5,
+                Height = height,
+            };
+        }
+
+        private static Model3D GetArrowTip(Point3D point_from, Point3D point_to, Vector3D direction, double radius, double height, Color color)
+        {
+            Material material = GetMaterial(false, color);
+
+            var rings = new List<TubeRingBase>();
+            rings.Add(new TubeRingRegularPolygon(0, false, radius, radius, true));
+            rings.Add(new TubeRingPoint(height, true));
+
+            var transform = new Transform3DGroup();
+
+            var quat = Math3D.GetRotation(new Vector3D(0, 0, 1), -direction);
+            transform.Children.Add(new RotateTransform3D(new QuaternionRotation3D(quat)));
+            transform.Children.Add(new TranslateTransform3D(point_from.ToVector()));
+
+            return new GeometryModel3D()
+            {
+                Material = material,
+                BackMaterial = material,
+                Geometry = UtilityWPF.GetMultiRingedTube(7, rings, true, false),
+                Transform = transform,
+            };
         }
 
         #endregion

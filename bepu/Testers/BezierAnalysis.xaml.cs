@@ -70,6 +70,7 @@ namespace Game.Bepu.Testers
 
         private Debug3DWindow _window_offset1D = null;
         private Debug3DWindow _window_curve = null;
+        private Debug3DWindow _window_abovebelow = null;
         private Debug3DWindow _window_sample_uniform = null;        // these are only used if they click the sample button
         private Debug3DWindow _window_sample_stretched = null;
         private Debug3DWindow _window_sample_heat = null;
@@ -102,12 +103,19 @@ namespace Game.Bepu.Testers
             _window_offset1D.SetCamera(new Point3D(0.5, 0, 1.45), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
             _window_offset1D.Show();
 
-            _window_curve = new Debug3DWindow()
+            //_window_curve = new Debug3DWindow()
+            //{
+            //    Title = "Curve",
+            //};
+            //_window_curve.SetCamera(new Point3D(0.5, 0.5, 1.45), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
+            //_window_curve.Show();
+
+            _window_abovebelow = new Debug3DWindow()
             {
-                Title = "Curve",
+                Title = "Above / Below",
             };
-            _window_curve.SetCamera(new Point3D(0.5, 0.5, 1.45), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
-            _window_curve.Show();
+            _window_abovebelow.SetCamera(new Point3D(0.5, 0, 1.45), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
+            _window_abovebelow.Show();
 
             _initialized = true;
         }
@@ -303,7 +311,8 @@ namespace Game.Bepu.Testers
 
             RefreshBezier_MainWindow(_controls, bezier);
             RefreshBezier_1DOffsets(bezier);
-            RefreshBezier_Curve(bezier);
+            //RefreshBezier_Curve(bezier);
+            RefreshBezier_AboveBelow(_controls, bezier);
 
             if (_beziers != null)
             {
@@ -345,7 +354,8 @@ namespace Game.Bepu.Testers
             messages.Children.Clear();
 
             _window_offset1D.Clear();
-            _window_curve.Clear();
+            //_window_curve.Clear();
+            _window_abovebelow.Clear();
 
             if (_window_sample_stretched != null)
                 _window_sample_stretched.Clear();
@@ -449,6 +459,42 @@ namespace Game.Bepu.Testers
                 _window_curve.AddDot(new Point3D(percent, percent_stretched, 0), _sizes.dot, Colors.White);
             }
         }
+        private void RefreshBezier_AboveBelow(ControlDot[] controls, BezierSegment3D_wpf bezier)
+        {
+            double draw_width_half = _sizes.dot * (3d / 2d);
+            double arrow_half = _sizes.dot * (7d / 2d);
+            double arrow_offset_y = 0.1;
+
+            _window_abovebelow.AddLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), _sizes.line, Colors.Black);
+
+            for (int i = 0; i < controls.Length; i++)
+            {
+                double pos = (double)(i + 1) / (controls.Length + 1);
+
+                double bezier_val = BezierUtil.GetPoint(pos, bezier.Combined).Y;
+                double control_val = controls[i].Center.Y;
+
+                double diff = control_val - bezier_val;
+
+                Point p1 = new Point(pos - draw_width_half, 0);
+                Point p2 = new Point(pos + draw_width_half, diff);
+
+                _window_abovebelow.AddSquare(p1, p2, controls[i].Color);
+
+                if (diff.IsNearZero())
+                    continue;
+
+                //TODO: Draw an arrow pointing left or right
+                // Below the line is left
+                // Above the line is right
+
+                double y = diff > 0 ?
+                    diff + arrow_offset_y :
+                    diff - arrow_offset_y;
+
+                _window_abovebelow.AddLine(new Point3D(pos - arrow_half, y, 0), new Point3D(pos + arrow_half, y, 0), _sizes.line, controls[i].Color, diff < 0, diff > 0);
+            }
+        }
         private void RefreshBezier_Uniform()
         {
             Point3D[] points = BezierUtil.GetPoints(_beziers.Length * 12, _beziers);
@@ -540,5 +586,77 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+
+        private void Cones_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                double line_thickness = 1;
+
+                double radius = line_thickness * 1.5;
+                double height = line_thickness * 4;
+
+                var sizes = Debug3DWindow.GetDrawSizes(3);
+
+
+
+                var rings = new List<TubeRingBase>();
+                rings.Add(new TubeRingRegularPolygon(0, false, radius, radius, true));
+                rings.Add(new TubeRingPoint(height, true));
+
+                var mesh = UtilityWPF.GetMultiRingedTube(6, rings, true, false);
+
+                var window = new Debug3DWindow() { Title = "Base then Tip" };
+
+                window.AddMesh(mesh, Colors.DarkKhaki);
+
+                window.AddDots(mesh.Positions.Select(o => o), sizes.dot, Colors.Black);
+
+                window.Show();
+
+
+
+                rings = new List<TubeRingBase>();
+                rings.Add(new TubeRingPoint(0, true));
+                rings.Add(new TubeRingRegularPolygon(height, false, radius, radius, true));
+
+
+                mesh = UtilityWPF.GetMultiRingedTube(6, rings, true, false);
+
+
+                window = new Debug3DWindow() { Title = "Tip then Base" };
+
+                window.AddMesh(mesh, Colors.DarkKhaki);
+
+                window.AddDots(mesh.Positions.Select(o => o), sizes.dot, Colors.Black);
+
+                window.Show();
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void Arrow_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var sizes = Debug3DWindow.GetDrawSizes(1);
+
+                var window = new Debug3DWindow();
+
+                window.AddLine(new Point3D(0, -0.1, 0), new Point3D(1, -0.1, 0), sizes.line, Colors.Black);
+
+                window.AddLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), sizes.line, Colors.White, false, true);
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 }

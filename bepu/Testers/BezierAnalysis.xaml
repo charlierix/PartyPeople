@@ -27,6 +27,9 @@
 
             <CheckBox x:Name="chkExtraControls" Content="extra controls" Margin="0,8,0,0"/>
             <Button Content="random sample" Margin="0,2,0,0" Click="RandomSample_Click"/>
+
+            <Button Content="Cones" Margin="0,16,0,0" Click="Cones_Click"/>
+            <Button Content="Arrow" Click="Arrow_Click"/>
         </StackPanel>
         
         <StackPanel x:Name="messages" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="6"/>
