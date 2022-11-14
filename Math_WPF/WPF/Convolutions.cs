@@ -3091,7 +3091,7 @@ namespace Game.Math_WPF.WPF
         private static double[] ConvertToEdge(double[] values)
         {
             var minmax = Math1D.MinMax(values);
-            double middle = Math1D.Avg(minmax.Item1, minmax.Item2);
+            double middle = Math1D.Avg(minmax.min, minmax.max);
 
             double[] offsets = values.
                 Select(o => o - middle).

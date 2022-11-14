@@ -46,6 +46,8 @@ namespace Game.Bepu.Testers
             public TranslateTransform3D Translate { get; set; }
 
             public double DetectRadius { get; set; }
+
+            public double AtTotalPercent { get; set; }
         }
 
         #endregion
@@ -74,6 +76,7 @@ namespace Game.Bepu.Testers
         private Debug3DWindow _window_sample_uniform = null;        // these are only used if they click the sample button
         private Debug3DWindow _window_sample_stretched = null;
         private Debug3DWindow _window_sample_heat = null;
+        private Debug3DWindow _window_sample_need_current = null;
 
         private bool _initialized = false;
 
@@ -293,7 +296,7 @@ namespace Game.Bepu.Testers
             {
                 double pos = (double)(i + 1) / (count + 1);
 
-                controls.Add(GetControlDot(new Point3D(pos, pos, 0), colors[i]));
+                controls.Add(GetControlDot(new Point3D(pos, pos, 0), pos, colors[i]));
             }
 
             _controls = controls.ToArray();
@@ -307,45 +310,24 @@ namespace Game.Bepu.Testers
                 Select(o => o.Center).
                 ToArray();
 
-            var bezier = new BezierSegment3D_wpf(new Point3D(0, 0, 0), new Point3D(1, 1, 0), controls);
+            var stretch_transform = new BezierSegment3D_wpf(new Point3D(0, 0, 0), new Point3D(1, 1, 0), controls);
 
-            RefreshBezier_MainWindow(_controls, bezier);
-            RefreshBezier_1DOffsets(bezier);
+            RefreshBezier_MainWindow(_controls, stretch_transform);
+            RefreshBezier_1DOffsets(stretch_transform);
             //RefreshBezier_Curve(bezier);
-            RefreshBezier_AboveBelow(_controls, bezier);
+            RefreshBezier_AboveBelow(_controls, stretch_transform);
 
             if (_beziers != null)
             {
-                if (_window_sample_uniform == null)
-                {
-                    _window_sample_uniform = new Debug3DWindow()
-                    {
-                        Title = "Uniform",
-                    };
-                    _window_sample_uniform.Show();
-                }
-
-                if (_window_sample_stretched == null)
-                {
-                    _window_sample_stretched = new Debug3DWindow()
-                    {
-                        Title = "Stretched",
-                    };
-                    _window_sample_stretched.Show();
-                }
-
-                if (_window_sample_heat == null)
-                {
-                    _window_sample_heat = new Debug3DWindow()
-                    {
-                        Title = "Heat",
-                    };
-                    _window_sample_heat.Show();
-                }
+                EnsureWindowCreated(ref _window_sample_uniform, "Uniform");
+                EnsureWindowCreated(ref _window_sample_stretched, "Stretched");
+                EnsureWindowCreated(ref _window_sample_heat, "Heat");
+                EnsureWindowCreated(ref _window_sample_need_current, "Need / Current");
 
                 RefreshBezier_Uniform();
-                RefreshBezier_Stretch(bezier, _controls);
-                RefreshBezier_Heat();
+                RefreshBezier_Stretch(stretch_transform, _controls);
+                RefreshBezier_Heat(_heatmap);
+                RefreshBezier_NeedCurrent(_controls, _heatmap, stretch_transform);
             }
         }
         private void RefreshBezier_Clear()
@@ -365,8 +347,11 @@ namespace Game.Bepu.Testers
 
             if (_window_sample_heat != null)
                 _window_sample_heat.Clear();
+
+            if (_window_sample_need_current != null)
+                _window_sample_need_current.Clear();
         }
-        private void RefreshBezier_MainWindow(ControlDot[] controls, BezierSegment3D_wpf bezier)
+        private void RefreshBezier_MainWindow(ControlDot[] controls, BezierSegment3D_wpf stretch_transform)
         {
             Point3D[] control_centers = controls.
                 Select(o => o.Center).
@@ -389,14 +374,12 @@ namespace Game.Bepu.Testers
             _viewport.Children.Add(_temp_visuals[^1]);
 
             // Control Vertical Lines
-            for (int i = 0; i < controls.Length; i++)
+            foreach (ControlDot control in controls)
             {
-                double pos = (double)(i + 1) / (controls.Length + 1);
-
-                _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(pos, 0, 0), new Point3D(pos, 1, 0), _sizes.line, controls[i].Color));
+                _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(control.AtTotalPercent, 0, 0), new Point3D(control.AtTotalPercent, 1, 0), _sizes.line, control.Color));
                 _viewport.Children.Add(_temp_visuals[^1]);
 
-                _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(0, pos, 0), new Point3D(1, pos, 0), _sizes.line, Colors.Gray));
+                _temp_visuals.Add(Debug3DWindow.GetLine(new Point3D(0, control.AtTotalPercent, 0), new Point3D(1, control.AtTotalPercent, 0), _sizes.line, Colors.Gray));
                 _viewport.Children.Add(_temp_visuals[^1]);
             }
 
@@ -414,12 +397,12 @@ namespace Game.Bepu.Testers
             _viewport.Children.Add(_temp_visuals[^1]);
 
             // Bezier
-            Point3D[] points = BezierUtil.GetPoints(144, bezier);
+            Point3D[] points = BezierUtil.GetPoints(144, stretch_transform);
 
             _temp_visuals.Add(Debug3DWindow.GetDots(points, _sizes.dot, Colors.White));
             _viewport.Children.Add(_temp_visuals[^1]);
         }
-        private void RefreshBezier_1DOffsets(BezierSegment3D_wpf bezier)
+        private void RefreshBezier_1DOffsets(BezierSegment3D_wpf stretch_transform)
         {
             double count = 12;
 
@@ -428,7 +411,7 @@ namespace Game.Bepu.Testers
             for (int i = 0; i < count; i++)
             {
                 double percent = i / (count - 1);
-                double percent_stretched = BezierUtil.GetPoint(percent, bezier.Combined).Y;
+                double percent_stretched = BezierUtil.GetPoint(percent, stretch_transform.Combined).Y;
 
                 Point3D point_orig = new Point3D(percent, -0.05, 0);
                 Point3D point_stretched = new Point3D(percent_stretched, 0.05, 0);
@@ -442,7 +425,7 @@ namespace Game.Bepu.Testers
 
             _window_offset1D.AddText($"max distance: {max_dist}");
         }
-        private void RefreshBezier_Curve(BezierSegment3D_wpf bezier)
+        private void RefreshBezier_Curve(BezierSegment3D_wpf stretch_transform)
         {
             _window_curve.AddLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), _sizes.line, Colors.Black);
             _window_curve.AddLine(new Point3D(0, 1, 0), new Point3D(1, 1, 0), _sizes.line, Colors.Black);
@@ -454,12 +437,12 @@ namespace Game.Bepu.Testers
             for (int i = 0; i < count; i++)
             {
                 double percent = i / (count - 1);
-                double percent_stretched = BezierUtil.GetPoint(percent, bezier.Combined).Y;
+                double percent_stretched = BezierUtil.GetPoint(percent, stretch_transform.Combined).Y;
 
                 _window_curve.AddDot(new Point3D(percent, percent_stretched, 0), _sizes.dot, Colors.White);
             }
         }
-        private void RefreshBezier_AboveBelow(ControlDot[] controls, BezierSegment3D_wpf bezier)
+        private void RefreshBezier_AboveBelow(ControlDot[] controls, BezierSegment3D_wpf stretch_transform)
         {
             double draw_width_half = _sizes.dot * (3d / 2d);
             double arrow_half = _sizes.dot * (7d / 2d);
@@ -467,19 +450,18 @@ namespace Game.Bepu.Testers
 
             _window_abovebelow.AddLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), _sizes.line, Colors.Black);
 
-            for (int i = 0; i < controls.Length; i++)
+            //for (int i = 0; i < controls.Length; i++)
+            foreach (ControlDot control in controls)
             {
-                double pos = (double)(i + 1) / (controls.Length + 1);
-
-                double bezier_val = BezierUtil.GetPoint(pos, bezier.Combined).Y;
-                double control_val = controls[i].Center.Y;
+                double bezier_val = BezierUtil.GetPoint(control.AtTotalPercent, stretch_transform.Combined).Y;
+                double control_val = control.Center.Y;
 
                 double diff = control_val - bezier_val;
 
-                Point p1 = new Point(pos - draw_width_half, 0);
-                Point p2 = new Point(pos + draw_width_half, diff);
+                Point p1 = new Point(control.AtTotalPercent - draw_width_half, 0);
+                Point p2 = new Point(control.AtTotalPercent + draw_width_half, diff);
 
-                _window_abovebelow.AddSquare(p1, p2, controls[i].Color);
+                _window_abovebelow.AddSquare(p1, p2, control.Color);
 
                 if (diff.IsNearZero())
                     continue;
@@ -492,7 +474,7 @@ namespace Game.Bepu.Testers
                     diff + arrow_offset_y :
                     diff - arrow_offset_y;
 
-                _window_abovebelow.AddLine(new Point3D(pos - arrow_half, y, 0), new Point3D(pos + arrow_half, y, 0), _sizes.line, controls[i].Color, diff < 0, diff > 0);
+                _window_abovebelow.AddLine(new Point3D(control.AtTotalPercent - arrow_half, y, 0), new Point3D(control.AtTotalPercent + arrow_half, y, 0), _sizes.line, control.Color, diff < 0, diff > 0);
             }
         }
         private void RefreshBezier_Uniform()
@@ -504,10 +486,10 @@ namespace Game.Bepu.Testers
             _window_sample_uniform.AddDots(points, sizes.dot, Colors.Black);
             _window_sample_uniform.AddLines(points, sizes.line, Colors.White);
         }
-        private void RefreshBezier_Stretch(BezierSegment3D_wpf bezier, ControlDot[] controls)
+        private void RefreshBezier_Stretch(BezierSegment3D_wpf stretch_transform, ControlDot[] controls)
         {
             // Stretched bezier
-            Point3D[] points = BezierUtil.GetPoints_PinchImproved2(_beziers.Length * 12, _beziers, bezier);
+            Point3D[] points = BezierUtil.GetPoints_PinchImproved2(_beziers.Length * 12, _beziers, stretch_transform);
 
             var sizes = Debug3DWindow.GetDrawSizes(points);
 
@@ -522,29 +504,192 @@ namespace Game.Bepu.Testers
                 _window_sample_stretched.AddDot(points[i], sizes.dot * 6, Color.FromArgb(32, controls[i - 1].Color.R, controls[i - 1].Color.G, controls[i - 1].Color.B), false, true);
             }
         }
-        private void RefreshBezier_Heat()
+        private void RefreshBezier_Heat(BezierUtil.CurvatureSample[] heatmap)
         {
             var sizes = Debug3DWindow.GetDrawSizes(_beziers.SelectMany(o => o.Combined));
 
-            double max_dist_from_negone = _heatmap.Max(o => o.Dist_From_NegOne);
+            double max_dist_from_negone = heatmap.Max(o => o.Dist_From_NegOne);
 
             _window_sample_heat.AddDot(_beziers[0].EndPoint0, sizes.dot, Colors.Black);
             _window_sample_heat.AddDot(_beziers[^1].EndPoint1, sizes.dot, Colors.Black);
 
-            foreach (var heat in _heatmap)
+            foreach (var heat in heatmap)
             {
                 _window_sample_heat.AddDot(heat.Point, sizes.dot, UtilityWPF.AlphaBlend(Colors.DarkRed, Colors.DarkSeaGreen, heat.Dist_From_NegOne / max_dist_from_negone));
             }
 
             var lines = new List<(Point3D, Point3D)>();
-            lines.Add((_beziers[0].EndPoint0, _heatmap[0].Point));
-            lines.AddRange(Enumerable.Range(0, _heatmap.Length - 1).Select(o => (_heatmap[o].Point, _heatmap[o + 1].Point)));
-            lines.Add((_heatmap[^1].Point, _beziers[^1].EndPoint1));
+            lines.Add((_beziers[0].EndPoint0, heatmap[0].Point));
+            lines.AddRange(Enumerable.Range(0, heatmap.Length - 1).Select(o => (heatmap[o].Point, heatmap[o + 1].Point)));
+            lines.Add((heatmap[^1].Point, _beziers[^1].EndPoint1));
 
             _window_sample_heat.AddLines(lines, sizes.line * 0.75, Colors.White);
         }
+        private void RefreshBezier_NeedCurrent(ControlDot[] controls, BezierUtil.CurvatureSample[] heatmap, BezierSegment3D_wpf stretch_transform)
+        {
+            const double Y_NEED = 0.5;
+            const double Y_CURRENT = -0.5;
+            const double GRAPH_HEIGHT_HALF = 0.33;
 
-        private ControlDot GetControlDot(Point3D position, Color color)
+
+            // This is a way to visualize stretched 1D space
+
+            // Zero is 1:1
+            // Positive is pinched
+            // Negative is expanded
+
+            _window_sample_need_current.AddLine(new Point3D(0, Y_NEED, 0), new Point3D(1, Y_NEED, 0), _sizes.line, Colors.Black);
+            _window_sample_need_current.AddLine(new Point3D(0, Y_CURRENT, 0), new Point3D(1, Y_CURRENT, 0), _sizes.line, Colors.Black);
+
+            var (min_y, max_y) = Math1D.MinMax(new[] { Y_NEED + GRAPH_HEIGHT_HALF, Y_NEED - GRAPH_HEIGHT_HALF, Y_CURRENT + GRAPH_HEIGHT_HALF, Y_CURRENT - GRAPH_HEIGHT_HALF });
+
+            foreach (var control in controls)
+            {
+                _window_sample_need_current.AddLine(new Point3D(control.AtTotalPercent, min_y, 0), new Point3D(control.AtTotalPercent, max_y, 0), _sizes.line, control.Color);
+            }
+
+            // The need graph shows how space should be stretched according to the heatmap
+            //  Don't use weight, use the actual dots
+            //  Or more accurately, make a weight that isn't normalized 0 to 1, but normalized min to max according to the heatmap's values
+            RefreshBezier_NeedCurrent_Need(heatmap, GRAPH_HEIGHT_HALF, Y_NEED);
+
+            // The current graph is the result of the current bezier transform
+            //  take N sample points
+            //  figure out what the average distance between points should be
+            //  for each line segment, drag the bar up or down based on distance relative to average
+            RefreshBezier_NeedCurrent_Current(stretch_transform, GRAPH_HEIGHT_HALF, Y_CURRENT);
+        }
+        private void RefreshBezier_NeedCurrent_Need_ATTEMPT1(BezierUtil.CurvatureSample[] heatmap, double graph_height_half, double y)
+        {
+            double MAX_DIST = 0.2;
+
+            // max_dist of .15 is a fairly tight pinch
+            // .25 is really tight
+
+            // I think .2 is a good max
+
+            double min_dot = heatmap.Min(o => o.Dot);
+            double max_dot = heatmap.Max(o => o.Dot);
+
+            double min_dist = heatmap.Min(o => o.Dist_From_NegOne);
+            double max_dist = heatmap.Max(o => o.Dist_From_NegOne);
+
+
+            _window_sample_need_current.AddText($"max dot: {max_dot}");
+            _window_sample_need_current.AddText($"min dot: {min_dot}");
+
+            _window_sample_need_current.AddText($"min dist: {min_dist}");
+            _window_sample_need_current.AddText($"max dist: {max_dist}");
+
+
+
+            // -------- First Pass --------
+            // Get a weight based on dist=0 to dist=.2
+
+            var weighted = heatmap.
+                Select(o => new
+                {
+                    heat = o,
+                    weight = UtilityMath.GetScaledValue_Capped(0, 1, 0, MAX_DIST, o.Dist_From_NegOne),
+                }).
+                ToArray();
+
+
+            // -------- Second Pass --------
+            // Some way to find the mid point
+            // Everything > is above zero
+            // Everything < is below zero
+            // This shouldn't normalize -1 to 1.  If it's a mild curve, then this will also be mild
+            //
+            // Maybe just be based on 
+
+            double max_weight = weighted.Max(o => o.weight);
+            double mid_weight = max_weight / 2;
+
+            // this isn't right, it's not about values above and below, it should be area above and below
+            var adjusted = weighted.
+                Select(o => new
+                {
+                    o.heat,
+                    o.weight,
+                    adjusted = (o.weight - mid_weight) * 2,
+                }).
+                ToArray();
+
+
+            // TODO: Find the dividing line that evenly splits area above and below that line
+
+
+
+
+
+        }
+        private void RefreshBezier_NeedCurrent_Need(BezierUtil.CurvatureSample[] heatmap, double graph_height_half, double y)
+        {
+
+
+
+
+
+
+        }
+        private void RefreshBezier_NeedCurrent_Current(BezierSegment3D_wpf stretch_transform, double graph_height_half, double y)
+        {
+            int sample_count = 18;
+
+            //double ideal_avg = 1d / (sample_count + 1);
+            double ideal_avg = 1d / sample_count;
+            double max_mult = 3;
+
+            double[] samples = BezierUtil.GetPoints(sample_count, stretch_transform).
+                Select(o => o.Y).
+                ToArray();
+
+            double[] heights = Enumerable.Range(0, sample_count - 1).
+                Select(o =>
+                {
+                    double diff = samples[o + 1] - samples[o];
+                    double mult = diff / ideal_avg;
+
+                    return mult < 1 ?
+                        UtilityMath.GetScaledValue_Capped(0, graph_height_half, 1, 1d / max_mult, mult) :
+                        UtilityMath.GetScaledValue_Capped(0, -graph_height_half, 1, max_mult, mult);
+                }).
+                ToArray();
+
+            var points = new List<Point3D>();
+
+            double bar_width = 1d / (sample_count - 1);
+            double bar_width_half = bar_width / 2; ;
+
+            double x = bar_width_half;
+
+            for (int i = 0; i < heights.Length; i++)
+            {
+                points.Add(new Point3D(x, y + heights[i], 0));
+
+                _window_sample_need_current.AddSquare(new Point(x - bar_width_half, y), new Point(x + bar_width_half, y + heights[i]), Colors.White);
+
+                x += bar_width;
+            }
+
+            _window_sample_need_current.AddLines(points, _sizes.line, Colors.Black);
+        }
+
+        private static void EnsureWindowCreated(ref Debug3DWindow window, string title)
+        {
+            if (window == null)
+            {
+                window = new Debug3DWindow()
+                {
+                    Title = title,
+                };
+
+                window.Show();
+            }
+        }
+
+        private ControlDot GetControlDot(Point3D position, double at_total_percent, Color color)
         {
             double dot_radius = _sizes.dot * 3;
             double click_radius = dot_radius * 3;
@@ -563,6 +708,7 @@ namespace Game.Bepu.Testers
                 Translate = translate,
                 Visual = visual,
                 Color = color,
+                AtTotalPercent = at_total_percent,
             };
         }
 
@@ -587,76 +733,41 @@ namespace Game.Bepu.Testers
 
         #endregion
 
-        private void Cones_Click(object sender, RoutedEventArgs e)
+        private static (double below, double above) GetArea(Point[] points, double center_line)
         {
-            try
-            {
-                double line_thickness = 1;
 
-                double radius = line_thickness * 1.5;
-                double height = line_thickness * 4;
+            //Math2D.GetAreaPolygon();
 
-                var sizes = Debug3DWindow.GetDrawSizes(3);
+
+            var polys = SliceGraph(points, new Point(), new Vector(1, 0));
 
 
 
-                var rings = new List<TubeRingBase>();
-                rings.Add(new TubeRingRegularPolygon(0, false, radius, radius, true));
-                rings.Add(new TubeRingPoint(height, true));
-
-                var mesh = UtilityWPF.GetMultiRingedTube(6, rings, true, false);
-
-                var window = new Debug3DWindow() { Title = "Base then Tip" };
-
-                window.AddMesh(mesh, Colors.DarkKhaki);
-
-                window.AddDots(mesh.Positions.Select(o => o), sizes.dot, Colors.Black);
-
-                window.Show();
 
 
-
-                rings = new List<TubeRingBase>();
-                rings.Add(new TubeRingPoint(0, true));
-                rings.Add(new TubeRingRegularPolygon(height, false, radius, radius, true));
-
-
-                mesh = UtilityWPF.GetMultiRingedTube(6, rings, true, false);
-
-
-                window = new Debug3DWindow() { Title = "Tip then Base" };
-
-                window.AddMesh(mesh, Colors.DarkKhaki);
-
-                window.AddDots(mesh.Positions.Select(o => o), sizes.dot, Colors.Black);
-
-                window.Show();
-
-
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+            return (0, 0);
         }
-        private void Arrow_Click(object sender, RoutedEventArgs e)
+
+        /// <summary>
+        /// This will fire a line through a graph and return polygons that are above and below that line
+        /// </summary>
+        /// <param name="points"></param>
+        /// <param name="line_point"></param>
+        /// <param name="line_direction"></param>
+        /// <returns></returns>
+        private static (Point[][] below, Point[][] above) SliceGraph(Point[] points, Point line_point, Vector line_direction)
         {
-            try
+            for (int i = 0; i < points.Length - 1; i++)
             {
-                var sizes = Debug3DWindow.GetDrawSizes(1);
 
-                var window = new Debug3DWindow();
 
-                window.AddLine(new Point3D(0, -0.1, 0), new Point3D(1, -0.1, 0), sizes.line, Colors.Black);
 
-                window.AddLine(new Point3D(0, 0, 0), new Point3D(1, 0, 0), sizes.line, Colors.White, true, false);
 
-                window.Show();
+
             }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+
+            return (null, null);
         }
+
     }
 }

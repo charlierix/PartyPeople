@@ -270,7 +270,7 @@ namespace Game.Math_WPF.Mathematics
         /// <summary>
         /// This returns the minimum and maximum value (throws exception if empty list)
         /// </summary>
-        public static Tuple<double, double> MinMax(IEnumerable<double> values)
+        public static (double min, double max) MinMax(IEnumerable<double> values)
         {
             double min = double.MaxValue;
             double max = double.MinValue;
@@ -296,7 +296,7 @@ namespace Game.Math_WPF.Mathematics
                 throw new InvalidOperationException("Sequence contains no elements");       // this is the same error that .Max() gives
             }
 
-            return Tuple.Create(min, max);
+            return (min, max);
         }
 
         // I got tired of nesting min/max statements
