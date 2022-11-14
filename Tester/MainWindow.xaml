@@ -122,6 +122,7 @@
                     <ListBoxItem Content="Debug Log Viewer" MouseUp="DebugLogViewer_MouseUp"/>
                     <ListBoxItem Content="Wing Interference" MouseUp="WingInterference_MouseUp"/>
                     <ListBoxItem Content="WallJump Config" MouseUp="WallJumpConfig_MouseUp"/>
+                    <ListBoxItem Content="Curve Fitting" MouseUp="CurveFitting_MouseUp"/>
                 </ListBox>
             </StackPanel>
         </WrapPanel>

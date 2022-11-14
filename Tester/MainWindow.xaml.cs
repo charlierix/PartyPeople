@@ -98,5 +98,9 @@ namespace Game.Tester
         {
             new Game.Bepu.Testers.WallJumpConfig().Show();
         }
+        private void CurveFitting_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.CurveFitting().Show();
+        }
     }
 }
