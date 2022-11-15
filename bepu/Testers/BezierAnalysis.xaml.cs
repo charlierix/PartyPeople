@@ -607,7 +607,7 @@ namespace Game.Bepu.Testers
             double mid_weight = max_weight / 2;
 
             // this isn't right, it's not about values above and below, it should be area above and below
-            var adjusted = weighted.
+            var adjusted_average = weighted.
                 Select(o => new
                 {
                     o.heat,
@@ -626,11 +626,27 @@ namespace Game.Bepu.Testers
         }
         private void RefreshBezier_NeedCurrent_Need(BezierUtil.CurvatureSample[] heatmap, double graph_height_half, double y)
         {
+            // max_dist of .15 is a fairly tight pinch
+            // .25 is really tight
+            // I think .2 is a good standard max
+
+            // Need to define a curve that approaches 1
 
 
+            // -------- Get Weight --------
+            // run the Dist_From_NegOne through the curve function to get a weight
 
 
+            // -------- Get slice line --------
+            // find a line the cuts the weighted curve in half, so that the same amount of area is above and below
 
+
+            // -------- Recenter --------
+            // shift the weights so the slice line is at y=0
+
+
+            // -------- Draw --------
+            // draw as bar and line graph
 
         }
         private void RefreshBezier_NeedCurrent_Current(BezierSegment3D_wpf stretch_transform, double graph_height_half, double y)
@@ -731,8 +747,6 @@ namespace Game.Bepu.Testers
             return new BezierSegment3D_wpf(bezier.EndPoint0, bezier.EndPoint1, control_points.ToArray());
         }
 
-        #endregion
-
         private static (double below, double above) GetArea(Point[] points, double center_line)
         {
 
@@ -751,10 +765,6 @@ namespace Game.Bepu.Testers
         /// <summary>
         /// This will fire a line through a graph and return polygons that are above and below that line
         /// </summary>
-        /// <param name="points"></param>
-        /// <param name="line_point"></param>
-        /// <param name="line_direction"></param>
-        /// <returns></returns>
         private static (Point[][] below, Point[][] above) SliceGraph(Point[] points, Point line_point, Vector line_direction)
         {
             for (int i = 0; i < points.Length - 1; i++)
@@ -769,5 +779,6 @@ namespace Game.Bepu.Testers
             return (null, null);
         }
 
+        #endregion
     }
 }
