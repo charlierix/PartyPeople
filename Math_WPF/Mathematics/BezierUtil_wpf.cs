@@ -373,20 +373,20 @@ namespace Game.Math_WPF.Mathematics
         /// True: The assumption is that ends[0] and ends[len-1] aren't the same point.  This will add an extra segment to create a closed curve.
         /// False: This method compares ends[0] and ends[len-1].  If they are the same point, it makes a closed curve.  If they are different, it makes an open curve.
         /// </param>
-        public static BezierSegment3D_wpf[] GetBezierSegments(Point3D[] ends, double along = .25, bool isClosed = false)
+        public static BezierSegment3D_wpf[] GetBezierSegments(Point3D[] ends, double along = .25, bool isClosed = false, double[] sample_ratios = null)
         {
             if (isClosed)
-                return GetBezierSegments_Closed(ends, along);
+                return GetBezierSegments_Closed(ends, along, sample_ratios);
 
             if (ends.Length > 2 && Math3D.IsNearValue(ends[0], ends[ends.Length - 1]))
             {
                 Point3D[] endsClosed = new Point3D[ends.Length - 1];
                 Array.Copy(ends, endsClosed, ends.Length - 1);
-                return GetBezierSegments_Closed(endsClosed, along);       // remove the last point, which is redundant
+                return GetBezierSegments_Closed(endsClosed, along, sample_ratios);       // remove the last point, which is redundant
             }
             else
             {
-                return GetBezierSegments_Open(ends, along);
+                return GetBezierSegments_Open(ends, along, sample_ratios);
             }
         }
 
@@ -709,20 +709,28 @@ namespace Game.Math_WPF.Mathematics
 
         #region Private Methods
 
-        private static BezierSegment3D_wpf[] GetBezierSegments_Closed(Point3D[] ends, double along = .25)
+        private static BezierSegment3D_wpf[] GetBezierSegments_Closed(Point3D[] ends, double along = .25, double[] sample_ratios = null)
         {
             //NOTE: The difference between closed and open is closed has one more segment that loops back to zero (and a control point for point zero)
+
+            if (sample_ratios != null && sample_ratios.Length != ends.Length)
+                throw new ApplicationException($"Invalid sample_ratios length: {sample_ratios.Length}.  Must be {ends.Length}");
+
+            if (sample_ratios == null)
+                sample_ratios = Enumerable.Range(0, ends.Length).
+                    Select(o => 1d).
+                    ToArray();
 
             // Precalculate the control points
             var controls = new (Point3D, Point3D)[ends.Length - 1];
 
-            for (int cntr = 1; cntr < ends.Length; cntr++)
+            for (int i = 1; i < ends.Length; i++)
             {
-                int lastIndex = cntr == ends.Length - 1 ? 0 : cntr + 1;
+                int lastIndex = i == ends.Length - 1 ? 0 : i + 1;
 
-                var adjustedAlong = GetAdjustedRatios(ends[cntr - 1], ends[cntr], ends[lastIndex], along);
+                var adjustedAlong = GetAdjustedRatios(ends[i - 1], ends[i], ends[lastIndex], along);
 
-                controls[cntr - 1] = GetControlPoints_Middle(ends[cntr - 1], ends[cntr], ends[lastIndex], adjustedAlong.Item1, adjustedAlong.Item2);
+                controls[i - 1] = GetControlPoints_Middle(ends[i - 1], ends[i], ends[lastIndex], adjustedAlong.Item1, adjustedAlong.Item2);
             }
 
             var adjustedAlong2 = GetAdjustedRatios(ends[ends.Length - 1], ends[0], ends[1], along);
@@ -731,39 +739,47 @@ namespace Game.Math_WPF.Mathematics
             // Build the return segments
             BezierSegment3D_wpf[] retVal = new BezierSegment3D_wpf[ends.Length];
 
-            for (int cntr = 0; cntr < ends.Length; cntr++)
+            for (int i = 0; i < ends.Length; i++)
             {
-                Point3D? ctrl0 = cntr == 0 ? extraControl.Item2 : controls[cntr - 1].Item2;
-                Point3D? ctrl1 = cntr == ends.Length - 1 ? extraControl.Item1 : controls[cntr].Item1;
+                Point3D? ctrl0 = i == 0 ? extraControl.Item2 : controls[i - 1].Item2;
+                Point3D? ctrl1 = i == ends.Length - 1 ? extraControl.Item1 : controls[i].Item1;
 
-                int lastIndex = cntr == ends.Length - 1 ? 0 : cntr + 1;
+                int lastIndex = i == ends.Length - 1 ? 0 : i + 1;
 
-                retVal[cntr] = new BezierSegment3D_wpf(cntr, lastIndex, UtilityCore.Iterate<Point3D>(ctrl0, ctrl1).ToArray(), ends);
+                retVal[i] = new BezierSegment3D_wpf(i, lastIndex, UtilityCore.Iterate<Point3D>(ctrl0, ctrl1).ToArray(), ends, sample_ratios[i]);
             }
 
             return retVal;
         }
-        private static BezierSegment3D_wpf[] GetBezierSegments_Open(Point3D[] ends, double along = .25)
+        private static BezierSegment3D_wpf[] GetBezierSegments_Open(Point3D[] ends, double along = .25, double[] sample_ratios = null)
         {
+            if (sample_ratios != null && sample_ratios.Length != ends.Length - 1)
+                throw new ApplicationException($"Invalid sample_ratios length: {sample_ratios.Length}.  Must be {ends.Length - 1}");
+
+            if (sample_ratios == null)
+                sample_ratios = Enumerable.Range(0, ends.Length - 1).
+                    Select(o => 1d).
+                    ToArray();
+
             // Precalculate the control points
             var controls = new (Point3D, Point3D)[ends.Length - 2];
 
-            for (int cntr = 1; cntr < ends.Length - 1; cntr++)
+            for (int i = 1; i < ends.Length - 1; i++)
             {
-                var adjustedAlong = GetAdjustedRatios(ends[cntr - 1], ends[cntr], ends[cntr + 1], along);
+                var adjustedAlong = GetAdjustedRatios(ends[i - 1], ends[i], ends[i + 1], along);
 
-                controls[cntr - 1] = GetControlPoints_Middle(ends[cntr - 1], ends[cntr], ends[cntr + 1], adjustedAlong.Item1, adjustedAlong.Item2);
+                controls[i - 1] = GetControlPoints_Middle(ends[i - 1], ends[i], ends[i + 1], adjustedAlong.Item1, adjustedAlong.Item2);
             }
 
             // Build the return segments
             BezierSegment3D_wpf[] retVal = new BezierSegment3D_wpf[ends.Length - 1];
 
-            for (int cntr = 0; cntr < ends.Length - 1; cntr++)
+            for (int i = 0; i < ends.Length - 1; i++)
             {
-                Point3D? ctrl0 = cntr == 0 ? (Point3D?)null : controls[cntr - 1].Item2;
-                Point3D? ctrl1 = cntr == ends.Length - 2 ? (Point3D?)null : controls[cntr].Item1;
+                Point3D? ctrl0 = i == 0 ? (Point3D?)null : controls[i - 1].Item2;
+                Point3D? ctrl1 = i == ends.Length - 2 ? (Point3D?)null : controls[i].Item1;
 
-                retVal[cntr] = new BezierSegment3D_wpf(cntr, cntr + 1, UtilityCore.Iterate<Point3D>(ctrl0, ctrl1).ToArray(), ends);
+                retVal[i] = new BezierSegment3D_wpf(i, i + 1, UtilityCore.Iterate<Point3D>(ctrl0, ctrl1).ToArray(), ends, sample_ratios[i]);
             }
 
             return retVal;
@@ -1206,7 +1222,7 @@ namespace Game.Math_WPF.Mathematics
         public BezierSegment3D_wpf(Point3D end0, Point3D end1, Point3D[] controlPoints)
             : this(0, 1, controlPoints, new[] { end0, end1 }) { }
 
-        public BezierSegment3D_wpf(int endIndex0, int endIndex1, Point3D[] controlPoints, Point3D[] allEndPoints)
+        public BezierSegment3D_wpf(int endIndex0, int endIndex1, Point3D[] controlPoints, Point3D[] allEndPoints, double sample_count_mult = 1)
         {
             EndIndex0 = endIndex0;
             EndIndex1 = endIndex1;
@@ -1215,7 +1231,7 @@ namespace Game.Math_WPF.Mathematics
 
             Combined = UtilityCore.Iterate<Point3D>(EndPoint0, ControlPoints, EndPoint1).ToArray();
 
-            var analyze = AnalyzeCurve(allEndPoints[endIndex0], allEndPoints[endIndex1], controlPoints, Combined);
+            var analyze = AnalyzeCurve(allEndPoints[endIndex0], allEndPoints[endIndex1], controlPoints, Combined, GetSampleCount(sample_count_mult));
             Length_quick = analyze.length_quick;
             Percents = analyze.percents;
             Lengths = analyze.lengths;
@@ -1277,7 +1293,14 @@ namespace Game.Math_WPF.Mathematics
 
         #region Private Methods
 
-        private static ((double input, double output)[] percents, double[] lengths, double length_quick, Point3D[] samples) AnalyzeCurve(Point3D end0, Point3D end1, Point3D[] controlPoints, Point3D[] combined)
+        private static int GetSampleCount(double? mult)
+        {
+            const int DEFAULT = 12;
+
+            return (DEFAULT * (mult ?? 1)).ToInt_Ceiling();
+        }
+
+        private static ((double input, double output)[] percents, double[] lengths, double length_quick, Point3D[] samples) AnalyzeCurve(Point3D end0, Point3D end1, Point3D[] controlPoints, Point3D[] combined, int count)
         {
             if (controlPoints == null || controlPoints.Length == 0)     // just a regular line segment
             {
@@ -1294,7 +1317,7 @@ namespace Game.Math_WPF.Mathematics
                 );
             }
 
-            Point3D[] samples = BezierUtil.GetPoints(12, combined);
+            Point3D[] samples = BezierUtil.GetPoints(count, combined);
 
             double[] lengths = GetSegmentLengths(samples);
 
