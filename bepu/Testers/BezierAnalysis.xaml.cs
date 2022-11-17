@@ -482,6 +482,9 @@ namespace Game.Bepu.Testers
 
                 int total_count = 48;
 
+
+
+                // --------------------------------------------------------------
                 double total_length = beziers_initial.Sum(o => o.Length_quick);
 
                 double[] ratios = beziers_initial.
@@ -513,6 +516,11 @@ namespace Game.Bepu.Testers
                 }
 
                 Point3D[] samples_final = GetSamples(beziers_initial, counts, is_closed);
+                // --------------------------------------------------------------
+
+
+
+
 
                 Point3D[] samples_initial = BezierUtil.GetPoints_UniformDistribution(total_count, beziers_initial);
 
@@ -557,176 +565,74 @@ namespace Game.Bepu.Testers
                 MessageBox.Show(ex.ToString(), this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
-        #endregion
-
-        private static void AddCountToSegment(ref int current_count, int[] counts, AdjustmentDensity[] densities)
+        private void SimpleClick3_Click(object sender, RoutedEventArgs e)
         {
-            // In this case, add to the one with the lowest density
-            var best = densities.
-                OrderBy(o => o.Density_Current).
-                ToArray();
-
-            //var best = densities.
-            //    OrderBy(o => o.Density_Plus).
-            //    ToArray();
-
-            //var projections = Enumerable.Range(0, densities.Length).
-            //    Select(o => densities.
-            //        Select(p => new
-            //        {
-            //            item = p,
-            //            density = p.Index == o ?
-            //                p.Density_Plus :
-            //                p.Density_Current,
-            //        }).
-            //        OrderBy(p => p.density).
-            //        ToArray()).
-            //    Select((o,i) => new
-            //    {
-            //        index = i,
-            //        count_prev = counts[i],
-            //        count_new = counts[i] + 1,
-            //        projected_densities = o,
-            //        gap = o[^1].density - o[0].density,
-            //    }).
-            //    OrderBy(o => o.gap).
-            //    ToArray();
-
-
-            //var window = new Debug3DWindow();
-
-            //var graphs = projections.
-            //    Select(o => Debug3DWindow.GetGraph(o.projected_densities.Select(p => p.density).ToArray(), o.index.ToString())).
-            //    ToArray();
-
-            //window.AddGraphs(graphs, new Point3D(), 1);
-
-            //window.Show();
-
-            //counts[projections[0].index]++;
-
-
-            counts[best[0].Index]++;
-            current_count++;
-        }
-        private static void RemoveCountFromSegment(ref int current_count, int[] counts, AdjustmentDensity[] densities)
-        {
-            //var best = densities.
-            //    OrderByDescending(o => o.Density_Current).
-            //    ToArray();
-
-            // In this case, use the one that after removing, it's still the highest density (it's the segment that will have the least impact of removal)
-            //NO: need to use aspects of the projected query
-            //var best = densities.
-            //    OrderByDescending(o => o.Density_Minus).        
-            //    ToArray();
-
-
-            //var projections = Enumerable.Range(0, densities.Length).
-            //    Select(o => densities.
-            //        Select(p => new
-            //        {
-            //            item = p,
-            //            density = p.Index == o ?
-            //                p.Density_Minus :
-            //                p.Density_Current,
-            //        }).
-            //        OrderByDescending(p => p.density).
-            //        ToArray()).
-            //    Select((o, i) => new
-            //    {
-            //        index = i,
-            //        count_prev = counts[i],
-            //        count_new = counts[i] - 1,
-            //        projected_densities = o,
-            //        gap = o[0].density - o[^1].density,
-            //    }).
-            //    OrderBy(o => o.gap).
-            //    ToArray();
-
-
-            //var window = new Debug3DWindow();
-
-            //var graphs = projections.
-            //    Select(o => Debug3DWindow.GetGraph(o.projected_densities.Select(p => p.density).ToArray(), o.index.ToString())).
-            //    ToArray();
-
-            //window.AddGraphs(graphs, new Point3D(), 1);
-
-            //window.Show();
-
-            //counts[projections[0].index]--;
-
-
-            //counts[best[0].Index]--;
-
-
-
-            var projections = Enumerable.Range(0, densities.Length).
-                Select(o => densities.
-                    Select(p => new
-                    {
-                        item = p,
-                        density = p.Index == o ?
-                            p.Density_Minus :
-                            p.Density_Current,
-                    }).
-                    OrderByDescending(p => p.density).
-                    ToArray()).
-                Select((o,i) => new
-                {
-                    index = i,
-                    projected_densities = o,
-                    lowest_density = o.Min(p => p.density),
-                }).
-                OrderByDescending(o => o.lowest_density).
-                ToArray();
-
-
-
-
-
-            counts[projections[0].index]--;
-            current_count--;
-        }
-
-        private static Point3D[] GetSamples(BezierSegment3D_wpf[] beziers, int[] counts, bool is_closed)
-        {
-            var retVal = new List<Point3D>();
-
-            for (int i = 0; i < beziers.Length; i++)
+            try
             {
-                int count_adjusted = counts[i];
-                bool take_first = true;
-
-                if (i > 0)  // || is_closed)        // turns out the first point of the first segment is needed
+                if (!int.TryParse(txtNumSegments.Text, out int count))
                 {
-                    // The first point of i is the same as the last point of i-1.  If this is closed, then the last
-                    // point of ^1 will be used as the first point of 0
-                    count_adjusted++;
-                    take_first = false;
+                    MessageBox.Show("Couldn't parse number of segments", this.Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
                 }
 
-                Point3D[] points = BezierUtil.GetPoints(count_adjusted, beziers[i]);
+                Point3D[] endpoints = Enumerable.Range(0, count).
+                    Select(o => Math3D.GetRandomVector_Spherical(4).ToPoint()).
+                    ToArray();
 
-                if (take_first)
-                    retVal.AddRange(points);
-                else
-                    retVal.AddRange(points.Skip(1));
+                bool is_closed = StaticRandom.NextBool();
+
+                var beziers = BezierUtil.GetBezierSegments(endpoints, 0.3, is_closed);
+                int total_count = 48;
+
+                Point3D[] samples_uniform = BezierUtil.GetPoints_UniformDistribution(total_count, beziers);
+                Point3D[] samples_final = BezierUtil.GetPoints(total_count, beziers);
+
+                var window = new Debug3DWindow();
+
+                var all_samples = samples_uniform.
+                    Concat(samples_final).
+                    ToArray();
+
+                var aabb = Math3D.GetAABB(all_samples);
+                Point3D center = Math3D.GetCenter(all_samples);
+                var sizes = Debug3DWindow.GetDrawSizes(all_samples);
+
+                double offset_z = (aabb.max.Z - aabb.min.Z) / 2;
+                offset_z *= 1.2;
+
+                // Uniform
+                Vector3D offset = new Vector3D(0, 0, -offset_z);
+
+                var points = samples_uniform.
+                    Select(o => o + offset).
+                    ToArray();
+
+                if (chkShowDots.IsChecked.Value)
+                    window.AddDots(points, sizes.dot, Colors.Black);
+
+                window.AddLines(points, sizes.line, Colors.Yellow);
+
+                // Final
+                offset = new Vector3D(0, 0, offset_z);
+
+                points = samples_final.
+                    Select(o => o + offset).
+                    ToArray();
+
+                if (chkShowDots.IsChecked.Value)
+                    window.AddDots(points, sizes.dot, Colors.Black);
+
+                window.AddLines(points, sizes.line, Colors.White);
+
+                window.Show();
             }
-
-            return retVal.ToArray();
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private record AdjustmentDensity
-        {
-            public int Index { get; init; }
-
-            public double Density_Minus { get; init; }
-            public double Density_Current { get; init; }
-            public double Density_Plus { get; init; }
-        }
+        #endregion
 
         #region Private Methods
 
@@ -1227,6 +1133,176 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+        #region Private Methods - simple fix
 
+        private static void AddCountToSegment(ref int current_count, int[] counts, AdjustmentDensity[] densities)
+        {
+            // In this case, add to the one with the lowest density
+            var best = densities.
+                OrderBy(o => o.Density_Current).
+                ToArray();
+
+            //var best = densities.
+            //    OrderBy(o => o.Density_Plus).
+            //    ToArray();
+
+            //var projections = Enumerable.Range(0, densities.Length).
+            //    Select(o => densities.
+            //        Select(p => new
+            //        {
+            //            item = p,
+            //            density = p.Index == o ?
+            //                p.Density_Plus :
+            //                p.Density_Current,
+            //        }).
+            //        OrderBy(p => p.density).
+            //        ToArray()).
+            //    Select((o,i) => new
+            //    {
+            //        index = i,
+            //        count_prev = counts[i],
+            //        count_new = counts[i] + 1,
+            //        projected_densities = o,
+            //        gap = o[^1].density - o[0].density,
+            //    }).
+            //    OrderBy(o => o.gap).
+            //    ToArray();
+
+
+            //var window = new Debug3DWindow();
+
+            //var graphs = projections.
+            //    Select(o => Debug3DWindow.GetGraph(o.projected_densities.Select(p => p.density).ToArray(), o.index.ToString())).
+            //    ToArray();
+
+            //window.AddGraphs(graphs, new Point3D(), 1);
+
+            //window.Show();
+
+            //counts[projections[0].index]++;
+
+
+            counts[best[0].Index]++;
+            current_count++;
+        }
+        private static void RemoveCountFromSegment(ref int current_count, int[] counts, AdjustmentDensity[] densities)
+        {
+            //var best = densities.
+            //    OrderByDescending(o => o.Density_Current).
+            //    ToArray();
+
+            // In this case, use the one that after removing, it's still the highest density (it's the segment that will have the least impact of removal)
+            //NO: need to use aspects of the projected query
+            //var best = densities.
+            //    OrderByDescending(o => o.Density_Minus).        
+            //    ToArray();
+
+
+            //var projections = Enumerable.Range(0, densities.Length).
+            //    Select(o => densities.
+            //        Select(p => new
+            //        {
+            //            item = p,
+            //            density = p.Index == o ?
+            //                p.Density_Minus :
+            //                p.Density_Current,
+            //        }).
+            //        OrderByDescending(p => p.density).
+            //        ToArray()).
+            //    Select((o, i) => new
+            //    {
+            //        index = i,
+            //        count_prev = counts[i],
+            //        count_new = counts[i] - 1,
+            //        projected_densities = o,
+            //        gap = o[0].density - o[^1].density,
+            //    }).
+            //    OrderBy(o => o.gap).
+            //    ToArray();
+
+
+            //var window = new Debug3DWindow();
+
+            //var graphs = projections.
+            //    Select(o => Debug3DWindow.GetGraph(o.projected_densities.Select(p => p.density).ToArray(), o.index.ToString())).
+            //    ToArray();
+
+            //window.AddGraphs(graphs, new Point3D(), 1);
+
+            //window.Show();
+
+            //counts[projections[0].index]--;
+
+
+            //counts[best[0].Index]--;
+
+
+
+            var projections = Enumerable.Range(0, densities.Length).
+                Select(o => densities.
+                    Select(p => new
+                    {
+                        item = p,
+                        density = p.Index == o ?
+                            p.Density_Minus :
+                            p.Density_Current,
+                    }).
+                    OrderByDescending(p => p.density).
+                    ToArray()).
+                Select((o, i) => new
+                {
+                    index = i,
+                    projected_densities = o,
+                    lowest_density = o.Min(p => p.density),
+                }).
+                OrderByDescending(o => o.lowest_density).
+                ToArray();
+
+
+
+
+
+            counts[projections[0].index]--;
+            current_count--;
+        }
+
+        private static Point3D[] GetSamples(BezierSegment3D_wpf[] beziers, int[] counts, bool is_closed)
+        {
+            var retVal = new List<Point3D>();
+
+            for (int i = 0; i < beziers.Length; i++)
+            {
+                int count_adjusted = counts[i];
+                bool take_first = true;
+
+                if (i > 0)  // || is_closed)        // turns out the first point of the first segment is needed
+                {
+                    // The first point of i is the same as the last point of i-1.  If this is closed, then the last
+                    // point of ^1 will be used as the first point of 0
+                    count_adjusted++;
+                    take_first = false;
+                }
+
+                Point3D[] points = BezierUtil.GetPoints(count_adjusted, beziers[i]);
+
+                if (take_first)
+                    retVal.AddRange(points);
+                else
+                    retVal.AddRange(points.Skip(1));
+            }
+
+            return retVal.ToArray();
+        }
+
+        private record AdjustmentDensity
+        {
+            public int Index { get; init; }
+
+            public double Density_Minus { get; init; }
+            public double Density_Current { get; init; }
+            public double Density_Plus { get; init; }
+        }
+
+        #endregion
     }
 }

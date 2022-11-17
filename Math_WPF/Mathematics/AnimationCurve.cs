@@ -175,7 +175,7 @@ namespace Game.Math_WPF.Mathematics
             // Get more samples than the keyvalues
             int count = Math.Min((total_len_keys / key_distances[0]) * 16, 144).ToInt_Ceiling();
 
-            return BezierUtil.GetPoints_UniformDistribution(count, bezier).
+            return BezierUtil.GetPoints(count, bezier).
                 Select(o => (o.X, o.Y)).
                 ToArray();
         }

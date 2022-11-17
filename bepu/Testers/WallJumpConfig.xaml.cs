@@ -322,7 +322,7 @@ namespace Game.Bepu.Testers
                 window.AddLines(points, sizes.line, Colors.White);
 
                 if (anim.NumPoints > 2)
-                    window.AddLines(BezierUtil.GetPoints_UniformDistribution(144, anim.Bezier), sizes.line * 0.5, Colors.DodgerBlue);
+                    window.AddLines(BezierUtil.GetPoints(144, anim.Bezier), sizes.line * 0.5, Colors.DodgerBlue);
 
                 //foreach(var point in points)
                 //{

@@ -84,6 +84,18 @@ namespace Game.Math_WPF.Mathematics
         }
 
         #endregion
+        #region record: AdjustmentDensity
+
+        private record AdjustmentDensity
+        {
+            public int Index { get; init; }
+
+            public double Density_Minus { get; init; }
+            public double Density_Current { get; init; }
+            public double Density_Plus { get; init; }
+        }
+
+        #endregion
 
         // Get points along the curve
         public static Point3D[] GetPoints(int count, Point3D from, Point3D control, Point3D to)
@@ -128,15 +140,60 @@ namespace Game.Math_WPF.Mathematics
             return GetPoints(count, UtilityCore.Iterate<Point3D>(segment.EndPoint0, segment.ControlPoints, segment.EndPoint1).ToArray());
         }
 
-
         /// <summary>
-        /// Returns points across several segment definitions.  count is the total number of sample points to return
+        /// Returns points across several segment definitions (linked together into a single path).  count is the total number of sample points to return
         /// </summary>
         /// <remarks>
-        /// This assumes that the segments are linked together into a single path
+        /// This bunches the points up at pinched curves and has fewer points along straight lines
         /// 
-        /// If the first and last point of segments are the same, then this will only return that shared point once (but the point count
-        /// will still be how many were requested
+        /// For the most part this works well, but sometimes there is a noticable change in point density when
+        /// moving from one bezier segment to the next.  I think this is from segments having different lengths
+        /// combined with how the control points of each segment are....???  Idk, something related to that
+        /// 
+        /// I went down a rabbit hole trying to fix it, ended up just redistributing how many of the total count
+        /// each segment gets based on its length compared to total length.  Not perfect, but simple fix, fast
+        /// to compute, generally good enough
+        /// </remarks>
+        public static Point3D[] GetPoints(int count, BezierSegment3D_wpf[] segments)
+        {
+            double total_length = segments.Sum(o => o.Length_quick);
+
+            double[] ratios = segments.
+                Select(o => o.Length_quick / total_length).
+                ToArray();
+
+            var counts = ratios.
+                Select(o => (count * o).ToInt_Round()).
+                ToArray();
+
+            int current_count = counts.Sum();
+
+            while (current_count != count)
+            {
+                var densities = Enumerable.Range(0, segments.Length).
+                    Select(o => new AdjustmentDensity()
+                    {
+                        Index = o,
+                        Density_Minus = (counts[o] - 1) / segments[o].Length_quick,
+                        Density_Current = counts[o] / segments[o].Length_quick,
+                        Density_Plus = (counts[o] + 1) / segments[o].Length_quick,
+                    }).
+                    ToArray();
+
+                if (current_count < count)
+                    AddCountToSegment(ref current_count, counts, densities);
+                else
+                    RemoveCountFromSegment(ref current_count, counts, densities);
+            }
+
+            return GetSamples(segments, counts);
+        }
+        /// <summary>
+        /// Returns points across several segment definitions (linked together into a single path).  count is the total number of sample points to return
+        /// </summary>
+        /// <remarks>
+        /// The points are evenly distributed (line segment length between two points is the same).  This looks good for
+        /// sweeping curves, but pinched curves don't have enough points at the pinch point and look jagged
         /// </remarks>
         public static Point3D[] GetPoints_UniformDistribution(int count, BezierSegment3D_wpf[] segments)
         {
@@ -156,9 +213,6 @@ namespace Game.Math_WPF.Mathematics
 
             return retVal;
         }
-
-
-
 
         /// <summary>
         /// Returns points across sets of segment definition.  Each set is run through the other path overload.  So the endpoints
@@ -180,7 +234,7 @@ namespace Game.Math_WPF.Mathematics
                 }
                 else
                 {
-                    perPathPoints.Add(GetPoints_UniformDistribution(countPerPath, segments));
+                    perPathPoints.Add(GetPoints(countPerPath, segments));
                 }
             }
 
@@ -769,7 +823,7 @@ namespace Game.Math_WPF.Mathematics
         {
             // Get samples of the horizontals
             Point3D[][] horizontalPoints = horizontals.
-                Select(o => GetPoints_UniformDistribution(horzCount, o)).
+                Select(o => GetPoints(horzCount, o)).
                 ToArray();
 
             // Get samples of the verticals (these are the final points)
@@ -798,7 +852,7 @@ namespace Game.Math_WPF.Mathematics
                     // Turn those sample points into a vertical bezier
                     BezierSegment3D_wpf[] vertSegments = GetBezierSegments(samples, controlPointPercent);
 
-                    Point3D[] vertLine = GetPoints_UniformDistribution(vertCount, vertSegments);
+                    Point3D[] vertLine = GetPoints(vertCount, vertSegments);
 
                     retVal.Add(vertLine);
                 }
@@ -1106,6 +1160,167 @@ namespace Game.Math_WPF.Mathematics
                     Percent_Total = total_percents[o].Total_Percent,
                 }).
                 ToArray();
+        }
+
+        private static void AddCountToSegment(ref int current_count, int[] counts, AdjustmentDensity[] densities)
+        {
+            // In this case, add to the one with the lowest density
+            var best = densities.
+                OrderBy(o => o.Density_Current).
+                ToArray();
+
+            #region NOPE
+
+            //var best = densities.
+            //    OrderBy(o => o.Density_Plus).
+            //    ToArray();
+
+            //var projections = Enumerable.Range(0, densities.Length).
+            //    Select(o => densities.
+            //        Select(p => new
+            //        {
+            //            item = p,
+            //            density = p.Index == o ?
+            //                p.Density_Plus :
+            //                p.Density_Current,
+            //        }).
+            //        OrderBy(p => p.density).
+            //        ToArray()).
+            //    Select((o,i) => new
+            //    {
+            //        index = i,
+            //        count_prev = counts[i],
+            //        count_new = counts[i] + 1,
+            //        projected_densities = o,
+            //        gap = o[^1].density - o[0].density,
+            //    }).
+            //    OrderBy(o => o.gap).
+            //    ToArray();
+
+
+            //var window = new Debug3DWindow();
+
+            //var graphs = projections.
+            //    Select(o => Debug3DWindow.GetGraph(o.projected_densities.Select(p => p.density).ToArray(), o.index.ToString())).
+            //    ToArray();
+
+            //window.AddGraphs(graphs, new Point3D(), 1);
+
+            //window.Show();
+
+            //counts[projections[0].index]++;
+
+            #endregion
+
+            counts[best[0].Index]++;
+            current_count++;
+        }
+        private static void RemoveCountFromSegment(ref int current_count, int[] counts, AdjustmentDensity[] densities)
+        {
+            #region NOPE
+
+            //var best = densities.
+            //    OrderByDescending(o => o.Density_Current).
+            //    ToArray();
+
+            // In this case, use the one that after removing, it's still the highest density (it's the segment that will have the least impact of removal)
+            //NO: need to use aspects of the projected query
+            //var best = densities.
+            //    OrderByDescending(o => o.Density_Minus).        
+            //    ToArray();
+
+            //counts[best[0].Index]--;
+
+
+
+            //var projections = Enumerable.Range(0, densities.Length).
+            //    Select(o => densities.
+            //        Select(p => new
+            //        {
+            //            item = p,
+            //            density = p.Index == o ?
+            //                p.Density_Minus :
+            //                p.Density_Current,
+            //        }).
+            //        OrderByDescending(p => p.density).
+            //        ToArray()).
+            //    Select((o, i) => new
+            //    {
+            //        index = i,
+            //        count_prev = counts[i],
+            //        count_new = counts[i] - 1,
+            //        projected_densities = o,
+            //        gap = o[0].density - o[^1].density,
+            //    }).
+            //    OrderBy(o => o.gap).
+            //    ToArray();
+
+
+            //var window = new Debug3DWindow();
+
+            //var graphs = projections.
+            //    Select(o => Debug3DWindow.GetGraph(o.projected_densities.Select(p => p.density).ToArray(), o.index.ToString())).
+            //    ToArray();
+
+            //window.AddGraphs(graphs, new Point3D(), 1);
+
+            //window.Show();
+
+            //counts[projections[0].index]--;
+
+            #endregion
+
+            // Remove the index that will have the least impact
+            var projections = Enumerable.Range(0, densities.Length).
+                Select(o => densities.
+                    Select(p => new
+                    {
+                        item = p,
+                        density = p.Index == o ?
+                            p.Density_Minus :
+                            p.Density_Current,
+                    }).
+                    OrderByDescending(p => p.density).
+                    ToArray()).
+                Select((o, i) => new
+                {
+                    index = i,
+                    projected_densities = o,        // this is what the densities look like with that single index removed
+                    lowest_density = o.Min(p => p.density),
+                }).
+                OrderByDescending(o => o.lowest_density).
+                ToArray();
+
+            counts[projections[0].index]--;
+            current_count--;
+        }
+
+        private static Point3D[] GetSamples(BezierSegment3D_wpf[] beziers, int[] counts)        //, bool is_closed)
+        {
+            var retVal = new List<Point3D>();
+
+            for (int i = 0; i < beziers.Length; i++)
+            {
+                int count_adjusted = counts[i];
+                bool take_first = true;
+
+                if (i > 0)  // || is_closed)        // turns out the first point of the first segment is needed
+                {
+                    // The first point of i is the same as the last point of i-1.  If this is closed, then the last
+                    // point of ^1 will be used as the first point of 0
+                    count_adjusted++;
+                    take_first = false;
+                }
+
+                Point3D[] points = BezierUtil.GetPoints(count_adjusted, beziers[i]);
+
+                if (take_first)
+                    retVal.AddRange(points);
+                else
+                    retVal.AddRange(points.Skip(1));
+            }
+
+            return retVal.ToArray();
         }
 
         #endregion
