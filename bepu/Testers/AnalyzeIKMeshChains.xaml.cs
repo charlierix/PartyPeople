@@ -321,7 +321,7 @@ namespace Game.Bepu.Testers
 
                 var bezierSegments = BezierUtil.GetBezierSegments(item.JointPoints);
 
-                Point3D[] bezierPoints = BezierUtil.GetPoints(36, bezierSegments);
+                Point3D[] bezierPoints = BezierUtil.GetPoints_UniformDistribution(36, bezierSegments);
 
                 var material = UtilityWPF.GetUnlitMaterial_Components(UtilityWPF.ColorFromHex(BASECOLOR));
                 item.Diffuse = material.diffuse;

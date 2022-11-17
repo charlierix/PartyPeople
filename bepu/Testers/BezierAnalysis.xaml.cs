@@ -334,8 +334,8 @@ namespace Game.Bepu.Testers
 
                 int total_count = 48;
 
-                Point3D[] samples_initial_1 = BezierUtil.GetPoints(total_count, beziers_initial);
-                Point3D[] samples_final_1 = BezierUtil.GetPoints(total_count, beziers_final);
+                Point3D[] samples_initial_1 = BezierUtil.GetPoints_UniformDistribution(total_count, beziers_initial);
+                Point3D[] samples_final_1 = BezierUtil.GetPoints_UniformDistribution(total_count, beziers_final);
 
                 var all_samples = samples_initial_1.
                     Concat(samples_final_1).
@@ -514,7 +514,7 @@ namespace Game.Bepu.Testers
 
                 Point3D[] samples_final = GetSamples(beziers_initial, counts, is_closed);
 
-                Point3D[] samples_initial = BezierUtil.GetPoints(total_count, beziers_initial);
+                Point3D[] samples_initial = BezierUtil.GetPoints_UniformDistribution(total_count, beziers_initial);
 
                 var window = new Debug3DWindow();
 
@@ -926,7 +926,7 @@ namespace Game.Bepu.Testers
         }
         private void RefreshBezier_Uniform()
         {
-            Point3D[] points = BezierUtil.GetPoints(_beziers.Length * 12, _beziers);
+            Point3D[] points = BezierUtil.GetPoints_UniformDistribution(_beziers.Length * 12, _beziers);
 
             var sizes = Debug3DWindow.GetDrawSizes(points);
 
@@ -944,7 +944,7 @@ namespace Game.Bepu.Testers
             _window_sample_stretched.AddLines(points, sizes.line, Colors.White);
 
             // Control point locations
-            points = BezierUtil.GetPoints(controls.Length + 2, _beziers);
+            points = BezierUtil.GetPoints_UniformDistribution(controls.Length + 2, _beziers);
 
             for (int i = 1; i < points.Length - 1; i++)
             {

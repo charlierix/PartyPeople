@@ -322,7 +322,7 @@ namespace Game.Bepu.Testers
                 window.AddLines(points, sizes.line, Colors.White);
 
                 if (anim.NumPoints > 2)
-                    window.AddLines(BezierUtil.GetPoints(144, anim.Bezier), sizes.line * 0.5, Colors.DodgerBlue);
+                    window.AddLines(BezierUtil.GetPoints_UniformDistribution(144, anim.Bezier), sizes.line * 0.5, Colors.DodgerBlue);
 
                 //foreach(var point in points)
                 //{
@@ -438,7 +438,7 @@ namespace Game.Bepu.Testers
         }
         private static void Heatmap2(Point3D[] endpoints, BezierSegment3D_wpf[] beziers)
         {
-            Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
+            Point3D[] uniform_samples = BezierUtil.GetPoints_UniformDistribution(beziers.Length * 12, beziers);
 
             BezierUtil.CurvatureSample[] heatmap = BezierUtil.GetCurvatureHeatmap(beziers);
             double max_dist_from_negone = heatmap.Max(o => o.Dist_From_NegOne);
@@ -491,7 +491,7 @@ namespace Game.Bepu.Testers
         }
         private static void Heatmap3(Point3D[] endpoints, BezierSegment3D_wpf[] beziers)
         {
-            Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
+            Point3D[] uniform_samples = BezierUtil.GetPoints_UniformDistribution(beziers.Length * 12, beziers);
 
             BezierUtil.CurvatureSample[] heatmap = BezierUtil.GetCurvatureHeatmap(beziers);
             double max_dist_from_negone = heatmap.Max(o => o.Dist_From_NegOne);
@@ -536,7 +536,7 @@ namespace Game.Bepu.Testers
         }
         private static void Heatmap4(Point3D[] endpoints, BezierSegment3D_wpf[] beziers)
         {
-            Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
+            Point3D[] uniform_samples = BezierUtil.GetPoints_UniformDistribution(beziers.Length * 12, beziers);
 
             BezierUtil.CurvatureSample[] heatmap = BezierUtil.GetCurvatureHeatmap(beziers);
             double max_dist_from_negone = heatmap.Max(o => o.Dist_From_NegOne);
@@ -558,7 +558,7 @@ namespace Game.Bepu.Testers
         }
         private static void Heatmap5(Point3D[] endpoints, BezierSegment3D_wpf[] beziers)
         {
-            Point3D[] uniform_samples = BezierUtil.GetPoints(beziers.Length * 12, beziers);
+            Point3D[] uniform_samples = BezierUtil.GetPoints_UniformDistribution(beziers.Length * 12, beziers);
 
             BezierUtil.CurvatureSample[] heatmap = BezierUtil.GetCurvatureHeatmap(beziers);
             double max_dist_from_negone = heatmap.Max(o => o.Dist_From_NegOne);
