@@ -30,8 +30,7 @@ namespace Game.Math_WPF.Mathematics
         #endregion
         #region record: NormalizedPosPointer
 
-        //TODO: this can be private in the final code
-        public record NormalizedPosPointer
+        private record NormalizedPosPointer
         {
             /// <summary>
             /// the index into the list that was passed in
@@ -153,17 +152,24 @@ namespace Game.Math_WPF.Mathematics
         /// I went down a rabbit hole trying to fix it, ended up just redistributing how many of the total count
         /// each segment gets based on its length compared to total length.  Not perfect, but simple fix, fast
         /// to compute, generally good enough
+        /// 
+        /// -------- Ideas for improvement --------
+        /// 1: bool allow_filler_points = false (quick, but may have a few more than the count that was passed in)
+        /// Look at the segments before and after a bezier segment boundry.  If their relative lengths are larger than some threshold,
+        /// add a filler point in the longer segment
+        /// 
+        /// 2: Need based population (slower execution, but should give a cleaner output)
+        /// Privately call this function using 2/3 of the count
+        /// Get the dot product for all those points
+        /// Find the dot with the highest diff from -1 and replace the 3 points with 4 (recalculating dot products for those points)
+        /// Repeat until count is reached
         /// </remarks>
         public static Point3D[] GetPoints(int count, BezierSegment3D_wpf[] segments)
         {
             double total_length = segments.Sum(o => o.Length_quick);
 
-            double[] ratios = segments.
-                Select(o => o.Length_quick / total_length).
-                ToArray();
-
-            var counts = ratios.
-                Select(o => (count * o).ToInt_Round()).
+            var counts = segments.
+                Select(o => (count * (o.Length_quick / total_length)).ToInt_Round()).     // get close to the final count for this segment, based on the ratio of this segment's length to the total path length
                 ToArray();
 
             int current_count = counts.Sum();
@@ -962,6 +968,7 @@ namespace Game.Math_WPF.Mathematics
             // Get the total length of the curve
             double total_len = 0;
             double[] cumulative_lengths = new double[segments.Length + 1];
+
             for (int i = 1; i < segments.Length + 1; i++)
             {
                 total_len += segments[i - 1].Length_quick;
