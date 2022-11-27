@@ -297,7 +297,7 @@ namespace Game.Math_WPF.Mathematics
         }
         public static Point3D GetPoint(double percent, BezierSegment3D_wpf segment)
         {
-            return GetPoint(percent, UtilityCore.Iterate<Point3D>(segment.EndPoint0, segment.ControlPoints, segment.EndPoint1).ToArray());
+            return GetPoint(percent, segment.Combined);
         }
         /// <summary>
         /// Get a single point along the curve

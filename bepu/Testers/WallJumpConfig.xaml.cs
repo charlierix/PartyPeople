@@ -319,10 +319,24 @@ namespace Game.Bepu.Testers
 
                 window.AddLines(anim.KeyValues.Select(o => new Point3D(o.key, o.value, 0)), sizes.line * 0.25, Colors.Black);
 
-                window.AddLines(points, sizes.line, Colors.White);
+                window.AddLines(points, sizes.line * 0.75, Colors.White);
 
                 if (anim.NumPoints > 2)
                     window.AddLines(BezierUtil.GetPoints(144, anim.Bezier), sizes.line * 0.5, Colors.DodgerBlue);
+
+
+                var key_points = anim.KeyValues.
+                    Select(o => new
+                    {
+                        o.key,
+                        //value1 = anim.Evaluate_WRONG(o.key),
+                        value2 = anim.Evaluate(o.key),
+                    }).
+                    ToArray();
+
+                //window.AddDots(key_points.Select(o => new Point3D(o.key, o.value1, 0)), sizes.dot, Colors.Red);
+                window.AddDots(key_points.Select(o => new Point3D(o.key, o.value2, 0)), sizes.dot, Colors.Blue);
+
 
                 //foreach(var point in points)
                 //{
