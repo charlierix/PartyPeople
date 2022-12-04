@@ -161,12 +161,12 @@
                     </Slider.Effect>
                 </Slider>
 
-                <Label Content="Dead Zone"/>
+                <!--<Label Content="Straight Up - Zero Mult"/>
                 <Slider x:Name="trkVertical_DeadZone" Minimum="0" Maximum="90" Value="45">
                     <Slider.Effect>
                         <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#B3837F" Direction="0" ShadowDepth="0"/>
                     </Slider.Effect>
-                </Slider>
+                </Slider>-->
 
                 <Label Content="Standard"/>
                 <Slider x:Name="trkVertical_Standard" Minimum="0" Maximum="90" Value="40">

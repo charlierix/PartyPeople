@@ -1,12 +1,7 @@
 ﻿using Game.Core;
-using Game.Math_WPF.WPF;
-using Game.Math_WPF.WPF.Controls3D;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
 namespace Game.Math_WPF.Mathematics
@@ -130,7 +125,13 @@ namespace Game.Math_WPF.Mathematics
             {
                 return new Derived()
                 {
-                    Bezier = new[] { new BezierSegment3D_wpf(new Point3D(keyvalues[0].Key, keyvalues[0].Value, 0), new Point3D(keyvalues[1].Key, keyvalues[1].Value, 0), new Point3D[0]) },
+                    Bezier = new[]
+                    {
+                        new BezierSegment3D_wpf(
+                            new Point3D(keyvalues[0].Key, keyvalues[0].Value, 0),
+                            new Point3D(keyvalues[1].Key, keyvalues[1].Value, 0),
+                            new Point3D[0])
+                    },
                     Bezier_Samples = new[] { (keyvalues[0].Key, keyvalues[0].Value), (keyvalues[1].Key, keyvalues[1].Value) },
                     Min_Key = keyvalues[0].Key,
                     Max_Key = keyvalues[1].Key,
@@ -139,13 +140,13 @@ namespace Game.Math_WPF.Mathematics
                 };
             }
 
-            var bezier = BuildBezier(keyvalues);
+            var segments = BuildBezier(keyvalues);
 
             return new Derived()
             {
-                Bezier = bezier,
+                Bezier = segments,
 
-                Bezier_Samples = BuildBezierSamples(keyvalues, bezier),
+                Bezier_Samples = BuildBezierSamples(keyvalues, segments),
 
                 Min_Key = keyvalues.Min(o => o.Key),
                 Max_Key = keyvalues.Max(o => o.Key),
@@ -161,21 +162,27 @@ namespace Game.Math_WPF.Mathematics
 
             return BezierUtil.GetBezierSegments(points, 0.12);
         }
-        private static (double key, double value)[] BuildBezierSamples(KeyValuePair<double, double>[] keyvalues, BezierSegment3D_wpf[] bezier)
+        private static (double key, double value)[] BuildBezierSamples(KeyValuePair<double, double>[] keyvalues, BezierSegment3D_wpf[] segments)
         {
             double total_len_keys = keyvalues[^1].Key - keyvalues[0].Key;
 
             // Find the closest distance between keys
-            var key_distances = Enumerable.Range(0, keyvalues.Length - 1).
-                Select(o => keyvalues[o + 1].Key - keyvalues[o].Key).       // the list is already sorted
-                OrderBy(o => o).
-                Take(1).
-                ToArray();
+            double closest_key_dist = double.MaxValue;
+
+            for (int i = 0; i < keyvalues.Length - 1; i++)
+            {
+                double dist = keyvalues[i + 1].Key - keyvalues[i].Key;       // the list is already sorted
+                if (dist < closest_key_dist)
+                    closest_key_dist = dist;
+            }
+
+            if (closest_key_dist.IsNearZero())
+                closest_key_dist = 0.01;
 
             // Get more samples than the keyvalues
-            int count = Math.Min((total_len_keys / key_distances[0]) * 16, 144).ToInt_Ceiling();
+            int count = Math.Min((total_len_keys / closest_key_dist) * 16, 144).ToInt_Ceiling();
 
-            return BezierUtil.GetPoints(count, bezier).
+            return BezierUtil.GetPoints(count, segments).
                 Select(o => (o.X, o.Y)).
                 ToArray();
         }

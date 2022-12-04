@@ -69,7 +69,7 @@ namespace Game.Bepu.Testers
 
             public double Strength { get; init; }
 
-            public double Velocity_Mult { get; init; }
+            public double Velocity_Mult { get; init; }      // what was the intent with this?
 
             public double YawTurn_Percent { get; init; }
 
@@ -99,7 +99,7 @@ namespace Game.Bepu.Testers
         private const string COLOR_HORZ_INDIRECT_WALL = "ADAC58";       // sort of facing the wall
         private const string COLOR_HORZ_ALONG_WALL = "7BBDAA";       // sort of facing the wall
         private const string COLOR_VERT_STRAIGHTUP = "5AA4E0";       // this and above are fully jumping straight up
-        private const string COLOR_VERT_DEADZONE = "B3837F";     // between this and straight up is a dead zone (doesn't make sense, may need another line?)
+        //private const string COLOR_VERT_DEADZONE = "B3837F";     // between this and straight up is a dead zone (doesn't make sense, may need another line?)
         private const string COLOR_VERT_STANDARD = "30A030";
 
         private const double ARROW_LENGTH = 9;
@@ -143,7 +143,7 @@ namespace Game.Bepu.Testers
         private FrameworkElement _vert_base_arrows = null;
         private FrameworkElement _vert_wall = null;
         private RotatableLine _vert_straightup = null;
-        private RotatableLine _vert_deadzone = null;
+        //private RotatableLine _vert_deadzone = null;
         private RotatableLine _vert_standard = null;
 
         private bool _loaded = false;
@@ -258,9 +258,9 @@ namespace Game.Bepu.Testers
             try
             {
                 AnimationCurve anim = null;
-                switch (StaticRandom.Next(7))
+                //switch (StaticRandom.Next(7))
                 //switch (StaticRandom.Next(3, 6))
-                //switch (2)
+                switch (8)
                 {
                     case 0:
                         anim = new AnimationCurve();        // empty
@@ -288,6 +288,10 @@ namespace Game.Bepu.Testers
 
                     case 6:
                         anim = TestAnim_Random_Y();
+                        break;
+
+                    case 8:
+                        anim = TestAnim_HardCoded();
                         break;
 
                     default:
@@ -329,19 +333,15 @@ namespace Game.Bepu.Testers
                     Select(o => new
                     {
                         o.key,
-                        //value1 = anim.Evaluate_WRONG(o.key),
                         value2 = anim.Evaluate(o.key),
                     }).
                     ToArray();
 
-                //window.AddDots(key_points.Select(o => new Point3D(o.key, o.value1, 0)), sizes.dot, Colors.Red);
                 window.AddDots(key_points.Select(o => new Point3D(o.key, o.value2, 0)), sizes.dot, Colors.Blue);
 
 
-                //foreach(var point in points)
-                //{
-                //    window.AddDot(new Point3D(point.X, 0, -1), sizes.dot, Colors.PowderBlue);
-                //}
+                window.AddDots(anim.Bezier.SelectMany(o => o.ControlPoints), sizes.dot * 0.33, Colors.IndianRed);
+
 
                 window.Show();
             }
@@ -396,6 +396,18 @@ namespace Game.Bepu.Testers
 
                 retVal.AddKeyValue(x, y);
             }
+
+            return retVal;
+        }
+        private static AnimationCurve TestAnim_HardCoded()
+        {
+            var retVal = new AnimationCurve();
+
+            retVal.AddKeyValue(-0.24485917389393, 1.7146737575531);
+            retVal.AddKeyValue(3.1759088039398, 15.488067626953);
+            retVal.AddKeyValue(-2.7535283565521, 14.716904640198);
+            retVal.AddKeyValue(7.8685173988342, -2.3514406681061);
+            retVal.AddKeyValue(-0.10773362219334, -1.188885807991);
 
             return retVal;
         }
@@ -832,9 +844,9 @@ namespace Game.Bepu.Testers
             _vert_straightup = GetGraphic_RotateableLine(center, brush, VERT_INNER2_RADIUS, VERT_OUTER2_RADIUS, true);
             canvas_vert.Children.Add(_vert_straightup.Line);
 
-            brush = UtilityWPF.BrushFromHex(COLOR_VERT_DEADZONE);
-            _vert_deadzone = GetGraphic_RotateableLine(center, brush, VERT_INNER2_RADIUS, VERT_OUTER2_RADIUS, true);
-            canvas_vert.Children.Add(_vert_deadzone.Line);
+            //brush = UtilityWPF.BrushFromHex(COLOR_VERT_DEADZONE);
+            //_vert_deadzone = GetGraphic_RotateableLine(center, brush, VERT_INNER2_RADIUS, VERT_OUTER2_RADIUS, true);
+            //canvas_vert.Children.Add(_vert_deadzone.Line);
 
             brush = UtilityWPF.BrushFromHex(COLOR_VERT_STANDARD);
             _vert_standard = GetGraphic_RotateableLine(center, brush, VERT_INNER2_RADIUS, VERT_OUTER2_RADIUS, true);
@@ -859,11 +871,12 @@ namespace Game.Bepu.Testers
         private void RefreshImage_Vertical()
         {
             double straight_up = trkVertical_StraightUp.Value;
-            double dead_zone = Math.Min(straight_up, trkVertical_DeadZone.Value);
-            double standard = Math.Min(dead_zone, trkVertical_Standard.Value);
+            //double dead_zone = Math.Min(straight_up, trkVertical_DeadZone.Value);
+            //double standard = Math.Min(dead_zone, trkVertical_Standard.Value);
+            double standard = Math.Min(straight_up, trkVertical_Standard.Value);
 
             _vert_straightup.Rotate.Angle = 90 - straight_up;
-            _vert_deadzone.Rotate.Angle = 90 - dead_zone;
+            //_vert_deadzone.Rotate.Angle = 90 - dead_zone;
             _vert_standard.Rotate.Angle = 90 - standard;
         }
 

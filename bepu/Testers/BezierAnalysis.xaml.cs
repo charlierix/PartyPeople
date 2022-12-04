@@ -300,271 +300,271 @@ namespace Game.Bepu.Testers
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        private void SimpleClick_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (!int.TryParse(txtNumSegments.Text, out int count))
-                {
-                    MessageBox.Show("Couldn't parse number of segments", this.Title, MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+        //private void SimpleClick_Click(object sender, RoutedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        if (!int.TryParse(txtNumSegments.Text, out int count))
+        //        {
+        //            MessageBox.Show("Couldn't parse number of segments", this.Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        //            return;
+        //        }
 
-                Point3D[] endpoints = Enumerable.Range(0, count).
-                    Select(o => Math3D.GetRandomVector_Spherical(4).ToPoint()).
-                    ToArray();
+        //        Point3D[] endpoints = Enumerable.Range(0, count).
+        //            Select(o => Math3D.GetRandomVector_Spherical(4).ToPoint()).
+        //            ToArray();
 
-                bool is_closed = StaticRandom.NextBool();
+        //        bool is_closed = StaticRandom.NextBool();
 
-                var beziers_initial = BezierUtil.GetBezierSegments(endpoints, 0.3, is_closed);
+        //        var beziers_initial = BezierUtil.GetBezierSegments(endpoints, 0.3, is_closed);
 
-                //var lengths = BezierUtil.GetCumulativeLengths(beziers_initial);       // not needed for this
+        //        //var lengths = BezierUtil.GetCumulativeLengths(beziers_initial);       // not needed for this
 
-                double min = beziers_initial.Min(o => o.Length_quick);
-                double max = beziers_initial.Max(o => o.Length_quick);
+        //        double min = beziers_initial.Min(o => o.Length_quick);
+        //        double max = beziers_initial.Max(o => o.Length_quick);
 
-                double ratio = max / min;
+        //        double ratio = max / min;
 
-                double[] ratios = beziers_initial.
-                    Select(o => o.Length_quick / min).
-                    ToArray();
+        //        double[] ratios = beziers_initial.
+        //            Select(o => o.Length_quick / min).
+        //            ToArray();
 
-                var beziers_final = BezierUtil.GetBezierSegments(endpoints, 0.3, is_closed, ratios);
+        //        var beziers_final = BezierUtil.GetBezierSegments(endpoints, 0.3, is_closed, ratios);
 
 
-                int total_count = 48;
+        //        int total_count = 48;
 
-                Point3D[] samples_initial_1 = BezierUtil.GetPoints_UniformDistribution(total_count, beziers_initial);
-                Point3D[] samples_final_1 = BezierUtil.GetPoints_UniformDistribution(total_count, beziers_final);
+        //        Point3D[] samples_initial_1 = BezierUtil.GetPoints_UniformDistribution(total_count, beziers_initial);
+        //        Point3D[] samples_final_1 = BezierUtil.GetPoints_UniformDistribution(total_count, beziers_final);
 
-                var all_samples = samples_initial_1.
-                    Concat(samples_final_1).
-                    ToArray();
+        //        var all_samples = samples_initial_1.
+        //            Concat(samples_final_1).
+        //            ToArray();
 
-                var aabb = Math3D.GetAABB(all_samples);
-                Point3D center = Math3D.GetCenter(all_samples);
-                var sizes = Debug3DWindow.GetDrawSizes(all_samples);
+        //        var aabb = Math3D.GetAABB(all_samples);
+        //        Point3D center = Math3D.GetCenter(all_samples);
+        //        var sizes = Debug3DWindow.GetDrawSizes(all_samples);
 
-                double offset_x = (aabb.max.X - aabb.min.X) / 2;
-                offset_x *= 1.2;
+        //        double offset_x = (aabb.max.X - aabb.min.X) / 2;
+        //        offset_x *= 1.2;
 
-                double offset_z = (aabb.max.Z - aabb.min.Z) / 2;
-                offset_z *= 1.2;
+        //        double offset_z = (aabb.max.Z - aabb.min.Z) / 2;
+        //        offset_z *= 1.2;
 
-                var window = new Debug3DWindow();
+        //        var window = new Debug3DWindow();
 
-                // Initial 1
-                Vector3D offset = new Vector3D(-offset_x, 0, -offset_z);
+        //        // Initial 1
+        //        Vector3D offset = new Vector3D(-offset_x, 0, -offset_z);
 
-                var points = samples_initial_1.
-                    Select(o => o + offset).
-                    ToArray();
+        //        var points = samples_initial_1.
+        //            Select(o => o + offset).
+        //            ToArray();
 
-                window.AddDots(points, sizes.dot, Colors.Black);
-                window.AddLines(points, sizes.line, Colors.Yellow);
+        //        window.AddDots(points, sizes.dot, Colors.Black);
+        //        window.AddLines(points, sizes.line, Colors.Yellow);
 
-                // Final 1
-                offset = new Vector3D(-offset_x, 0, offset_z);
+        //        // Final 1
+        //        offset = new Vector3D(-offset_x, 0, offset_z);
 
-                points = samples_final_1.
-                    Select(o => o + offset).
-                    ToArray();
+        //        points = samples_final_1.
+        //            Select(o => o + offset).
+        //            ToArray();
 
-                window.AddDots(points, sizes.dot, Colors.Black);
-                window.AddLines(points, sizes.line, Colors.Yellow);
+        //        window.AddDots(points, sizes.dot, Colors.Black);
+        //        window.AddLines(points, sizes.line, Colors.Yellow);
 
 
-                double total_length = beziers_initial.Sum(o => o.Length_quick);
+        //        double total_length = beziers_initial.Sum(o => o.Length_quick);
 
-                double[] ratios2 = beziers_initial.
-                    Select(o => o.Length_quick / total_length).
-                    ToArray();
+        //        double[] ratios2 = beziers_initial.
+        //            Select(o => o.Length_quick / total_length).
+        //            ToArray();
 
 
 
-                //TODO: points get duped where beziers come together.  add extra counts in anticipation and throw out the first of each trailing segment
+        //        //TODO: points get duped where beziers come together.  add extra counts in anticipation and throw out the first of each trailing segment
 
 
-                var counts = ratios2.
-                    Select(o => (total_count * o).ToInt_Round()).
-                    ToArray();
+        //        var counts = ratios2.
+        //            Select(o => (total_count * o).ToInt_Round()).
+        //            ToArray();
 
-                int current_count = counts.Sum();
+        //        int current_count = counts.Sum();
 
-                while (current_count != total_count)
-                {
-                    var coverages = Enumerable.Range(0, counts.Length).
-                        Select(o => new
-                        {
-                            index = o,
-                            coverage = beziers_initial[o].Length_quick / counts[o],
-                        }).
-                        ToArray();
+        //        while (current_count != total_count)
+        //        {
+        //            var coverages = Enumerable.Range(0, counts.Length).
+        //                Select(o => new
+        //                {
+        //                    index = o,
+        //                    coverage = beziers_initial[o].Length_quick / counts[o],
+        //                }).
+        //                ToArray();
 
-                    if (current_count < total_count)
-                    {
-                        int index = coverages.
-                            OrderByDescending(o => o.coverage).
-                            First().
-                            index;
+        //            if (current_count < total_count)
+        //            {
+        //                int index = coverages.
+        //                    OrderByDescending(o => o.coverage).
+        //                    First().
+        //                    index;
 
-                        counts[index]++;
-                        current_count++;
-                    }
-                    else
-                    {
-                        int index = coverages.
-                            OrderBy(o => o.coverage).
-                            First().
-                            index;
+        //                counts[index]++;
+        //                current_count++;
+        //            }
+        //            else
+        //            {
+        //                int index = coverages.
+        //                    OrderBy(o => o.coverage).
+        //                    First().
+        //                    index;
 
-                        counts[index]--;
-                        current_count--;
-                    }
-                }
+        //                counts[index]--;
+        //                current_count--;
+        //            }
+        //        }
 
 
-                Point3D[] samples_final_2 = Enumerable.Range(0, beziers_initial.Length).
-                    SelectMany(o => BezierUtil.GetPoints(counts[o], beziers_initial[o])).
-                    ToArray();
+        //        Point3D[] samples_final_2 = Enumerable.Range(0, beziers_initial.Length).
+        //            SelectMany(o => BezierUtil.GetPoints(counts[o], beziers_initial[o])).
+        //            ToArray();
 
-                // Final 2
-                offset = new Vector3D(offset_x, 0, 0);
+        //        // Final 2
+        //        offset = new Vector3D(offset_x, 0, 0);
 
-                samples_final_2 = samples_final_2.
-                    Select(o => o + offset).
-                    ToArray();
+        //        samples_final_2 = samples_final_2.
+        //            Select(o => o + offset).
+        //            ToArray();
 
-                window.AddDots(samples_final_2, sizes.dot, Colors.Black);
-                window.AddLines(samples_final_2, sizes.line, Colors.White);
+        //        window.AddDots(samples_final_2, sizes.dot, Colors.Black);
+        //        window.AddLines(samples_final_2, sizes.line, Colors.White);
 
 
 
-                var analysis = samples_final_2.
-                    Select((o, i) => new
-                    {
-                        index = i,
-                        point = o,
-                    }).
-                    ToLookup(o => o.point, (p1, p2) => p1.IsNearValue(p2)).
-                    Where(o => o.Count() > 1).
-                    ToArray();
+        //        var analysis = samples_final_2.
+        //            Select((o, i) => new
+        //            {
+        //                index = i,
+        //                point = o,
+        //            }).
+        //            ToLookup(o => o.point, (p1, p2) => p1.IsNearValue(p2)).
+        //            Where(o => o.Count() > 1).
+        //            ToArray();
 
 
 
 
 
 
-                window.Show();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-        private void SimpleClick2_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (!int.TryParse(txtNumSegments.Text, out int count))
-                {
-                    MessageBox.Show("Couldn't parse number of segments", this.Title, MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
+        //        window.Show();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show(ex.ToString(), this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
+        //    }
+        //}
+        //private void SimpleClick2_Click(object sender, RoutedEventArgs e)
+        //{
+        //    try
+        //    {
+        //        if (!int.TryParse(txtNumSegments.Text, out int count))
+        //        {
+        //            MessageBox.Show("Couldn't parse number of segments", this.Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+        //            return;
+        //        }
 
-                Point3D[] endpoints = Enumerable.Range(0, count).
-                    Select(o => Math3D.GetRandomVector_Spherical(4).ToPoint()).
-                    ToArray();
+        //        Point3D[] endpoints = Enumerable.Range(0, count).
+        //            Select(o => Math3D.GetRandomVector_Spherical(4).ToPoint()).
+        //            ToArray();
 
-                bool is_closed = StaticRandom.NextBool();
+        //        bool is_closed = StaticRandom.NextBool();
 
-                var beziers_initial = BezierUtil.GetBezierSegments(endpoints, 0.3, is_closed);
+        //        var beziers_initial = BezierUtil.GetBezierSegments(endpoints, 0.3, is_closed);
 
-                int total_count = 48;
+        //        int total_count = 48;
 
 
 
-                // --------------------------------------------------------------
-                double total_length = beziers_initial.Sum(o => o.Length_quick);
+        //        // --------------------------------------------------------------
+        //        double total_length = beziers_initial.Sum(o => o.Length_quick);
 
-                double[] ratios = beziers_initial.
-                    Select(o => o.Length_quick / total_length).
-                    ToArray();
+        //        double[] ratios = beziers_initial.
+        //            Select(o => o.Length_quick / total_length).
+        //            ToArray();
 
-                var counts = ratios.
-                    Select(o => (total_count * o).ToInt_Round()).
-                    ToArray();
+        //        var counts = ratios.
+        //            Select(o => (total_count * o).ToInt_Round()).
+        //            ToArray();
 
-                int current_count = counts.Sum();
+        //        int current_count = counts.Sum();
 
-                while (current_count != total_count)
-                {
-                    var densities = Enumerable.Range(0, beziers_initial.Length).
-                        Select(o => new AdjustmentDensity()
-                        {
-                            Index = o,
-                            Density_Minus = (counts[o] - 1) / beziers_initial[o].Length_quick,
-                            Density_Current = counts[o] / beziers_initial[o].Length_quick,
-                            Density_Plus = (counts[o] + 1) / beziers_initial[o].Length_quick,
-                        }).
-                        ToArray();
+        //        while (current_count != total_count)
+        //        {
+        //            var densities = Enumerable.Range(0, beziers_initial.Length).
+        //                Select(o => new AdjustmentDensity()
+        //                {
+        //                    Index = o,
+        //                    Density_Minus = (counts[o] - 1) / beziers_initial[o].Length_quick,
+        //                    Density_Current = counts[o] / beziers_initial[o].Length_quick,
+        //                    Density_Plus = (counts[o] + 1) / beziers_initial[o].Length_quick,
+        //                }).
+        //                ToArray();
 
-                    if (current_count < total_count)
-                        AddCountToSegment(ref current_count, counts, densities);
-                    else
-                        RemoveCountFromSegment(ref current_count, counts, densities);
-                }
+        //            if (current_count < total_count)
+        //                AddCountToSegment(ref current_count, counts, densities);
+        //            else
+        //                RemoveCountFromSegment(ref current_count, counts, densities);
+        //        }
 
-                Point3D[] samples_final = GetSamples(beziers_initial, counts, is_closed);
-                // --------------------------------------------------------------
+        //        Point3D[] samples_final = GetSamples(beziers_initial, counts, is_closed);
+        //        // --------------------------------------------------------------
 
 
 
 
 
-                Point3D[] samples_initial = BezierUtil.GetPoints_UniformDistribution(total_count, beziers_initial);
+        //        Point3D[] samples_initial = BezierUtil.GetPoints_UniformDistribution(total_count, beziers_initial);
 
-                var window = new Debug3DWindow();
+        //        var window = new Debug3DWindow();
 
-                var all_samples = samples_initial.
-                    Concat(samples_final).
-                    ToArray();
+        //        var all_samples = samples_initial.
+        //            Concat(samples_final).
+        //            ToArray();
 
-                var aabb = Math3D.GetAABB(all_samples);
-                Point3D center = Math3D.GetCenter(all_samples);
-                var sizes = Debug3DWindow.GetDrawSizes(all_samples);
+        //        var aabb = Math3D.GetAABB(all_samples);
+        //        Point3D center = Math3D.GetCenter(all_samples);
+        //        var sizes = Debug3DWindow.GetDrawSizes(all_samples);
 
-                double offset_z = (aabb.max.Z - aabb.min.Z) / 2;
-                offset_z *= 1.2;
+        //        double offset_z = (aabb.max.Z - aabb.min.Z) / 2;
+        //        offset_z *= 1.2;
 
-                // Initial
-                Vector3D offset = new Vector3D(0, 0, -offset_z);
+        //        // Initial
+        //        Vector3D offset = new Vector3D(0, 0, -offset_z);
 
-                var points = samples_initial.
-                    Select(o => o + offset).
-                    ToArray();
+        //        var points = samples_initial.
+        //            Select(o => o + offset).
+        //            ToArray();
 
-                window.AddDots(points, sizes.dot, Colors.Black);
-                window.AddLines(points, sizes.line, Colors.Yellow);
+        //        window.AddDots(points, sizes.dot, Colors.Black);
+        //        window.AddLines(points, sizes.line, Colors.Yellow);
 
-                // Final
-                offset = new Vector3D(0, 0, offset_z);
+        //        // Final
+        //        offset = new Vector3D(0, 0, offset_z);
 
-                points = samples_final.
-                    Select(o => o + offset).
-                    ToArray();
+        //        points = samples_final.
+        //            Select(o => o + offset).
+        //            ToArray();
 
-                window.AddDots(points, sizes.dot, Colors.Black);
-                window.AddLines(points, sizes.line, Colors.White);
+        //        window.AddDots(points, sizes.dot, Colors.Black);
+        //        window.AddLines(points, sizes.line, Colors.White);
 
 
-                window.Show();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+        //        window.Show();
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show(ex.ToString(), this.Title, MessageBoxButton.OK, MessageBoxImage.Error);
+        //    }
+        //}
         private void SimpleClick3_Click(object sender, RoutedEventArgs e)
         {
             try

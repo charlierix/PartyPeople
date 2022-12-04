@@ -30,8 +30,8 @@
 
             <TextBox x:Name="txtNumSegments" Text="4" MinWidth="30" HorizontalAlignment="Left" ToolTip="number of bezier segments" Margin="0,16,0,0" TextChanged="txtNumSegments_TextChanged"/>
             <CheckBox IsChecked="True" x:Name="chkShowDots" Content="show dots"/>
-            <Button Visibility="Collapsed" Content="simple fix" Click="SimpleClick_Click"/>
-            <Button Visibility="Collapsed" Content="simple fix 2" Click="SimpleClick2_Click"/>
+            <!--<Button Content="simple fix" Click="SimpleClick_Click"/>-->
+            <!--<Button Content="simple fix 2" Click="SimpleClick2_Click"/>-->
             <Button Content="simple fix" Click="SimpleClick3_Click"/>
         </StackPanel>
         
