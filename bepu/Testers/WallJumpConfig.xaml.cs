@@ -20,6 +20,8 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using System.Windows.Shapes;
+using System.Text.Json;
+using System.IO;
 
 namespace Game.Bepu.Testers
 {
@@ -31,6 +33,33 @@ namespace Game.Bepu.Testers
         {
             public FrameworkElement Line { get; init; }
             public RotateTransform Rotate { get; init; }
+        }
+
+        #endregion
+        #region record: WallJumpSettings
+
+        private record WallJumpSettings
+        {
+            public WallJumpSettings_KeyValue[] straightup_vert_percent { get; init; }
+
+            public WallJumpSettings_KeyValue[] percent_vert_whenup { get; init; }
+            public WallJumpSettings_KeyValue[] percent_horz_whenup { get; init; }
+
+            public WallJumpSettings_KeyValue[] horz_percent_up { get; init; }
+            public WallJumpSettings_KeyValue[] horz_percent_along { get; init; }
+            public WallJumpSettings_KeyValue[] horz_percent_away { get; init; }
+            public WallJumpSettings_KeyValue[] horz_strength { get; init; }
+
+            public WallJumpSettings_KeyValue[] yaw_turn_percent { get; init; }
+        }
+
+        #endregion
+        #region record: WallJumpSettings_KeyValue
+
+        private record WallJumpSettings_KeyValue
+        {
+            public double key { get; init; }
+            public double value { get; init; }
         }
 
         #endregion
@@ -184,6 +213,44 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void txtFolder_PreviewDragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                e.Effects = DragDropEffects.Copy;
+            }
+            else
+            {
+                e.Effects = DragDropEffects.None;
+            }
+
+            e.Handled = true;
+        }
+        private void txtFolder_Drop(object sender, DragEventArgs e)
+        {
+            try
+            {
+                string[] filenames = e.Data.GetData(DataFormats.FileDrop) as string[];
+
+                if (filenames == null || filenames.Length == 0)
+                {
+                    MessageBox.Show("No folders selected", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                else if (filenames.Length > 1)
+                {
+                    MessageBox.Show("Only one folder allowed", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                txtFolder.Text = filenames[0];
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void HorizontalAngleSlider_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             try
@@ -246,6 +313,40 @@ namespace Game.Bepu.Testers
                 _props_horz = SetProps(_props_horz, _selected_props, props);
 
                 RefreshStrengthPlots();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void Save_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (txtFolder.Text == "")
+                {
+                    MessageBox.Show("Please select an output folder", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                else if (!Directory.Exists(txtFolder.Text))
+                {
+                    MessageBox.Show("Output folder doesn't exist", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var settings = GetSettings();
+
+                var options = new JsonSerializerOptions()
+                {
+                    WriteIndented = true,
+                };
+
+                string serialized = JsonSerializer.Serialize(settings, options);
+
+                string filename = System.IO.Path.Combine(txtFolder.Text, $"{DateTime.Now:yyyyMMdd HHmmss} - walljump.json");
+
+                File.WriteAllText(filename, serialized);
             }
             catch (Exception ex)
             {
@@ -791,6 +892,104 @@ namespace Game.Bepu.Testers
         #endregion
 
         #region Private Methods
+
+        private WallJumpSettings GetSettings()
+        {
+            var angles = Scrape_HorizontalAngles();
+
+            return new WallJumpSettings()
+            {
+                straightup_vert_percent = GetSettings_StraightUpPercent(),
+
+                percent_vert_whenup = GetSettings_PercentsWhenUp_Vert(angles),
+                percent_horz_whenup = GetSettings_PercentsWhenUp_Horz(angles),
+
+                horz_percent_up = GetSettings_KeyValues(angles, _props_horz, o => o.Percent_Up),
+                horz_percent_along = GetSettings_KeyValues(angles, _props_horz, o => o.Percent_Along),
+                horz_percent_away = GetSettings_KeyValues(angles, _props_horz, o => o.Percent_Away),
+                horz_strength = GetSettings_KeyValues(angles, _props_horz, o => o.Strength),
+
+                yaw_turn_percent = GetSettings_KeyValues(angles, _props_horz, o => o.YawTurn_Percent),
+            };
+        }
+        private WallJumpSettings_KeyValue[] GetSettings_StraightUpPercent()
+        {
+            // In the game, it uses a dot product (look dot up).  In the config, trkVertical_StraightUp has horizontal as 0 and up as 90
+
+            double vertAngle = 90 - trkVertical_StraightUp.Value;
+            double vertAngle_stop = 90 - Math1D.Avg(trkVertical_StraightUp.Value, trkVertical_Standard.Value);
+            double vertAngle_stand = 90 - trkVertical_Standard.Value;
+
+            return new (double degree, double value)[]
+            {
+                (0, 1),     // straight up
+                (vertAngle, 1),     // the lowest the angle can be to still be full percent
+                (vertAngle_stop, 0),        // where percent is zero
+                (vertAngle_stand, 0),       // an extra point to force the curve to be S shaped
+            }.
+            Select(o => new WallJumpSettings_KeyValue()
+            {
+                key = Math1D.Degrees_to_Dot(o.degree),
+                value = o.value,
+            }).
+            ToArray();
+        }
+        private WallJumpSettings_KeyValue[] GetSettings_PercentsWhenUp_Vert(HorizontalAngles angles)
+        {
+            double half = Math1D.Avg(angles.FaceWall, angles.AlongStart);
+
+            return new (double degree, double percent)[]
+            {
+                (0, 1),     // looking straight at the wall
+                (angles.FaceWall, 1),       // the start of the transition
+                (half, 0),      // halfway between, should be zero
+                (angles.AlongStart, 0),     // an extra point to force the curve to be S shaped
+                (180, 0),       // looking directly away from the wall (shouldn't be needed, just so there's no assumptions)
+            }.
+            Select(o => new WallJumpSettings_KeyValue()
+            {
+                key = Math1D.Degrees_to_Dot(o.degree),
+                value = o.percent,
+            }).
+            ToArray();
+        }
+        private WallJumpSettings_KeyValue[] GetSettings_PercentsWhenUp_Horz(HorizontalAngles angles)
+        {
+            double half = Math1D.Avg(angles.FaceWall, angles.AlongStart);
+
+            return new (double degree, double percent)[]
+            {
+                (0, 0),     // looking straight at the wall (shouldn't be needed, just so there's no assumptions)
+                (angles.FaceWall, 0),       // an extra point to force the curve to be S shaped
+                (half, 0),      // halfway between, should be zero
+                (angles.AlongStart, 1),     // the start of the transition
+                (angles.AlongEnd, 1),
+                (180, 0),       // looking directly away from the wall 
+            }.
+            Select(o => new WallJumpSettings_KeyValue()
+            {
+                key = Math1D.Degrees_to_Dot(o.degree),
+                value = o.percent,
+            }).
+            ToArray();
+        }
+        private static WallJumpSettings_KeyValue[] GetSettings_KeyValues(HorizontalAngles angles, PropsAtAllAngles props, Func<PropsAtAngle, double> getValue)
+        {
+            return new (double degree, PropsAtAngle prop)[]
+            {
+                (0, props.DirectFaceWall),
+                (angles.FaceWall, props.FaceWall),
+                (angles.AlongStart, props.AlongStart),
+                (angles.AlongEnd, props.AlongEnd),
+                (180, props.DirectAway),
+            }.
+            Select(o => new WallJumpSettings_KeyValue()
+            {
+                key = Math1D.Degrees_to_Dot(o.degree),
+                value = getValue(o.prop),
+            }).
+            ToArray();
+        }
 
         private void CreateImage_Horizontal()
         {

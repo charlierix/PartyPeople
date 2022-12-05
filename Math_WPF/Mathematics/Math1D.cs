@@ -229,6 +229,26 @@ namespace Game.Math_WPF.Mathematics
             return radians * _180_over_PI_FLOAT;
         }
 
+        public static double Dot_to_Degrees(double dot)
+        {
+            double radians = Dot_to_Radians(dot);
+            return RadiansToDegrees(radians);
+        }
+        public static double Degrees_to_Dot(double degrees)
+        {
+            double radians = DegreesToRadians(degrees);
+            return Radians_to_Dot(radians);
+        }
+
+        public static double Dot_to_Radians(double dot)
+        {
+            return Math.Acos(dot);
+        }
+        public static double Radians_to_Dot(double radians)
+        {
+            return Math.Cos(radians);
+        }
+
         /// <remarks>
         /// http://www.mathsisfun.com/data/standard-deviation.html
         /// </remarks>

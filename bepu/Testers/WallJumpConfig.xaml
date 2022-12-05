@@ -23,163 +23,178 @@
     </Window.Resources>
 
     <Grid Margin="8">
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="auto"/>
-            <ColumnDefinition Width="8"/>
-            <ColumnDefinition Width="1*"/>
-            <ColumnDefinition Width="8"/>
-            <ColumnDefinition Width="1*"/>
-        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="8"/>
+            <RowDefinition Height="1*"/>
+        </Grid.RowDefinitions>
 
-        <StackPanel Grid.Column="0">
-            <Button Content="anim" Click="Anim_Click"/>
-
-            <CheckBox x:Name="chkExtraControls" Content="extra controls" Margin="0,8,0,0"/>
-            <Button Content="curve heatmap" Click="CurveHeatmap_Click"/>
-            <Button Content="repeat prev" Click="RepeatPrev2_Click"/>
+        <StackPanel Grid.Row="0">
+            <Label Content="folder"/>
+            <TextBox x:Name="txtFolder" AllowDrop="True" PreviewDragEnter="txtFolder_PreviewDragEnter" PreviewDragOver="txtFolder_PreviewDragEnter" Drop="txtFolder_Drop"/>
         </StackPanel>
 
-        <!-- Horizontal -->
-        <Grid Grid.Column="2">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="auto"/>
-                <RowDefinition Height="8"/>
-                <RowDefinition Height="1*"/>
-                <RowDefinition Height="8"/>
-                <RowDefinition Height="auto"/>
-            </Grid.RowDefinitions>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="8"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
 
-            <StackPanel Grid.Row="0" Slider.ValueChanged="HorizontalAngleSlider_Changed">
-                <Label Content="Angles" Style="{StaticResource label_header}"/>
+            <StackPanel Grid.Column="0">
+                <Button Content="save" Click="Save_Click"/>
 
-                <!-- TODO: Don't hardcode the number/name of sliders.  Just have a list and add + - clear buttons -->
+                <Button Content="anim" Margin="0,8,0,0" Click="Anim_Click"/>
 
-                <Label Content="Facing Wall"/>
-                <Slider x:Name="trkHorizontal_DirectWall" Minimum="0" Maximum="60" Value="20">
-                    <Slider.Effect>
-                        <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#B3837F" Direction="0" ShadowDepth="0"/>
-                    </Slider.Effect>
-                </Slider>
-
-                <Label Content="Along Wall - Start"/>
-                <Slider x:Name="trkHorizontal_InDirectWall" Minimum="0" Maximum="90" Value="60">
-                    <Slider.Effect>
-                        <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#ADAC58" Direction="0" ShadowDepth="0"/>
-                    </Slider.Effect>
-                </Slider>
-
-                <Label Content="Along Wall - End"/>
-                <Slider x:Name="trkHorizontal_AlongWall" Minimum="0" Maximum="180" Value="120">
-                    <Slider.Effect>
-                        <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#7BBDAA" Direction="0" ShadowDepth="0"/>
-                    </Slider.Effect>
-                </Slider>
-
-                <Label Content="Props at Angle" Margin="0,8,0,0" Style="{StaticResource label_header}"/>
-
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="auto"/>
-                        <ColumnDefinition Width="12"/>
-                        <ColumnDefinition Width="1*"/>
-                    </Grid.ColumnDefinitions>
-
-                    <StackPanel Grid.Row="0" RadioButton.Checked="HorizontalRadio_Checked" RadioButton.Unchecked="HorizontalRadio_Checked">
-                        <RadioButton IsChecked="True" x:Name="radHorizontalRadio_DirectFaceWall" ToolTip="Directly Facing Wall">
-                            <RadioButton.Content>
-                                <Ellipse Fill="#404040" Style="{StaticResource ellipse_button}"/>
-                            </RadioButton.Content>
-                        </RadioButton>
-
-                        <RadioButton x:Name="radHorizontalRadio_FaceWall" ToolTip="Facing Wall">
-                            <RadioButton.Content>
-                                <Ellipse Fill="#B3837F" Style="{StaticResource ellipse_button}"/>
-                            </RadioButton.Content>
-                        </RadioButton>
-
-                        <RadioButton x:Name="radHorizontalRadio_AlongStart" ToolTip="Along Wall - Start">
-                            <RadioButton.Content>
-                                <Ellipse Fill="#ADAC58" Style="{StaticResource ellipse_button}"/>
-                            </RadioButton.Content>
-                        </RadioButton>
-
-                        <RadioButton x:Name="radHorizontalRadio_AlongEnd" ToolTip="Along Wall - End">
-                            <RadioButton.Content>
-                                <Ellipse Fill="#7BBDAA" Style="{StaticResource ellipse_button}"/>
-                            </RadioButton.Content>
-                        </RadioButton>
-
-                        <RadioButton x:Name="radHorizontalRadio_DirectSway" ToolTip="Directly Away From Wall">
-                            <RadioButton.Content>
-                                <Ellipse Fill="#FFFFFF" Style="{StaticResource ellipse_button}"/>
-                            </RadioButton.Content>
-                        </RadioButton>
-                    </StackPanel>
-
-                    <StackPanel Grid.Column="2" Slider.ValueChanged="PropsAtAngleSlider_Changed">
-                        <Label Content="Percent Up"/>
-                        <Slider x:Name="trkPropsAtAngle_PercentUp" Minimum="0" Maximum="1" Value="1"/>
-
-                        <Label Content="Percent Along"/>
-                        <Slider x:Name="trkPropsAtAngle_PercentAlong" Minimum="0" Maximum="1" Value="1"/>
-
-                        <Label Content="Percent Away"/>
-                        <Slider x:Name="trkPropsAtAngle_PercentAway" Minimum="0" Maximum="1" Value="1"/>
-
-                        <Label Content="Strength"/>
-                        <Slider x:Name="trkPropsAtAngle_Strength" Minimum="0" Maximum="28" Value="12"/>
-
-                        <Label Content="Velocity Multiplier"/>
-                        <Slider x:Name="trkPropsAtAngle_VelocityMult" Minimum="1" Maximum="3" Value="1"/>
-
-                        <Label Content="Yaw Turn Percent"/>
-                        <Slider x:Name="trkPropsAtAngle_YawTurnPercent" Minimum="0" Maximum="1" Value=".5"/>
-                    </StackPanel>
-                </Grid>
+                <CheckBox x:Name="chkExtraControls" Content="extra controls" Margin="0,8,0,0"/>
+                <Button Content="curve heatmap" Click="CurveHeatmap_Click"/>
+                <Button Content="repeat prev" Click="RepeatPrev2_Click"/>
             </StackPanel>
 
-            <Canvas Grid.Row="2" x:Name="canvas_horz"/>
+            <!-- Horizontal -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="8"/>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="8"/>
+                    <RowDefinition Height="auto"/>
+                </Grid.RowDefinitions>
 
-            <UniformGrid Grid.Row="4" x:Name="panel_horz_plots" Rows="2"/>
-        </Grid>
+                <StackPanel Grid.Row="0" Slider.ValueChanged="HorizontalAngleSlider_Changed">
+                    <Label Content="Angles" Style="{StaticResource label_header}"/>
 
-        <!-- Vertical -->
-        <Grid Grid.Column="4">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="auto"/>
-                <RowDefinition Height="8"/>
-                <RowDefinition Height="1*"/>
-            </Grid.RowDefinitions>
+                    <!-- TODO: Don't hardcode the number/name of sliders.  Just have a list and add + - clear buttons -->
 
-            <StackPanel Grid.Row="0" Slider.ValueChanged="VerticalAngleSlider_Changed">
-                <Label Content="Angles" Style="{StaticResource label_header}"/>
+                    <Label Content="Facing Wall"/>
+                    <Slider x:Name="trkHorizontal_DirectWall" Minimum="0" Maximum="60" Value="20">
+                        <Slider.Effect>
+                            <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#B3837F" Direction="0" ShadowDepth="0"/>
+                        </Slider.Effect>
+                    </Slider>
 
-                <Label Content="Straight Up"/>
-                <Slider x:Name="trkVertical_StraightUp" Minimum="0" Maximum="90" Value="60">
-                    <Slider.Effect>
-                        <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#5AA4E0" Direction="0" ShadowDepth="0"/>
-                    </Slider.Effect>
-                </Slider>
+                    <Label Content="Along Wall - Start"/>
+                    <Slider x:Name="trkHorizontal_InDirectWall" Minimum="0" Maximum="90" Value="60">
+                        <Slider.Effect>
+                            <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#ADAC58" Direction="0" ShadowDepth="0"/>
+                        </Slider.Effect>
+                    </Slider>
 
-                <!--<Label Content="Straight Up - Zero Mult"/>
+                    <Label Content="Along Wall - End"/>
+                    <Slider x:Name="trkHorizontal_AlongWall" Minimum="0" Maximum="180" Value="120">
+                        <Slider.Effect>
+                            <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#7BBDAA" Direction="0" ShadowDepth="0"/>
+                        </Slider.Effect>
+                    </Slider>
+
+                    <Label Content="Props at Angle" Margin="0,8,0,0" Style="{StaticResource label_header}"/>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="auto"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="1*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Row="0" RadioButton.Checked="HorizontalRadio_Checked" RadioButton.Unchecked="HorizontalRadio_Checked">
+                            <RadioButton IsChecked="True" x:Name="radHorizontalRadio_DirectFaceWall" ToolTip="Directly Facing Wall">
+                                <RadioButton.Content>
+                                    <Ellipse Fill="#404040" Style="{StaticResource ellipse_button}"/>
+                                </RadioButton.Content>
+                            </RadioButton>
+
+                            <RadioButton x:Name="radHorizontalRadio_FaceWall" ToolTip="Facing Wall">
+                                <RadioButton.Content>
+                                    <Ellipse Fill="#B3837F" Style="{StaticResource ellipse_button}"/>
+                                </RadioButton.Content>
+                            </RadioButton>
+
+                            <RadioButton x:Name="radHorizontalRadio_AlongStart" ToolTip="Along Wall - Start">
+                                <RadioButton.Content>
+                                    <Ellipse Fill="#ADAC58" Style="{StaticResource ellipse_button}"/>
+                                </RadioButton.Content>
+                            </RadioButton>
+
+                            <RadioButton x:Name="radHorizontalRadio_AlongEnd" ToolTip="Along Wall - End">
+                                <RadioButton.Content>
+                                    <Ellipse Fill="#7BBDAA" Style="{StaticResource ellipse_button}"/>
+                                </RadioButton.Content>
+                            </RadioButton>
+
+                            <RadioButton x:Name="radHorizontalRadio_DirectSway" ToolTip="Directly Away From Wall">
+                                <RadioButton.Content>
+                                    <Ellipse Fill="#FFFFFF" Style="{StaticResource ellipse_button}"/>
+                                </RadioButton.Content>
+                            </RadioButton>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Slider.ValueChanged="PropsAtAngleSlider_Changed">
+                            <Label Content="Percent Up"/>
+                            <Slider x:Name="trkPropsAtAngle_PercentUp" Minimum="0" Maximum="1" Value="1"/>
+
+                            <Label Content="Percent Along"/>
+                            <Slider x:Name="trkPropsAtAngle_PercentAlong" Minimum="0" Maximum="1" Value="1"/>
+
+                            <Label Content="Percent Away"/>
+                            <Slider x:Name="trkPropsAtAngle_PercentAway" Minimum="0" Maximum="1" Value="1"/>
+
+                            <Label Content="Strength"/>
+                            <Slider x:Name="trkPropsAtAngle_Strength" Minimum="0" Maximum="28" Value="12"/>
+
+                            <Label Content="Velocity Multiplier"/>
+                            <Slider x:Name="trkPropsAtAngle_VelocityMult" Minimum="1" Maximum="3" Value="1"/>
+
+                            <Label Content="Yaw Turn Percent"/>
+                            <Slider x:Name="trkPropsAtAngle_YawTurnPercent" Minimum="0" Maximum="1" Value=".5"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+
+                <Canvas Grid.Row="2" x:Name="canvas_horz"/>
+
+                <UniformGrid Grid.Row="4" x:Name="panel_horz_plots" Rows="2"/>
+            </Grid>
+
+            <!-- Vertical -->
+            <Grid Grid.Column="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="8"/>
+                    <RowDefinition Height="1*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Slider.ValueChanged="VerticalAngleSlider_Changed">
+                    <Label Content="Angles" Style="{StaticResource label_header}"/>
+
+                    <Label Content="Straight Up"/>
+                    <Slider x:Name="trkVertical_StraightUp" Minimum="0" Maximum="90" Value="60">
+                        <Slider.Effect>
+                            <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#5AA4E0" Direction="0" ShadowDepth="0"/>
+                        </Slider.Effect>
+                    </Slider>
+
+                    <!--<Label Content="Straight Up - Zero Mult"/>
                 <Slider x:Name="trkVertical_DeadZone" Minimum="0" Maximum="90" Value="45">
                     <Slider.Effect>
                         <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#B3837F" Direction="0" ShadowDepth="0"/>
                     </Slider.Effect>
                 </Slider>-->
 
-                <Label Content="Standard"/>
-                <Slider x:Name="trkVertical_Standard" Minimum="0" Maximum="90" Value="40">
-                    <Slider.Effect>
-                        <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#30A030" Direction="0" ShadowDepth="0"/>
-                    </Slider.Effect>
-                </Slider>
+                    <Label Content="Standard"/>
+                    <Slider x:Name="trkVertical_Standard" Minimum="0" Maximum="90" Value="40">
+                        <Slider.Effect>
+                            <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#30A030" Direction="0" ShadowDepth="0"/>
+                        </Slider.Effect>
+                    </Slider>
 
-                <!-- TODO: Figure out if anything is needed or negative angles -->
+                    <!-- TODO: Figure out if anything is needed or negative angles -->
 
-            </StackPanel>
+                </StackPanel>
 
-            <Canvas Grid.Row="2" x:Name="canvas_vert"/>
+                <Canvas Grid.Row="2" x:Name="canvas_vert"/>
+            </Grid>
         </Grid>
     </Grid>
 </Window>
