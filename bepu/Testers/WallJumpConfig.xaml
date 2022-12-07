@@ -189,6 +189,15 @@
                         </Slider.Effect>
                     </Slider>
 
+                    <Label Content="Up Strength"/>
+                    <Slider x:Name="trkUpStrength" Minimum="0" Maximum="24" Value="11"/>
+
+                    <Label Content="Speed - full strength"/>
+                    <Slider x:Name="trkUpSpeedFull" Minimum="0" Maximum="18" Value="3"/>
+                    
+                    <Label Content="Speed - zero strength"/>
+                    <Slider x:Name="trkUpSpeedZero" Minimum="0" Maximum="18" Value="7"/>
+
                     <!-- TODO: Figure out if anything is needed or negative angles -->
 
                 </StackPanel>

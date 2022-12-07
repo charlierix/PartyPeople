@@ -51,6 +51,9 @@ namespace Game.Bepu.Testers
             public WallJumpSettings_KeyValue[] horz_strength { get; init; }
 
             public WallJumpSettings_KeyValue[] yaw_turn_percent { get; init; }
+
+            public double straightup_strength { get; init; }
+            public WallJumpSettings_KeyValue[] straightup_percent_at_speed { get; init; }
         }
 
         #endregion
@@ -897,6 +900,9 @@ namespace Game.Bepu.Testers
         {
             var angles = Scrape_HorizontalAngles();
 
+            //NOTE: all of the horizontal slider's angles have zero as facing the wall, 180 as away.  But the dot product is player
+            //facing dot wall normal.  So -1 is facing wall, 1 is looking away
+
             return new WallJumpSettings()
             {
                 straightup_vert_percent = GetSettings_StraightUpPercent(),
@@ -910,6 +916,9 @@ namespace Game.Bepu.Testers
                 horz_strength = GetSettings_KeyValues(angles, _props_horz, o => o.Strength),
 
                 yaw_turn_percent = GetSettings_KeyValues(angles, _props_horz, o => o.YawTurn_Percent),
+
+                straightup_strength = trkUpStrength.Value,
+                straightup_percent_at_speed = GetSettings_StraightUpPercent_AtSpeed(),
             };
         }
         private WallJumpSettings_KeyValue[] GetSettings_StraightUpPercent()
@@ -948,7 +957,7 @@ namespace Game.Bepu.Testers
             }.
             Select(o => new WallJumpSettings_KeyValue()
             {
-                key = Math1D.Degrees_to_Dot(o.degree),
+                key = Math1D.Degrees_to_Dot(180 - o.degree),        // 180 because looking at the wall is 180 degrees (look dot wall normal)
                 value = o.percent,
             }).
             ToArray();
@@ -964,11 +973,11 @@ namespace Game.Bepu.Testers
                 (half, 0),      // halfway between, should be zero
                 (angles.AlongStart, 1),     // the start of the transition
                 (angles.AlongEnd, 1),
-                (180, 0),       // looking directly away from the wall 
+                (180, 1),       // looking directly away from the wall 
             }.
             Select(o => new WallJumpSettings_KeyValue()
             {
-                key = Math1D.Degrees_to_Dot(o.degree),
+                key = Math1D.Degrees_to_Dot(180 - o.degree),        // 180 because looking at the wall is 180 degrees (look dot wall normal)
                 value = o.percent,
             }).
             ToArray();
@@ -985,8 +994,24 @@ namespace Game.Bepu.Testers
             }.
             Select(o => new WallJumpSettings_KeyValue()
             {
-                key = Math1D.Degrees_to_Dot(o.degree),
+                key = Math1D.Degrees_to_Dot(180 - o.degree),        // 180 because looking at the wall is 180 degrees (look dot wall normal)
                 value = getValue(o.prop),
+            }).
+            ToArray();
+        }
+        private WallJumpSettings_KeyValue[] GetSettings_StraightUpPercent_AtSpeed()
+        {
+            return new (double speed, double percent)[]
+            {
+                (0, 1),
+                (trkUpSpeedFull.Value, 1),
+                (trkUpSpeedZero.Value, 0),
+                (trkUpSpeedZero.Value * 2, 0),
+            }.
+            Select(o => new WallJumpSettings_KeyValue()
+            {
+                key = o.speed,
+                value = o.percent,
             }).
             ToArray();
         }
