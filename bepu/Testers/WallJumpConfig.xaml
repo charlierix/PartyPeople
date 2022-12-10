@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Game.Bepu.Testers"
         mc:Ignorable="d"
-        Title="WallJump Config" ResizeMode="CanResizeWithGrip" Width="800" Height="1100" Loaded="Window_Loaded">
+        Title="WallJump Config" ResizeMode="CanResizeWithGrip" Width="800" Height="1200" Loaded="Window_Loaded">
     <Window.Resources>
         <Style x:Key="label_header" TargetType="Label">
             <Setter Property="FontSize" Value="16"/>
@@ -30,8 +30,8 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0">
-            <Label Content="folder"/>
-            <TextBox x:Name="txtFolder" AllowDrop="True" PreviewDragEnter="txtFolder_PreviewDragEnter" PreviewDragOver="txtFolder_PreviewDragEnter" Drop="txtFolder_Drop"/>
+            <Label Content="file or folder"/>
+            <TextBox x:Name="txtFileFolder" AllowDrop="True" PreviewDragEnter="txtFileFolder_PreviewDragEnter" PreviewDragOver="txtFileFolder_PreviewDragEnter" Drop="txtFileFolder_Drop"/>
         </StackPanel>
 
         <Grid Grid.Row="2">
@@ -44,7 +44,11 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Grid.Column="0">
-                <Button Content="save" Click="Save_Click"/>
+                <Button Content="save final" Click="SaveFinal_Click"/>
+
+                <TextBox x:Name="txtPresetName" Text="preset1" Margin="0,8,0,0"/>
+                <Button Content="save preset" Click="SavePreset_Click"/>
+                <Button Content="load preset" Click="LoadPreset_Click"/>
 
                 <Button Content="anim" Margin="0,8,0,0" Click="Anim_Click"/>
 
@@ -60,10 +64,10 @@
                     <RowDefinition Height="8"/>
                     <RowDefinition Height="1*"/>
                     <RowDefinition Height="8"/>
-                    <RowDefinition Height="auto"/>
+                    <RowDefinition Height="auto" MinHeight="130"/>
                 </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" Slider.ValueChanged="HorizontalAngleSlider_Changed">
+                <StackPanel Grid.Row="0" Slider.ValueChanged="HorizontalAngleSlider_Changed" Margin="0,-1,0,1">
                     <Label Content="Angles" Style="{StaticResource label_header}"/>
 
                     <!-- TODO: Don't hardcode the number/name of sliders.  Just have a list and add + - clear buttons -->
@@ -141,15 +145,23 @@
                             <Slider x:Name="trkPropsAtAngle_PercentAway" Minimum="0" Maximum="1" Value="1"/>
 
                             <Label Content="Strength"/>
-                            <Slider x:Name="trkPropsAtAngle_Strength" Minimum="0" Maximum="28" Value="12"/>
-
-                            <Label Content="Velocity Multiplier"/>
-                            <Slider x:Name="trkPropsAtAngle_VelocityMult" Minimum="1" Maximum="3" Value="1"/>
+                            <Slider x:Name="trkPropsAtAngle_Strength" Minimum="0" Maximum="20" Value="12"/>
 
                             <Label Content="Yaw Turn Percent"/>
                             <Slider x:Name="trkPropsAtAngle_YawTurnPercent" Minimum="0" Maximum="1" Value=".5"/>
+
+                            <Label Content="Percent Look"/>
+                            <Slider x:Name="trkPropsAtAngle_PercentLook" Minimum="0" Maximum="1" Value=".5"/>
                         </StackPanel>
                     </Grid>
+
+                    <Label Content="Misc" Margin="0,8,0,0" Style="{StaticResource label_header}"/>
+
+                    <Label Content="Speed - full strength"/>
+                    <Slider x:Name="trkHorzSpeedFull" Minimum="0" Maximum="18" Value="4"/>
+
+                    <Label Content="Speed - zero strength"/>
+                    <Slider x:Name="trkHorzSpeedZero" Minimum="0" Maximum="18" Value="8"/>
                 </StackPanel>
 
                 <Canvas Grid.Row="2" x:Name="canvas_horz"/>
@@ -175,13 +187,6 @@
                         </Slider.Effect>
                     </Slider>
 
-                    <!--<Label Content="Straight Up - Zero Mult"/>
-                <Slider x:Name="trkVertical_DeadZone" Minimum="0" Maximum="90" Value="45">
-                    <Slider.Effect>
-                        <DropShadowEffect BlurRadius="9" Opacity="0.45" Color="#B3837F" Direction="0" ShadowDepth="0"/>
-                    </Slider.Effect>
-                </Slider>-->
-
                     <Label Content="Standard"/>
                     <Slider x:Name="trkVertical_Standard" Minimum="0" Maximum="90" Value="40">
                         <Slider.Effect>
@@ -194,7 +199,7 @@
 
                     <Label Content="Speed - full strength"/>
                     <Slider x:Name="trkUpSpeedFull" Minimum="0" Maximum="18" Value="3"/>
-                    
+
                     <Label Content="Speed - zero strength"/>
                     <Slider x:Name="trkUpSpeedZero" Minimum="0" Maximum="18" Value="7"/>
 

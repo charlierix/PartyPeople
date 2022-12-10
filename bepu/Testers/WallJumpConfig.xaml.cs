@@ -52,6 +52,10 @@ namespace Game.Bepu.Testers
 
             public WallJumpSettings_KeyValue[] yaw_turn_percent { get; init; }
 
+            public WallJumpSettings_KeyValue[] horizontal_percent_at_speed { get; init; }
+
+            public WallJumpSettings_KeyValue[] horizontal_percent_look { get; init; }
+
             public double straightup_strength { get; init; }
             public WallJumpSettings_KeyValue[] straightup_percent_at_speed { get; init; }
         }
@@ -101,24 +105,49 @@ namespace Game.Bepu.Testers
 
             public double Strength { get; init; }
 
-            public double Velocity_Mult { get; init; }      // what was the intent with this?
-
             public double YawTurn_Percent { get; init; }
 
-            // along correction amount
-            //  this will apply a force that pushes them along the wall.  Needs to account for current velocity
-
+            public double Percent_Look { get; init; }
         }
 
         #endregion
 
-        #region record: HorizontalAngles
+        #region record: HorizontalPropsAngles
 
-        private record HorizontalAngles
+        private record HorizontalPropsAngles
         {
             public double FaceWall { get; init; }
             public double AlongStart { get; init; }
             public double AlongEnd { get; init; }
+
+            public PropsAtAllAngles PropsAtAllAngles { get; init; }
+
+            public double Speed_FullStrength { get; init; }
+            public double Speed_ZeroStrength { get; init; }
+        }
+
+        #endregion
+        #region record: VerticalPropsAngles
+
+        private record VerticalPropsAngles
+        {
+            public double StraightUp { get; init; }
+            public double Standard { get; init; }
+
+            public double Strength { get; init; }
+
+            public double Speed_FullStrength { get; init; }
+            public double Speed_ZeroStrength { get; init; }
+        }
+
+        #endregion
+
+        #region record: AllProps
+
+        private record AllProps
+        {
+            public HorizontalPropsAngles Horizontal { get; init; }
+            public VerticalPropsAngles Vertical { get; init; }
         }
 
         #endregion
@@ -167,7 +196,6 @@ namespace Game.Bepu.Testers
         private RotatableLine _horz_alongwall_right = null;
 
         private PropsAtAllAngles _props_horz = null;
-        private SelectedPropsAtAngle _selected_props = SelectedPropsAtAngle.DirectFaceWall;
         private bool _swappingprops_horz = false;
 
         // Vertical
@@ -189,8 +217,6 @@ namespace Game.Bepu.Testers
             InitializeComponent();
 
             Background = SystemColors.ControlBrush;
-
-            _props_horz = GetPreset_Attempt1();
         }
 
         #endregion
@@ -201,11 +227,15 @@ namespace Game.Bepu.Testers
         {
             try
             {
+                AllProps props = GetPreset_Attempt2();
+
                 CreateImage_Horizontal();
                 CreateImage_Vertical();
 
                 _loaded = true;
 
+                Present_HorizontalProps(props.Horizontal);
+                Present_VerticalProps(props.Vertical);
                 RefreshImage_Horizontal();
                 RefreshImage_Vertical();
                 HorizontalRadio_Checked(this, new RoutedEventArgs());
@@ -216,7 +246,7 @@ namespace Game.Bepu.Testers
             }
         }
 
-        private void txtFolder_PreviewDragEnter(object sender, DragEventArgs e)
+        private void txtFileFolder_PreviewDragEnter(object sender, DragEventArgs e)
         {
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
@@ -229,7 +259,7 @@ namespace Game.Bepu.Testers
 
             e.Handled = true;
         }
-        private void txtFolder_Drop(object sender, DragEventArgs e)
+        private void txtFileFolder_Drop(object sender, DragEventArgs e)
         {
             try
             {
@@ -246,7 +276,7 @@ namespace Game.Bepu.Testers
                     return;
                 }
 
-                txtFolder.Text = filenames[0];
+                txtFileFolder.Text = filenames[0];
             }
             catch (Exception ex)
             {
@@ -291,9 +321,9 @@ namespace Game.Bepu.Testers
                 if (!_loaded)
                     return;
 
-                _selected_props = GetWhichSelected_PropsAtAngle();
+                var selected_props = GetWhichSelected_PropsAtAngle();
 
-                PropsAtAngle props = GetProps(_props_horz, _selected_props);
+                PropsAtAngle props = GetProps(_props_horz, selected_props);
 
                 _swappingprops_horz = true;
                 Present_PropsAtAngle(props);
@@ -311,9 +341,10 @@ namespace Game.Bepu.Testers
                 if (!_loaded || _swappingprops_horz)
                     return;
 
+                var selected_props = GetWhichSelected_PropsAtAngle();
                 PropsAtAngle props = Scrape_PropsAtAngle();
 
-                _props_horz = SetProps(_props_horz, _selected_props, props);
+                _props_horz = SetProps(_props_horz, selected_props, props);
 
                 RefreshStrengthPlots();
             }
@@ -323,16 +354,16 @@ namespace Game.Bepu.Testers
             }
         }
 
-        private void Save_Click(object sender, RoutedEventArgs e)
+        private void SaveFinal_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                if (txtFolder.Text == "")
+                if (txtFileFolder.Text == "")
                 {
                     MessageBox.Show("Please select an output folder", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
-                else if (!Directory.Exists(txtFolder.Text))
+                else if (!Directory.Exists(txtFileFolder.Text))
                 {
                     MessageBox.Show("Output folder doesn't exist", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
@@ -347,9 +378,76 @@ namespace Game.Bepu.Testers
 
                 string serialized = JsonSerializer.Serialize(settings, options);
 
-                string filename = System.IO.Path.Combine(txtFolder.Text, $"{DateTime.Now:yyyyMMdd HHmmss} - walljump.json");
-
+                string filename = System.IO.Path.Combine(txtFileFolder.Text, $"{DateTime.Now:yyyyMMdd HHmmss} - walljump.json");
                 File.WriteAllText(filename, serialized);
+
+                filename = System.IO.Path.Combine(txtFileFolder.Text, "walljump.json");       // this overwrites the current file that the mod is hardcoded to look for
+                File.WriteAllText(filename, serialized);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void SavePreset_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (txtFileFolder.Text == "")
+                {
+                    MessageBox.Show("Please select an output folder", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                else if (!Directory.Exists(txtFileFolder.Text))
+                {
+                    MessageBox.Show("Output folder doesn't exist", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var settings = new AllProps()
+                {
+                    Horizontal = Scrape_HorizontalProps(),
+                    Vertical = Scrape_VerticalProps(),
+                };
+
+                var options = new JsonSerializerOptions()
+                {
+                    WriteIndented = true,
+                };
+
+                string serialized = JsonSerializer.Serialize(settings, options);
+
+                string filename = System.IO.Path.Combine(txtFileFolder.Text, $"{DateTime.Now:yyyyMMdd HHmmss} - {txtPresetName.Text}.json");
+                File.WriteAllText(filename, serialized);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void LoadPreset_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (txtFileFolder.Text == "")
+                {
+                    MessageBox.Show("Please select a settings file", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                else if (!File.Exists(txtFileFolder.Text))
+                {
+                    MessageBox.Show("Settings file doesn't exist", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var props = JsonSerializer.Deserialize<AllProps>(File.ReadAllText(txtFileFolder.Text));
+
+                Present_HorizontalProps(props.Horizontal);
+                Present_VerticalProps(props.Vertical);
+                RefreshImage_Horizontal();
+                RefreshImage_Vertical();
+                HorizontalRadio_Checked(this, new RoutedEventArgs());
             }
             catch (Exception ex)
             {
@@ -898,7 +996,7 @@ namespace Game.Bepu.Testers
 
         private WallJumpSettings GetSettings()
         {
-            var angles = Scrape_HorizontalAngles();
+            var angles = Scrape_HorizontalProps();
 
             //NOTE: all of the horizontal slider's angles have zero as facing the wall, 180 as away.  But the dot product is player
             //facing dot wall normal.  So -1 is facing wall, 1 is looking away
@@ -914,11 +1012,14 @@ namespace Game.Bepu.Testers
                 horz_percent_along = GetSettings_KeyValues(angles, _props_horz, o => o.Percent_Along),
                 horz_percent_away = GetSettings_KeyValues(angles, _props_horz, o => o.Percent_Away),
                 horz_strength = GetSettings_KeyValues(angles, _props_horz, o => o.Strength),
+                horizontal_percent_look = GetSettings_KeyValues(angles, _props_horz, o => o.Percent_Look),
 
                 yaw_turn_percent = GetSettings_KeyValues(angles, _props_horz, o => o.YawTurn_Percent),
 
+                horizontal_percent_at_speed = GetSettings_PercentAtSpeed(trkHorzSpeedFull, trkHorzSpeedZero),
+
                 straightup_strength = trkUpStrength.Value,
-                straightup_percent_at_speed = GetSettings_StraightUpPercent_AtSpeed(),
+                straightup_percent_at_speed = GetSettings_PercentAtSpeed(trkUpSpeedFull, trkUpSpeedZero),
             };
         }
         private WallJumpSettings_KeyValue[] GetSettings_StraightUpPercent()
@@ -943,7 +1044,7 @@ namespace Game.Bepu.Testers
             }).
             ToArray();
         }
-        private WallJumpSettings_KeyValue[] GetSettings_PercentsWhenUp_Vert(HorizontalAngles angles)
+        private WallJumpSettings_KeyValue[] GetSettings_PercentsWhenUp_Vert(HorizontalPropsAngles angles)
         {
             double half = Math1D.Avg(angles.FaceWall, angles.AlongStart);
 
@@ -962,7 +1063,7 @@ namespace Game.Bepu.Testers
             }).
             ToArray();
         }
-        private WallJumpSettings_KeyValue[] GetSettings_PercentsWhenUp_Horz(HorizontalAngles angles)
+        private WallJumpSettings_KeyValue[] GetSettings_PercentsWhenUp_Horz(HorizontalPropsAngles angles)
         {
             double half = Math1D.Avg(angles.FaceWall, angles.AlongStart);
 
@@ -982,7 +1083,7 @@ namespace Game.Bepu.Testers
             }).
             ToArray();
         }
-        private static WallJumpSettings_KeyValue[] GetSettings_KeyValues(HorizontalAngles angles, PropsAtAllAngles props, Func<PropsAtAngle, double> getValue)
+        private static WallJumpSettings_KeyValue[] GetSettings_KeyValues(HorizontalPropsAngles angles, PropsAtAllAngles props, Func<PropsAtAngle, double> getValue)
         {
             return new (double degree, PropsAtAngle prop)[]
             {
@@ -999,14 +1100,14 @@ namespace Game.Bepu.Testers
             }).
             ToArray();
         }
-        private WallJumpSettings_KeyValue[] GetSettings_StraightUpPercent_AtSpeed()
+        private static WallJumpSettings_KeyValue[] GetSettings_PercentAtSpeed(Slider speed_full, Slider speed_zero)
         {
             return new (double speed, double percent)[]
             {
                 (0, 1),
-                (trkUpSpeedFull.Value, 1),
-                (trkUpSpeedZero.Value, 0),
-                (trkUpSpeedZero.Value * 2, 0),
+                (speed_full.Value, 1),
+                (speed_zero.Value, 0),
+                (speed_zero.Value * 2, 0),
             }.
             Select(o => new WallJumpSettings_KeyValue()
             {
@@ -1068,10 +1169,6 @@ namespace Game.Bepu.Testers
             _vert_straightup = GetGraphic_RotateableLine(center, brush, VERT_INNER2_RADIUS, VERT_OUTER2_RADIUS, true);
             canvas_vert.Children.Add(_vert_straightup.Line);
 
-            //brush = UtilityWPF.BrushFromHex(COLOR_VERT_DEADZONE);
-            //_vert_deadzone = GetGraphic_RotateableLine(center, brush, VERT_INNER2_RADIUS, VERT_OUTER2_RADIUS, true);
-            //canvas_vert.Children.Add(_vert_deadzone.Line);
-
             brush = UtilityWPF.BrushFromHex(COLOR_VERT_STANDARD);
             _vert_standard = GetGraphic_RotateableLine(center, brush, VERT_INNER2_RADIUS, VERT_OUTER2_RADIUS, true);
             canvas_vert.Children.Add(_vert_standard.Line);
@@ -1079,43 +1176,37 @@ namespace Game.Bepu.Testers
 
         private void RefreshImage_Horizontal()
         {
-            double direct = trkHorizontal_DirectWall.Value;
-            double indirect = Math.Max(direct, trkHorizontal_InDirectWall.Value);
-            double along = Math.Max(indirect, trkHorizontal_AlongWall.Value);
+            var horz_props = Scrape_HorizontalProps();
 
-            _horz_directwall_left.Rotate.Angle = direct;
-            _horz_directwall_right.Rotate.Angle = -direct;
+            _horz_directwall_left.Rotate.Angle = horz_props.FaceWall;
+            _horz_directwall_right.Rotate.Angle = -horz_props.FaceWall;
 
-            _horz_indirectwall_left.Rotate.Angle = indirect;
-            _horz_indirectwall_right.Rotate.Angle = -indirect;
+            _horz_indirectwall_left.Rotate.Angle = horz_props.AlongStart;
+            _horz_indirectwall_right.Rotate.Angle = -horz_props.AlongStart;
 
-            _horz_alongwall_left.Rotate.Angle = along;
-            _horz_alongwall_right.Rotate.Angle = -along;
+            _horz_alongwall_left.Rotate.Angle = horz_props.AlongEnd;
+            _horz_alongwall_right.Rotate.Angle = -horz_props.AlongEnd;
         }
         private void RefreshImage_Vertical()
         {
-            double straight_up = trkVertical_StraightUp.Value;
-            //double dead_zone = Math.Min(straight_up, trkVertical_DeadZone.Value);
-            //double standard = Math.Min(dead_zone, trkVertical_Standard.Value);
-            double standard = Math.Min(straight_up, trkVertical_Standard.Value);
+            var vert_props = Scrape_VerticalProps();
 
-            _vert_straightup.Rotate.Angle = 90 - straight_up;
-            //_vert_deadzone.Rotate.Angle = 90 - dead_zone;
-            _vert_standard.Rotate.Angle = 90 - standard;
+            _vert_straightup.Rotate.Angle = 90 - vert_props.StraightUp;
+            _vert_standard.Rotate.Angle = 90 - vert_props.Standard;
         }
 
         private void RefreshStrengthPlots()
         {
-            var angles = Scrape_HorizontalAngles();
+            var angles = Scrape_HorizontalProps();
 
             panel_horz_plots.Children.Clear();
 
-            panel_horz_plots.Children.Add(BuildPlot(angles, _props_horz, "Percent Up", trkPropsAtAngle_PercentUp, o => o.Percent_Up));
-            panel_horz_plots.Children.Add(BuildPlot(angles, _props_horz, "Percent Along", trkPropsAtAngle_PercentAlong, o => o.Percent_Along));
-            panel_horz_plots.Children.Add(BuildPlot(angles, _props_horz, "Percent Away", trkPropsAtAngle_PercentAway, o => o.Percent_Away));
-            panel_horz_plots.Children.Add(BuildPlot(angles, _props_horz, "Strength", trkPropsAtAngle_Strength, o => o.Strength));
-            panel_horz_plots.Children.Add(BuildPlot(angles, _props_horz, "Velocity Mult", trkPropsAtAngle_VelocityMult, o => o.Velocity_Mult));
-            panel_horz_plots.Children.Add(BuildPlot(angles, _props_horz, "Yaw Turn Percent", trkPropsAtAngle_YawTurnPercent, o => o.YawTurn_Percent));
+            panel_horz_plots.Children.Add(BuildPlot(angles, "Percent Up", trkPropsAtAngle_PercentUp, o => o.Percent_Up));
+            panel_horz_plots.Children.Add(BuildPlot(angles, "Percent Along", trkPropsAtAngle_PercentAlong, o => o.Percent_Along));
+            panel_horz_plots.Children.Add(BuildPlot(angles, "Percent Away", trkPropsAtAngle_PercentAway, o => o.Percent_Away));
+            panel_horz_plots.Children.Add(BuildPlot(angles, "Strength", trkPropsAtAngle_Strength, o => o.Strength));
+            panel_horz_plots.Children.Add(BuildPlot(angles, "Yaw Turn Percent", trkPropsAtAngle_YawTurnPercent, o => o.YawTurn_Percent));
+            panel_horz_plots.Children.Add(BuildPlot(angles, "Percent Look", trkPropsAtAngle_PercentLook, o => o.Percent_Look));
         }
 
         private SelectedPropsAtAngle GetWhichSelected_PropsAtAngle()
@@ -1185,20 +1276,71 @@ namespace Game.Bepu.Testers
             }
         }
 
-        private HorizontalAngles Scrape_HorizontalAngles()
+        private HorizontalPropsAngles Scrape_HorizontalProps()
         {
-            return new HorizontalAngles()
+            double direct = trkHorizontal_DirectWall.Value;
+            double indirect = Math.Max(direct, trkHorizontal_InDirectWall.Value);
+            double along = Math.Max(indirect, trkHorizontal_AlongWall.Value);
+
+            return new HorizontalPropsAngles()
             {
-                FaceWall = trkHorizontal_DirectWall.Value,
-                AlongStart = trkHorizontal_InDirectWall.Value,
-                AlongEnd = trkHorizontal_AlongWall.Value,
+                FaceWall = direct,
+                AlongStart = indirect,
+                AlongEnd = along,
+
+                PropsAtAllAngles = _props_horz,
+
+                Speed_FullStrength = trkHorzSpeedFull.Value,
+                Speed_ZeroStrength = trkHorzSpeedZero.Value,
             };
         }
-        private void Present_HorizontalAngles(HorizontalAngles angles)
+        private void Present_HorizontalProps(HorizontalPropsAngles angles)
         {
             trkHorizontal_DirectWall.Value = angles.FaceWall;
             trkHorizontal_InDirectWall.Value = angles.AlongStart;
             trkHorizontal_AlongWall.Value = angles.AlongEnd;
+
+            var selected_props = GetWhichSelected_PropsAtAngle();
+
+            _props_horz = angles.PropsAtAllAngles;
+            PropsAtAngle props = GetProps(_props_horz, selected_props);
+
+            _swappingprops_horz = true;
+            Present_PropsAtAngle(props);
+            _swappingprops_horz = false;
+
+            trkHorzSpeedFull.Value = angles.Speed_FullStrength;
+            trkHorzSpeedZero.Value = angles.Speed_ZeroStrength;
+        }
+
+        private VerticalPropsAngles Scrape_VerticalProps()
+        {
+            double straight_up = trkVertical_StraightUp.Value;
+            double standard = Math.Min(straight_up, trkVertical_Standard.Value);
+
+            double speed_full = trkUpSpeedFull.Value;
+            double speed_zero = Math.Max(speed_full, trkUpSpeedZero.Value);
+
+            return new VerticalPropsAngles()
+            {
+                StraightUp = straight_up,
+                Standard = standard,
+
+                Strength = trkUpStrength.Value,
+
+                Speed_FullStrength = speed_full,
+                Speed_ZeroStrength = speed_zero,
+            };
+        }
+        private void Present_VerticalProps(VerticalPropsAngles props)
+        {
+            trkVertical_StraightUp.Value = props.StraightUp;
+            trkVertical_Standard.Value = props.Standard;
+
+            trkUpSpeedFull.Value = props.Strength;
+
+            trkUpSpeedFull.Value = props.Speed_FullStrength;
+            trkUpSpeedZero.Value = props.Speed_ZeroStrength;
         }
 
         private PropsAtAngle Scrape_PropsAtAngle()
@@ -1209,8 +1351,8 @@ namespace Game.Bepu.Testers
                 Percent_Along = trkPropsAtAngle_PercentAlong.Value,
                 Percent_Away = trkPropsAtAngle_PercentAway.Value,
                 Strength = trkPropsAtAngle_Strength.Value,
-                Velocity_Mult = trkPropsAtAngle_VelocityMult.Value,
                 YawTurn_Percent = trkPropsAtAngle_YawTurnPercent.Value,
+                Percent_Look = trkPropsAtAngle_PercentLook.Value,
             };
         }
         private void Present_PropsAtAngle(PropsAtAngle props)
@@ -1219,8 +1361,8 @@ namespace Game.Bepu.Testers
             trkPropsAtAngle_PercentAlong.Value = props.Percent_Along;
             trkPropsAtAngle_PercentAway.Value = props.Percent_Away;
             trkPropsAtAngle_Strength.Value = props.Strength;
-            trkPropsAtAngle_VelocityMult.Value = props.Velocity_Mult;
             trkPropsAtAngle_YawTurnPercent.Value = props.YawTurn_Percent;
+            trkPropsAtAngle_PercentLook.Value = props.Percent_Look;
         }
 
         private static FrameworkElement GetGraphic_Stickman(Point offset)
@@ -1487,14 +1629,14 @@ namespace Game.Bepu.Testers
             );
         }
 
-        private static FrameworkElement BuildPlot(HorizontalAngles angles, PropsAtAllAngles props, string title, Slider slider, Func<PropsAtAngle, double> getValue)
+        private static FrameworkElement BuildPlot(HorizontalPropsAngles angles, string title, Slider slider, Func<PropsAtAngle, double> getValue)
         {
             var retVal = new StackPanel()
             {
                 Margin = new Thickness(0, 4, 0, 4),
             };
 
-            retVal.Children.Add(DrawPlot(30, angles, props, slider.Minimum, slider.Maximum, getValue));
+            retVal.Children.Add(DrawPlot(30, angles, slider.Minimum, slider.Maximum, getValue));
 
             retVal.Children.Add(new TextBlock()
             {
@@ -1508,11 +1650,11 @@ namespace Game.Bepu.Testers
             return retVal;
         }
 
-        private static FrameworkElement DrawPlot(double radius, HorizontalAngles angles, PropsAtAllAngles props, double minimum, double maximum, Func<PropsAtAngle, double> getValue)
+        private static FrameworkElement DrawPlot(double radius, HorizontalPropsAngles angles, double minimum, double maximum, Func<PropsAtAngle, double> getValue)
         {
             var values = new List<(double angle, double value, double x, double y)>();
 
-            AnimationCurve curve = BuildAnimationCurve(angles, props, getValue);
+            AnimationCurve curve = BuildAnimationCurve(angles, getValue);
 
             for (int angle = 0; angle <= 180; angle += 5)
             {
@@ -1558,15 +1700,15 @@ namespace Game.Bepu.Testers
             return retVal;
         }
 
-        private static AnimationCurve BuildAnimationCurve(HorizontalAngles angles, PropsAtAllAngles props, Func<PropsAtAngle, double> getValue)
+        private static AnimationCurve BuildAnimationCurve(HorizontalPropsAngles angles, Func<PropsAtAngle, double> getValue)
         {
             var retVal = new AnimationCurve();
 
-            retVal.AddKeyValue(0, getValue(props.DirectFaceWall));
-            retVal.AddKeyValue(angles.FaceWall, getValue(props.FaceWall));
-            retVal.AddKeyValue(angles.AlongStart, getValue(props.AlongStart));
-            retVal.AddKeyValue(angles.AlongEnd, getValue(props.AlongEnd));
-            retVal.AddKeyValue(180, getValue(props.DirectAway));
+            retVal.AddKeyValue(0, getValue(angles.PropsAtAllAngles.DirectFaceWall));
+            retVal.AddKeyValue(angles.FaceWall, getValue(angles.PropsAtAllAngles.FaceWall));
+            retVal.AddKeyValue(angles.AlongStart, getValue(angles.PropsAtAllAngles.AlongStart));
+            retVal.AddKeyValue(angles.AlongEnd, getValue(angles.PropsAtAllAngles.AlongEnd));
+            retVal.AddKeyValue(180, getValue(angles.PropsAtAllAngles.DirectAway));
 
             return retVal;
         }
@@ -1577,52 +1719,129 @@ namespace Game.Bepu.Testers
             {
                 DirectFaceWall = new PropsAtAngle()
                 {
-                    Percent_Up = 1,
-                    Percent_Along = 1,
-                    Percent_Away = 1,
-                    Strength = 1,
-                    Velocity_Mult = 1,
-                    YawTurn_Percent = 1,
+                    Percent_Up = 0.66,
+                    Percent_Along = 0.2,
+                    Percent_Away = 0,
+                    Strength = 11,
+                    YawTurn_Percent = 0,
+                    Percent_Look = 0.5,
                 },
 
                 FaceWall = new PropsAtAngle()
                 {
-                    Percent_Up = 1,
-                    Percent_Along = 1,
-                    Percent_Away = 1,
-                    Strength = 1,
-                    Velocity_Mult = 1,
-                    YawTurn_Percent = 1,
+                    Percent_Up = 0.6,
+                    Percent_Along = 0.5,
+                    Percent_Away = 0.2,
+                    Strength = 11,
+                    YawTurn_Percent = 0,
+                    Percent_Look = 0.5,
                 },
 
                 AlongStart = new PropsAtAngle()
                 {
-                    Percent_Up = 1,
-                    Percent_Along = 1,
-                    Percent_Away = 1,
-                    Strength = 1,
-                    Velocity_Mult = 1,
-                    YawTurn_Percent = 1,
+                    Percent_Up = 0.4,
+                    Percent_Along = 0.8,
+                    Percent_Away = 0.2,
+                    Strength = 11,
+                    YawTurn_Percent = 0,
+                    Percent_Look = 0.5,
                 },
 
                 AlongEnd = new PropsAtAngle()
                 {
-                    Percent_Up = 1,
-                    Percent_Along = 1,
-                    Percent_Away = 1,
-                    Strength = 1,
-                    Velocity_Mult = 1,
-                    YawTurn_Percent = 1,
+                    Percent_Up = 0.2,
+                    Percent_Along = 0.8,
+                    Percent_Away = 0.33,
+                    Strength = 11,
+                    YawTurn_Percent = 0,
+                    Percent_Look = 0.5,
                 },
 
                 DirectAway = new PropsAtAngle()
                 {
-                    Percent_Up = 1,
+                    Percent_Up = 0,
                     Percent_Along = 1,
                     Percent_Away = 1,
-                    Strength = 1,
-                    Velocity_Mult = 1,
-                    YawTurn_Percent = 1,
+                    Strength = 11,
+                    YawTurn_Percent = 0,
+                    Percent_Look = 0.5,
+                },
+            };
+        }
+        private static AllProps GetPreset_Attempt2()
+        {
+            return new AllProps()
+            {
+                Horizontal = new HorizontalPropsAngles()
+                {
+                    FaceWall = 20,
+                    AlongStart = 60,
+                    AlongEnd = 120,
+
+                    PropsAtAllAngles = new PropsAtAllAngles()
+                    {
+                        DirectFaceWall = new PropsAtAngle()
+                        {
+                            Percent_Up = 0.7651404036440723,
+                            Percent_Along = 0.04847767977036907,
+                            Percent_Away = 0.06060892809185233,
+                            Strength = 13.439509355697052,
+                            YawTurn_Percent = 0,
+                            Percent_Look = 0.5,
+                        },
+
+                        FaceWall = new PropsAtAngle()
+                        {
+                            Percent_Up = 0.7439462042181489,
+                            Percent_Along = 0.18559118552351608,
+                            Percent_Away = 0.07197310210907464,
+                            Strength = 13.333443731536313,
+                            YawTurn_Percent = 0,
+                            Percent_Look = 0.5,
+                        },
+
+                        AlongStart = new PropsAtAngle()
+                        {
+                            Percent_Up = 0.5704626102583347,
+                            Percent_Along = 0.2083431903157424,
+                            Percent_Away = 0.06362991179333226,
+                            Strength = 11.95459061744667,
+                            YawTurn_Percent = 0,
+                            Percent_Look = 0.5,
+                        },
+
+                        AlongEnd = new PropsAtAngle()
+                        {
+                            Percent_Up = 0.4272834803444462,
+                            Percent_Along = 0.2999763432422181,
+                            Percent_Away = 0.33000000000000007,
+                            Strength = 11,
+                            YawTurn_Percent = 0,
+                            Percent_Look = 0.5,
+                        },
+
+                        DirectAway = new PropsAtAngle()
+                        {
+                            Percent_Up = 0.23485959635592776,
+                            Percent_Along = 0.4507315891675882,
+                            Percent_Away = 0.719683707575183,
+                            Strength = 13.969837476500764,
+                            YawTurn_Percent = 0,
+                            Percent_Look = 0.5,
+                        },
+                    },
+
+                    Speed_FullStrength = 4,
+                    Speed_ZeroStrength = 8,
+                },
+
+                Vertical = new VerticalPropsAngles()
+                {
+                    StraightUp = 60,
+                    Standard = 40,
+                    Strength = 11,
+                    Speed_FullStrength = 3,
+                    Speed_ZeroStrength = 7,
                 },
             };
         }
