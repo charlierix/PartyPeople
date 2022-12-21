@@ -176,24 +176,38 @@ namespace Game.Math_WPF.Mathematics
 
             while (current_count != count)
             {
-                var densities = Enumerable.Range(0, segments.Length).
-                    Select(o => new AdjustmentDensity()
-                    {
-                        Index = o,
-                        Density_Minus = (counts[o] - 1) / segments[o].Length_quick,
-                        Density_Current = counts[o] / segments[o].Length_quick,
-                        Density_Plus = (counts[o] + 1) / segments[o].Length_quick,
-                    }).
-                    ToArray();
+                var densities = GetSegmentDensities(segments, counts);
 
                 if (current_count < count)
-                    AddCountToSegment(ref current_count, counts, densities);
+                {
+                    AddCountToSegment(counts, densities);
+                    current_count++;
+                }
                 else
-                    RemoveCountFromSegment(ref current_count, counts, densities);
+                {
+                    RemoveCountFromSegment(counts, densities);
+                    current_count--;
+                }
             }
+
+            counts = EnsureCountsHaveEnds(counts, o => GetSegmentDensities(segments, o));
 
             return GetSamples(segments, counts);
         }
+
+        private static AdjustmentDensity[] GetSegmentDensities(BezierSegment3D_wpf[] segments, int[] counts)
+        {
+            return Enumerable.Range(0, segments.Length).
+                Select(o => new AdjustmentDensity()
+                {
+                    Index = o,
+                    Density_Minus = (counts[o] - 1) / segments[o].Length_quick,
+                    Density_Current = counts[o] / segments[o].Length_quick,
+                    Density_Plus = (counts[o] + 1) / segments[o].Length_quick,
+                }).
+                ToArray();
+        }
+
         /// <summary>
         /// Returns points across several segment definitions (linked together into a single path).  count is the total number of sample points to return
         /// </summary>
@@ -1151,7 +1165,7 @@ namespace Game.Math_WPF.Mathematics
                 ToArray();
         }
 
-        private static void AddCountToSegment(ref int current_count, int[] counts, AdjustmentDensity[] densities)
+        private static void AddCountToSegment(int[] counts, AdjustmentDensity[] densities)
         {
             // In this case, add to the one with the lowest density
             var best = densities.
@@ -1202,9 +1216,8 @@ namespace Game.Math_WPF.Mathematics
             #endregion
 
             counts[best[0].Index]++;
-            current_count++;
         }
-        private static void RemoveCountFromSegment(ref int current_count, int[] counts, AdjustmentDensity[] densities)
+        private static void RemoveCountFromSegment(int[] counts, AdjustmentDensity[] densities)
         {
             #region NOPE
 
@@ -1281,7 +1294,34 @@ namespace Game.Math_WPF.Mathematics
                 ToArray();
 
             counts[projections[0].index]--;
-            current_count--;
+        }
+
+        private static int[] EnsureCountsHaveEnds(int[] counts, Func<int[], AdjustmentDensity[]> getDensities)
+        {
+            int[] retVal = counts.ToArray();
+
+            bool first = false;
+            if (retVal[0] == 0)
+            {
+                RemoveCountFromSegment(retVal, getDensities(retVal));
+                first = true;
+            }
+
+            // There's no need to add to the last, since in GetSamples, it adds one to all but the first segment
+            //bool last = false;
+            //if (retVal.Length > 0 && retVal[^1] == 0)
+            //{
+            //    RemoveCountFromSegment(retVal, getDensities(retVal));
+            //    last = true;
+            //}
+
+            if (first)
+                retVal[0]++;
+
+            //if(last)
+            //    retVal[^1]++;
+
+            return retVal;
         }
 
         private static Point3D[] GetSamples(BezierSegment3D_wpf[] beziers, int[] counts)        //, bool is_closed)
@@ -1299,6 +1339,21 @@ namespace Game.Math_WPF.Mathematics
                     // point of ^1 will be used as the first point of 0
                     count_adjusted++;
                     take_first = false;
+                }
+
+                if (count_adjusted == 0)        // this will happen if a segment is so short compared to other segments that it becomes a rounding error
+                    continue;
+
+                if (count_adjusted == 1)
+                {
+                    if (i == 0)
+                        retVal.Add(beziers[i].EndPoint0);
+                    else if (i == beziers.Length - 1)
+                        retVal.Add(beziers[i].EndPoint1);
+                    else
+                        retVal.Add(Math3D.GetCenter(beziers[i].EndPoint0, beziers[i].EndPoint1));       // just take the average of the two
+
+                    continue;
                 }
 
                 Point3D[] points = BezierUtil.GetPoints(count_adjusted, beziers[i]);

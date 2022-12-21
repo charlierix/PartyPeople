@@ -36,40 +36,6 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
-        #region record: WallJumpSettings
-
-        private record WallJumpSettings
-        {
-            public WallJumpSettings_KeyValue[] straightup_vert_percent { get; init; }
-
-            public WallJumpSettings_KeyValue[] percent_vert_whenup { get; init; }
-            public WallJumpSettings_KeyValue[] percent_horz_whenup { get; init; }
-
-            public WallJumpSettings_KeyValue[] horz_percent_up { get; init; }
-            public WallJumpSettings_KeyValue[] horz_percent_along { get; init; }
-            public WallJumpSettings_KeyValue[] horz_percent_away { get; init; }
-            public WallJumpSettings_KeyValue[] horz_strength { get; init; }
-
-            public WallJumpSettings_KeyValue[] yaw_turn_percent { get; init; }
-
-            public WallJumpSettings_KeyValue[] horizontal_percent_at_speed { get; init; }
-
-            public WallJumpSettings_KeyValue[] horizontal_percent_look { get; init; }
-
-            public double straightup_strength { get; init; }
-            public WallJumpSettings_KeyValue[] straightup_percent_at_speed { get; init; }
-        }
-
-        #endregion
-        #region record: WallJumpSettings_KeyValue
-
-        private record WallJumpSettings_KeyValue
-        {
-            public double key { get; init; }
-            public double value { get; init; }
-        }
-
-        #endregion
 
         #region enum: SelectedPropsAtAngle
 
@@ -112,9 +78,17 @@ namespace Game.Bepu.Testers
 
         #endregion
 
-        #region record: HorizontalPropsAngles
+        #region records: Save
 
-        private record HorizontalPropsAngles
+        // This is the wpf settings that get serialized
+
+        private record Save_AllProps
+        {
+            public Save_HorizontalPropsAngles Horizontal { get; init; }
+            public Save_VerticalPropsAngles Vertical { get; init; }
+        }
+
+        private record Save_HorizontalPropsAngles
         {
             public double FaceWall { get; init; }
             public double AlongStart { get; init; }
@@ -126,10 +100,7 @@ namespace Game.Bepu.Testers
             public double Speed_ZeroStrength { get; init; }
         }
 
-        #endregion
-        #region record: VerticalPropsAngles
-
-        private record VerticalPropsAngles
+        private record Save_VerticalPropsAngles
         {
             public double StraightUp { get; init; }
             public double Standard { get; init; }
@@ -141,13 +112,36 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+        #region records: WallJumpSettings
 
-        #region record: AllProps
+        // This is saved in the lua mod folder
 
-        private record AllProps
+        private record WallJumpSettings
         {
-            public HorizontalPropsAngles Horizontal { get; init; }
-            public VerticalPropsAngles Vertical { get; init; }
+            public WallJumpSettings_KeyValue[] straightup_vert_percent { get; init; }
+
+            public WallJumpSettings_KeyValue[] percent_vert_whenup { get; init; }
+            public WallJumpSettings_KeyValue[] percent_horz_whenup { get; init; }
+
+            public WallJumpSettings_KeyValue[] horz_percent_up { get; init; }
+            public WallJumpSettings_KeyValue[] horz_percent_along { get; init; }
+            public WallJumpSettings_KeyValue[] horz_percent_away { get; init; }
+            public WallJumpSettings_KeyValue[] horz_strength { get; init; }
+
+            public WallJumpSettings_KeyValue[] yaw_turn_percent { get; init; }
+
+            public WallJumpSettings_KeyValue[] horizontal_percent_at_speed { get; init; }
+
+            public WallJumpSettings_KeyValue[] horizontal_percent_look { get; init; }
+
+            public double straightup_strength { get; init; }
+            public WallJumpSettings_KeyValue[] straightup_percent_at_speed { get; init; }
+        }
+
+        private record WallJumpSettings_KeyValue
+        {
+            public double key { get; init; }
+            public double value { get; init; }
         }
 
         #endregion
@@ -227,7 +221,7 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                AllProps props = GetPreset_Attempt2();
+                Save_AllProps props = GetPreset_Attempt2();
 
                 CreateImage_Horizontal();
                 CreateImage_Vertical();
@@ -405,7 +399,7 @@ namespace Game.Bepu.Testers
                     return;
                 }
 
-                var settings = new AllProps()
+                var settings = new Save_AllProps()
                 {
                     Horizontal = Scrape_HorizontalProps(),
                     Vertical = Scrape_VerticalProps(),
@@ -441,7 +435,7 @@ namespace Game.Bepu.Testers
                     return;
                 }
 
-                var props = JsonSerializer.Deserialize<AllProps>(File.ReadAllText(txtFileFolder.Text));
+                var props = JsonSerializer.Deserialize<Save_AllProps>(File.ReadAllText(txtFileFolder.Text));
 
                 Present_HorizontalProps(props.Horizontal);
                 Present_VerticalProps(props.Vertical);
@@ -1044,7 +1038,7 @@ namespace Game.Bepu.Testers
             }).
             ToArray();
         }
-        private WallJumpSettings_KeyValue[] GetSettings_PercentsWhenUp_Vert(HorizontalPropsAngles angles)
+        private WallJumpSettings_KeyValue[] GetSettings_PercentsWhenUp_Vert(Save_HorizontalPropsAngles angles)
         {
             double half = Math1D.Avg(angles.FaceWall, angles.AlongStart);
 
@@ -1063,7 +1057,7 @@ namespace Game.Bepu.Testers
             }).
             ToArray();
         }
-        private WallJumpSettings_KeyValue[] GetSettings_PercentsWhenUp_Horz(HorizontalPropsAngles angles)
+        private WallJumpSettings_KeyValue[] GetSettings_PercentsWhenUp_Horz(Save_HorizontalPropsAngles angles)
         {
             double half = Math1D.Avg(angles.FaceWall, angles.AlongStart);
 
@@ -1083,7 +1077,7 @@ namespace Game.Bepu.Testers
             }).
             ToArray();
         }
-        private static WallJumpSettings_KeyValue[] GetSettings_KeyValues(HorizontalPropsAngles angles, PropsAtAllAngles props, Func<PropsAtAngle, double> getValue)
+        private static WallJumpSettings_KeyValue[] GetSettings_KeyValues(Save_HorizontalPropsAngles angles, PropsAtAllAngles props, Func<PropsAtAngle, double> getValue)
         {
             return new (double degree, PropsAtAngle prop)[]
             {
@@ -1276,13 +1270,13 @@ namespace Game.Bepu.Testers
             }
         }
 
-        private HorizontalPropsAngles Scrape_HorizontalProps()
+        private Save_HorizontalPropsAngles Scrape_HorizontalProps()
         {
             double direct = trkHorizontal_DirectWall.Value;
             double indirect = Math.Max(direct, trkHorizontal_InDirectWall.Value);
             double along = Math.Max(indirect, trkHorizontal_AlongWall.Value);
 
-            return new HorizontalPropsAngles()
+            return new Save_HorizontalPropsAngles()
             {
                 FaceWall = direct,
                 AlongStart = indirect,
@@ -1294,7 +1288,7 @@ namespace Game.Bepu.Testers
                 Speed_ZeroStrength = trkHorzSpeedZero.Value,
             };
         }
-        private void Present_HorizontalProps(HorizontalPropsAngles angles)
+        private void Present_HorizontalProps(Save_HorizontalPropsAngles angles)
         {
             trkHorizontal_DirectWall.Value = angles.FaceWall;
             trkHorizontal_InDirectWall.Value = angles.AlongStart;
@@ -1313,7 +1307,7 @@ namespace Game.Bepu.Testers
             trkHorzSpeedZero.Value = angles.Speed_ZeroStrength;
         }
 
-        private VerticalPropsAngles Scrape_VerticalProps()
+        private Save_VerticalPropsAngles Scrape_VerticalProps()
         {
             double straight_up = trkVertical_StraightUp.Value;
             double standard = Math.Min(straight_up, trkVertical_Standard.Value);
@@ -1321,7 +1315,7 @@ namespace Game.Bepu.Testers
             double speed_full = trkUpSpeedFull.Value;
             double speed_zero = Math.Max(speed_full, trkUpSpeedZero.Value);
 
-            return new VerticalPropsAngles()
+            return new Save_VerticalPropsAngles()
             {
                 StraightUp = straight_up,
                 Standard = standard,
@@ -1332,7 +1326,7 @@ namespace Game.Bepu.Testers
                 Speed_ZeroStrength = speed_zero,
             };
         }
-        private void Present_VerticalProps(VerticalPropsAngles props)
+        private void Present_VerticalProps(Save_VerticalPropsAngles props)
         {
             trkVertical_StraightUp.Value = props.StraightUp;
             trkVertical_Standard.Value = props.Standard;
@@ -1629,7 +1623,7 @@ namespace Game.Bepu.Testers
             );
         }
 
-        private static FrameworkElement BuildPlot(HorizontalPropsAngles angles, string title, Slider slider, Func<PropsAtAngle, double> getValue)
+        private static FrameworkElement BuildPlot(Save_HorizontalPropsAngles angles, string title, Slider slider, Func<PropsAtAngle, double> getValue)
         {
             var retVal = new StackPanel()
             {
@@ -1650,7 +1644,7 @@ namespace Game.Bepu.Testers
             return retVal;
         }
 
-        private static FrameworkElement DrawPlot(double radius, HorizontalPropsAngles angles, double minimum, double maximum, Func<PropsAtAngle, double> getValue)
+        private static FrameworkElement DrawPlot(double radius, Save_HorizontalPropsAngles angles, double minimum, double maximum, Func<PropsAtAngle, double> getValue)
         {
             var values = new List<(double angle, double value, double x, double y)>();
 
@@ -1700,7 +1694,7 @@ namespace Game.Bepu.Testers
             return retVal;
         }
 
-        private static AnimationCurve BuildAnimationCurve(HorizontalPropsAngles angles, Func<PropsAtAngle, double> getValue)
+        private static AnimationCurve BuildAnimationCurve(Save_HorizontalPropsAngles angles, Func<PropsAtAngle, double> getValue)
         {
             var retVal = new AnimationCurve();
 
@@ -1768,11 +1762,11 @@ namespace Game.Bepu.Testers
                 },
             };
         }
-        private static AllProps GetPreset_Attempt2()
+        private static Save_AllProps GetPreset_Attempt2()
         {
-            return new AllProps()
+            return new Save_AllProps()
             {
-                Horizontal = new HorizontalPropsAngles()
+                Horizontal = new Save_HorizontalPropsAngles()
                 {
                     FaceWall = 20,
                     AlongStart = 60,
@@ -1835,7 +1829,7 @@ namespace Game.Bepu.Testers
                     Speed_ZeroStrength = 8,
                 },
 
-                Vertical = new VerticalPropsAngles()
+                Vertical = new Save_VerticalPropsAngles()
                 {
                     StraightUp = 60,
                     Standard = 40,

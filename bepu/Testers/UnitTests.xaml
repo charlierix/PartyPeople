@@ -17,6 +17,8 @@
             <Button Content="cos test 2" Click="CosTest2_Click"/>
             <Button Content="bezier plot" Click="BezierPlot_Click"/>-->
 
+            <Button Content="animation curve index exception" Margin="0,8,0,0" Click="AnimIndexRange_Click"/>
+
         </StackPanel>
     </Grid>
 </Window>

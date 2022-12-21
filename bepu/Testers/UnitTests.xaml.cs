@@ -7,17 +7,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
-using System.Runtime.Versioning;
-using System.Text;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
-using System.Windows.Shapes;
 
 namespace Game.Bepu.Testers
 {
@@ -970,5 +962,42 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+
+        private void AnimIndexRange_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Tiny First
+                var curve = new AnimationCurve();
+                curve.AddKeyValue(0, 0.76514040364407232);      // this was getting a sample count of zero, causing an exception
+                curve.AddKeyValue(0.28892726277218372, 0.74394620421814894);        
+                curve.AddKeyValue(60, 0.57046261025833467);
+                curve.AddKeyValue(120, 0.42728348034444619);
+                curve.AddKeyValue(180, 0.23485959635592776);
+                double test = curve.Evaluate(5);
+
+                // Tiny Middle
+                curve = new AnimationCurve();
+                curve.AddKeyValue(0, 0.76514040364407232);
+                curve.AddKeyValue(60, 0.57046261025833467);
+                curve.AddKeyValue(60.2, 0.74394620421814894);       // this gets a count of zero
+                curve.AddKeyValue(120, 0.42728348034444619);
+                curve.AddKeyValue(180, 0.23485959635592776);
+                test = curve.Evaluate(5);
+
+                // Tiny Last
+                curve = new AnimationCurve();
+                curve.AddKeyValue(0, 0.76514040364407232);
+                curve.AddKeyValue(60, 0.57046261025833467);
+                curve.AddKeyValue(120, 0.42728348034444619);
+                curve.AddKeyValue(180, 0.23485959635592776);
+                curve.AddKeyValue(180.1, 0.74394620421814894);      // now this has the zero
+                test = curve.Evaluate(5);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 }
