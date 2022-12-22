@@ -246,6 +246,50 @@ namespace Game.Core
         #region misc
 
         /// <summary>
+        /// This takes in a numeric value, returns a string in dozenal
+        /// </summary>
+        public static string Format_DecimalToDozenal(double decimal_value, int fractional_places)
+        {
+            //https://www.reddit.com/r/dozenal/comments/4is9zm/dozenal_conversion/
+            //http://www.dozenal.org/articles/DSA-ConversionRules.pdf
+
+            //Divide the number by 12, rounding the quotient down to the nearest whole number and noting the remainder at each iteration
+            //
+            //Stop when the quotient is 0
+            //
+            // Then concatenate the remainders in reverse order, starting from last to first, to create the base - 12 representation of the number
+
+            //Let's work out an example using the decimal number 45097.
+            // 45097÷12 = 3758 remainder 1
+            // 3758÷12 = 313 remainder 2
+            // 313÷12 = 26 remainder 1
+            // 26÷12 = 2 remainder 2
+            // 2÷12 = 0 remainder 2
+
+            // Thus, the base - 12 representation of the decimal number 45097 is 22121
+
+            var (decimal_whole, decimal_fractional, is_positive) = GetDozenalParts(decimal_value, fractional_places);
+
+            string fractional_text = "";
+            if (fractional_places > 0 && decimal_fractional > 0)
+            {
+                var (text, round_up) = GetDozenalFractional(decimal_fractional, fractional_places);
+                fractional_text = text;
+
+                if (round_up)
+                    decimal_whole = decimal_whole + 1;       // 1.EE with 1 fractional would become 1.0 + 1(or 2.0)
+            }
+
+            string retVal = GetDozenalWholeNum(decimal_whole);
+            retVal += fractional_text;
+
+            if (!is_positive)
+                retVal = "-" + retVal;
+
+            return retVal;
+        }
+
+        /// <summary>
         /// This takes the base 10 offset, converts to a base 26 number, and represents each of those as letters
         /// </summary>
         /// <remarks>
@@ -2183,6 +2227,141 @@ namespace Game.Core
             }
 
             return retVal.ToArray();
+        }
+
+        private static (long decimal_whole, double decimal_fractional, bool is_positive) GetDozenalParts(double decimal_value, int fractional_places)
+        {
+            double abs_decimal = Math.Abs(decimal_value);
+
+            long decimal_whole;
+            double decimal_fractional;
+
+            if (fractional_places == 0)
+            {
+                decimal_whole = Convert.ToInt64(Math.Round(abs_decimal, 0));
+                decimal_fractional = 0;
+            }
+            else
+            {
+                decimal_whole = Convert.ToInt64(Math.Floor(abs_decimal));     // some of the fraction will be shown, so it won't be able to possibly round up the whole number portion
+                decimal_fractional = abs_decimal - decimal_whole;
+            }
+
+            return (decimal_whole, decimal_fractional, decimal_value >= 0);
+        }
+
+        private static string GetDozenalWholeNum(long decimal_whole)
+        {
+            //NOTE: A positive whole number must be passed in
+
+            var retVal = new StringBuilder();
+
+            while (true)
+            {
+                int mod = Convert.ToInt32(decimal_whole % 12);
+
+                if (decimal_whole == 0 && mod == 0)
+                    break;
+
+                retVal.Insert(0, GetDozenalChar(mod));
+
+                decimal_whole = Convert.ToInt64(Math.Floor(decimal_whole / 12d));
+            }
+
+            if (retVal.Length == 0)
+                retVal.Append('0');
+
+            return retVal.ToString();
+        }
+
+        private static (string text, bool round_up) GetDozenalFractional(double decimal_fractional, int fractional_places)
+        {
+            //NOTE: A positive number must be passed in
+
+            int[] ints = GetDozenalFractional_Ints(decimal_fractional, fractional_places);
+            bool round_up = GetDozenalFractional_CarryOnes(ints);
+
+            string retVal = GetDozenalFractional_Chars(ints);
+
+            // Strip trailing zeros
+            retVal = Regex.Replace(retVal, "0+$", "");
+
+            if (retVal != "")
+                retVal = "." + retVal;      //NOTE: They recommend semicolon, but that makes it really foreign to read (though that may be best, since some cultures use comma instead of period)
+
+            return (retVal, round_up);
+        }
+        private static int[] GetDozenalFractional_Ints(double decimal_fractional, int fractional_places)
+        {
+            var retVal = new List<int>();
+
+            double working_fractional = decimal_fractional;
+
+            for (int i = 0; i < fractional_places; i++)
+            {
+                working_fractional = working_fractional * 12;
+
+                int int_portion = Convert.ToInt32(Math.Floor(working_fractional));
+
+                working_fractional -= int_portion;
+
+                if (i == fractional_places - 1 && working_fractional >= 0.5)       // round up the last digit
+                    int_portion++;
+
+                retVal.Add(int_portion);
+            }
+
+            return retVal.ToArray();
+        }
+        private static bool GetDozenalFractional_CarryOnes(int[] ints)
+        {
+            bool should_increment = false;
+
+            for (int i = ints.Length - 1; i >= 0; i--)
+            {
+                if (should_increment)
+                {
+                    ints[i]++;
+                    should_increment = false;
+                }
+
+                if (ints[i] > 11)      // it should just be 12, never higher
+                {
+                    ints[i] = 0;
+                    should_increment = true;
+                }
+            }
+
+            return should_increment;
+        }
+        private static string GetDozenalFractional_Chars(int[] ints)
+        {
+            var retVal = new StringBuilder();
+
+            for (int i = 0; i < ints.Length; i++)
+            {
+                retVal.Append(GetDozenalChar(ints[i]));
+            }
+
+            return retVal.ToString();
+        }
+
+        private static char GetDozenalChar(int value)
+        {
+            if (value < 0)
+                throw new ArgumentOutOfRangeException(nameof(value), $"Value can't be negative: {value}");
+
+            else if (value < 10)
+                return Convert.ToChar(value.ToString());
+
+            else if (value == 10)
+                return 'X';
+
+            else if (value == 11)
+                return 'E';
+
+            else
+                throw new ArgumentException(nameof(value), $"Unexpected value: {value}");
         }
 
         #endregion

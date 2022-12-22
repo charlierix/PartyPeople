@@ -413,6 +413,106 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void AnimIndexRange_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Tiny First
+                var curve = new AnimationCurve();
+                curve.AddKeyValue(0, 0.76514040364407232);      // this was getting a sample count of zero, causing an exception
+                curve.AddKeyValue(0.28892726277218372, 0.74394620421814894);
+                curve.AddKeyValue(60, 0.57046261025833467);
+                curve.AddKeyValue(120, 0.42728348034444619);
+                curve.AddKeyValue(180, 0.23485959635592776);
+                double test = curve.Evaluate(5);
+
+                // Tiny Middle
+                curve = new AnimationCurve();
+                curve.AddKeyValue(0, 0.76514040364407232);
+                curve.AddKeyValue(60, 0.57046261025833467);
+                curve.AddKeyValue(60.2, 0.74394620421814894);       // this gets a count of zero
+                curve.AddKeyValue(120, 0.42728348034444619);
+                curve.AddKeyValue(180, 0.23485959635592776);
+                test = curve.Evaluate(5);
+
+                // Tiny Last
+                curve = new AnimationCurve();
+                curve.AddKeyValue(0, 0.76514040364407232);
+                curve.AddKeyValue(60, 0.57046261025833467);
+                curve.AddKeyValue(120, 0.42728348034444619);
+                curve.AddKeyValue(180, 0.23485959635592776);
+                curve.AddKeyValue(180.1, 0.74394620421814894);      // now this has the zero
+                test = curve.Evaluate(5);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ToDozenal_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                int[] tests_int = new[]
+                {
+                    0,
+                    1,
+                    6,
+                    9,
+                    10,
+                    11,
+                    12,
+                    13,
+                    23,
+                    24,
+                    25,
+                    143,
+                    144,
+                    145
+                };
+
+                var positive = tests_int.
+                    Select(o => new { dec = o, doz = UtilityCore.Format_DecimalToDozenal(o, 0) }).
+                    ToArray();
+
+                var negative = tests_int.
+                    Select(o => new { dec = -o, doz = UtilityCore.Format_DecimalToDozenal(-o, 0) }).
+                    ToArray();
+
+
+
+                double[] test_dbl = tests_int.
+                    Select(o => Convert.ToDouble(o)).
+                    Concat(new[]
+                    {
+                        0d,
+                        1,
+                        1.1,
+                        1.5,
+                        1.6,
+                        1.7,
+                        1.9999999999999,
+                        2.00000001,
+                    }).
+                    Concat(Enumerable.Range(0, 12).Select(o => StaticRandom.NextDouble(48))).
+                    ToArray();
+
+                var positive2 = test_dbl.
+                    Select(o => new { dec = o, doz = UtilityCore.Format_DecimalToDozenal(o, 2) }).
+                    ToArray();
+
+                var negative2 = test_dbl.
+                    Select(o => new { dec = -o, doz = UtilityCore.Format_DecimalToDozenal(-o, 2) }).
+                    ToArray();
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
 
         #region Private Methods
@@ -962,42 +1062,5 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
-
-        private void AnimIndexRange_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                // Tiny First
-                var curve = new AnimationCurve();
-                curve.AddKeyValue(0, 0.76514040364407232);      // this was getting a sample count of zero, causing an exception
-                curve.AddKeyValue(0.28892726277218372, 0.74394620421814894);        
-                curve.AddKeyValue(60, 0.57046261025833467);
-                curve.AddKeyValue(120, 0.42728348034444619);
-                curve.AddKeyValue(180, 0.23485959635592776);
-                double test = curve.Evaluate(5);
-
-                // Tiny Middle
-                curve = new AnimationCurve();
-                curve.AddKeyValue(0, 0.76514040364407232);
-                curve.AddKeyValue(60, 0.57046261025833467);
-                curve.AddKeyValue(60.2, 0.74394620421814894);       // this gets a count of zero
-                curve.AddKeyValue(120, 0.42728348034444619);
-                curve.AddKeyValue(180, 0.23485959635592776);
-                test = curve.Evaluate(5);
-
-                // Tiny Last
-                curve = new AnimationCurve();
-                curve.AddKeyValue(0, 0.76514040364407232);
-                curve.AddKeyValue(60, 0.57046261025833467);
-                curve.AddKeyValue(120, 0.42728348034444619);
-                curve.AddKeyValue(180, 0.23485959635592776);
-                curve.AddKeyValue(180.1, 0.74394620421814894);      // now this has the zero
-                test = curve.Evaluate(5);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
     }
 }

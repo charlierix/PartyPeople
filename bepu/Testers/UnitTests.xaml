@@ -19,6 +19,7 @@
 
             <Button Content="animation curve index exception" Margin="0,8,0,0" Click="AnimIndexRange_Click"/>
 
+            <Button Content="Decimal -> Dozenal" Margin="0,8,0,0" Click="ToDozenal_Click"/>
         </StackPanel>
     </Grid>
 </Window>
