@@ -1909,12 +1909,15 @@ namespace Game.Math_WPF.WPF
                 return new Color[0];
 
             VectorND[] existingStatic = null;
+            int new_count = -1;
 
             if (existing != null && existing.Length > 0)
             {
                 existingStatic = existing.
                     Select(o => new double[] { o.R, o.G, o.B }.ToVectorND()).
                     ToArray();
+
+                new_count = count;
             }
             else
             {
@@ -1924,6 +1927,8 @@ namespace Game.Math_WPF.WPF
                     return new[] { staticColor };
 
                 existingStatic = new[] { new double[] { staticColor.R, staticColor.G, staticColor.B }.ToVectorND() };
+
+                new_count = count - 1;
             }
 
             var aabb = (new double[] { minRed, minGreen, minBlue }.ToVectorND(), new double[] { maxRed, maxGreen, maxBlue }.ToVectorND());
@@ -1932,7 +1937,7 @@ namespace Game.Math_WPF.WPF
             // pushes the others away, so the returned items are as far from each other as possible
             //NOTE: Using a single static color to get unique values across runs (otherwise they get stuck in corners,
             //and could be about the same from run to run)
-            VectorND[] colors = MathND.GetRandomVectors_Cube_EventDist(count - 1, aabb, existingStaticPoints: existingStatic);
+            VectorND[] colors = MathND.GetRandomVectors_Cube_EventDist(new_count, aabb, existingStaticPoints: existingStatic);
 
             return colors.
                 Concat(existingStatic).
