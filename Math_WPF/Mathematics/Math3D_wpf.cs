@@ -6419,7 +6419,7 @@ namespace Game.Math_WPF.Mathematics
 
         public static bool IsAbovePlane(ITriangle_wpf plane, Point3D testPoint, bool trueIfOnPlane = false)
         {
-            // Compute D, using a arbitrary point P, that lies on the plane: D = - (Nx*Px + Ny*Py + Nz*Pz); Don't forget the inversion !
+            // Compute D, using an arbitrary point P, that lies on the plane: D = - (Nx*Px + Ny*Py + Nz*Pz); Don't forget the inversion !
             double d = -((plane.NormalUnit.X * plane.Point0.X) + (plane.NormalUnit.Y * plane.Point0.Y) + (plane.NormalUnit.Z * plane.Point0.Z));
 
             // You can test a point (T) with respect to the plane using the plane equation: res = Nx*Tx + Ny*Ty + Nz*Tz + D
@@ -6548,15 +6548,11 @@ namespace Game.Math_WPF.Mathematics
             Vector3D p43 = p4 - p3;
 
             //if (IsNearZero(p43.LengthSquared))
-            //{
             //    return false;
-            //}
 
             Vector3D p21 = p2 - p1;
             //if (IsNearZero(p21.LengthSquared))
-            //{
             //    return false;
-            //}
 
             double d1343 = (p13.X * p43.X) + (p13.Y * p43.Y) + (p13.Z * p43.Z);
             double d4321 = (p43.X * p21.X) + (p43.Y * p21.Y) + (p43.Z * p21.Z);
@@ -6566,9 +6562,7 @@ namespace Game.Math_WPF.Mathematics
 
             double denom = (d2121 * d4343) - (d4321 * d4321);
             //if (IsNearZero(denom))
-            //{
             //    return false;
-            //}
             double numer = (d1343 * d4321) - (d1321 * d4343);
 
             double mua = numer / denom;
