@@ -123,6 +123,7 @@
                     <ListBoxItem Content="Wing Interference" MouseUp="WingInterference_MouseUp"/>
                     <ListBoxItem Content="WallJump Config" MouseUp="WallJumpConfig_MouseUp"/>
                     <ListBoxItem Content="Curve Fitting" MouseUp="CurveFitting_MouseUp"/>
+                    <ListBoxItem Content="AnimCurve Visualizer" MouseUp="AnimationCurveVisualizer_MouseUp"/>
                 </ListBox>
             </StackPanel>
         </WrapPanel>

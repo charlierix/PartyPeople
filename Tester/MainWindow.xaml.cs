@@ -102,5 +102,9 @@ namespace Game.Tester
         {
             new Game.Bepu.Testers.CurveFitting().Show();
         }
+        private void AnimationCurveVisualizer_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.AnimationCurveVisualizer().Show();
+        }
     }
 }
