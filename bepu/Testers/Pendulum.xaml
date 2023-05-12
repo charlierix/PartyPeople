@@ -63,7 +63,9 @@
                     <Expander Header="Single Pendulum" IsExpanded="True">
                         <StackPanel Style="{StaticResource expanderStackPanel}">
 
-                            <Label Content="Gravity"/>
+                            <CheckBox x:Name="chkTracePosition" Content="Trace Position" Checked="chkTracePosition_Checked" Unchecked="chkTracePosition_Checked"/>
+
+                            <Label Content="Gravity" Margin="0,8,0,0"/>
                             <Slider Name="trkGravity" Minimum="1" Maximum="33" Value="16"/>
 
                             <Label Content="Rope Length"/>

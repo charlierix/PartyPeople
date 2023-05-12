@@ -513,6 +513,119 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void CapacitorCharge_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // You can use the following equation to calculate charge based on current charge each tick:
+                //
+                // Q(t) = Q(0) * e ^ (-t / (RC)) + I * R * (1 - e ^ (-t / (RC)))
+                //
+                // where Q(t) is the charge at time t, Q(0) is the initial charge, I is the current, R is the resistance and C is the capacitance of the capacitor1
+
+                double resistance = 1;
+                double current = 1;
+                double capacitance = 1;
+                double deltaTime = 0.05;
+
+                double charge = 0;
+
+                double exp = Math.Exp(-deltaTime / (resistance * capacitance));
+
+                var charges = new List<double>();
+                charges.Add(charge);
+
+                for (int i = 0; i < 144; i++)
+                {
+                    charge = charge * exp + current * resistance * (1 - exp);
+
+                    charges.Add(charge);
+                }
+
+                var window = new Debug3DWindow();
+
+                var graph = Debug3DWindow.GetGraph(charges.ToArray());
+                window.AddGraph(graph, new Point3D(), 1);
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void GuassianDropoff_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                double dt = 0.001;
+                double charge = 1;
+
+                var charges = new List<double>();
+                charges.Add(charge);
+
+                double mult = 0.5;
+
+                for (int i = 0; i < 1000; i++)
+                {
+                    // derivative of e^-x^2 is -2xe^-x^2
+                    double derivative = -2 * charge * Math.Exp(-charge * charge);
+
+                    charge += derivative * mult * dt;
+
+                    charges.Add(charge);
+                }
+
+                var window = new Debug3DWindow();
+
+                var graph = Debug3DWindow.GetGraph(charges.ToArray());
+                window.AddGraph(graph, new Point3D(), 1);
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void Cosine_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                double dt = 0.05;
+                //double charge = 1;        // slope is zero at one
+                double charge = 0.999;
+
+                double mult = 0.1;
+
+                var charges = new List<double>();
+                charges.Add(charge);
+
+                for (int i = 0; i < 1000; i++)
+                {
+                    // derivative of cos(x) is -sin(x)
+                    double derivative = -Math.Sin(charge * Math.PI);
+
+                    charge += derivative * mult * dt;
+
+                    charges.Add(charge);
+                }
+
+                var window = new Debug3DWindow();
+
+                var graph = Debug3DWindow.GetGraph(charges.ToArray());
+                window.AddGraph(graph, new Point3D(), 1);
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
 
         #region Private Methods

@@ -7201,7 +7201,7 @@ namespace Game.Math_WPF.Mathematics
         }
         private static Vector3D? GetIntersection_Plane_Line(Vector3D normal, Vector3D[] line, double originDistance, EdgeType edgeType)
         {
-            // Here comes the confuMath.Sing part.  We need to find the 3D point that is actually
+            // Here comes the confusing part.  We need to find the 3D point that is actually
             // on the plane.  Here are some steps to do that:
 
             // 1)  First we need to get the vector of our line, Then normalize it so it's a length of 1
@@ -7219,11 +7219,11 @@ namespace Game.Math_WPF.Mathematics
                                                normal.Z * line[0].Z + originDistance);
 
             // 3) If we take the dot product between our line vector and the normal of the polygon,
-            //    this will give us the Math.CoMath.Sine of the angle between the 2 (Math.Since they are both normalized - length 1).
+            //    this will give us the cosine of the angle between the 2 (since they are both normalized - length 1).
             //    We will then divide our Numerator by this value to find the offset towards the plane from our arbitrary point.
             double denominator = Vector3D.DotProduct(normal, lineDir);      // Get the dot product of the line's vector and the normal of the plane
 
-            // Math.Since we are uMath.Sing division, we need to make sure we don't get a divide by zero error
+            // Since we are using division, we need to make sure we don't get a divide by zero error
             // If we do get a 0, that means that there are INFINATE points because the the line is
             // on the plane (the normal is perpendicular to the line - (Normal.Vector = 0)).  
             // In this case, we should just return any point on the line.
@@ -7234,7 +7234,7 @@ namespace Game.Math_WPF.Mathematics
             // We divide the (distance from the point to the plane) by (the dot product)
             // to get the distance (dist) that we need to move from our arbitrary point.  We need
             // to then times this distance (dist) by our line's vector (direction).  When you times
-            // a scalar (Math.Single number) by a vector you move along that vector.  That is what we are
+            // a scalar (single number) by a vector you move along that vector.  That is what we are
             // doing.  We are moving from our arbitrary point we chose from the line BACK to the plane
             // along the lines vector.  It seems logical to just get the numerator, which is the distance
             // from the point to the line, and then just move back that much along the line's vector.

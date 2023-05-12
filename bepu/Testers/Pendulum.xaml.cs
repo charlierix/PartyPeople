@@ -4,6 +4,7 @@ using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -38,6 +39,16 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
+        #region record: TracePoint
+
+        private record TracePoint
+        {
+            public Visual3D Visual { get; init; }
+            public Point3D Point { get; init; }
+            // maybe time
+        }
+
+        #endregion
 
         #region Declaration Section
 
@@ -49,6 +60,8 @@ namespace Game.Bepu.Testers
         private DispatcherTimer _timer = null;
 
         private AnchoredBall _ball = null;
+
+        private List<TracePoint> _tracePoints = new List<TracePoint>();
 
         private bool _initialized = false;
 
@@ -87,6 +100,25 @@ namespace Game.Bepu.Testers
 
                 if (_ball != null)
                     UpdateBall(_timer.Interval.TotalSeconds);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void chkTracePosition_Checked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!_initialized)
+                    return;
+
+                if (!chkTracePosition.IsChecked.Value)
+                {
+                    _viewport.Children.RemoveAll(_tracePoints.Select(o => o.Visual));
+                    _tracePoints.Clear();
+                }
             }
             catch (Exception ex)
             {
