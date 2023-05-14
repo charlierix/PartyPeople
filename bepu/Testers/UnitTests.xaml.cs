@@ -626,6 +626,117 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void Perlin_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Vector3D start = Math3D.GetRandomVector_Spherical(12);
+                Vector3D dir = Math3D.GetRandomVector_Spherical(3);
+
+                double max_time = 3;
+                double count = 1000;
+
+                double[] values = Enumerable.Range(0, count.ToInt_Floor()).
+                    Select(o =>
+                    {
+                        double time = max_time * (o / count);
+                        Vector3D point = start + dir * time;
+                        return Perlin.Evaluate(point.X, point.Y, point.Z);
+                    }).
+                    ToArray();
+
+                var window = new Debug3DWindow() { Title = "allow negative" };
+
+                var graph = Debug3DWindow.GetGraph(values.ToArray());
+                window.AddGraph(graph, new Point3D(), 1);
+
+                window.AddText($"dir: {dir.ToStringSignificantDigits(4)}, length: {dir.Length.ToStringSignificantDigits(4)}");
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void PerlinOctaves_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Vector3D start = Math3D.GetRandomVector_Spherical(12);
+                Vector3D dir = Math3D.GetRandomVector_Spherical(3);
+
+                int octaves = StaticRandom.Next(2, 5);
+
+                double max_time = 3;
+                double count = 1000;
+
+                double[] values = Enumerable.Range(0, count.ToInt_Floor()).
+                    Select(o =>
+                    {
+                        double time = max_time * (o / count);
+                        Vector3D point = start + dir * time;
+                        return Perlin.Octaves(point.X, point.Y, point.Z, octaves);
+                    }).
+                    ToArray();
+
+                var window = new Debug3DWindow() { Title = $"octaves {octaves}" };
+
+                var graph = Debug3DWindow.GetGraph(values.ToArray());
+                window.AddGraph(graph, new Point3D(), 1);
+
+                window.AddText($"dir: {dir.ToStringSignificantDigits(4)}, length: {dir.Length.ToStringSignificantDigits(4)}");
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void PerlinMisc2_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var start = new Vector3D(5.636, 6.568, -5.29);
+                var dir = new Vector3D(1, 0, 0);
+
+                double max_time = 3;
+                double count = 36;
+
+                string report = Enumerable.Range(0, count.ToInt_Floor()).
+                    Select(o =>
+                    {
+                        double time = max_time * (o / count);
+                        Vector3D point = start + dir * time;
+                        double perlin = Perlin.Evaluate(point.X, point.Y, point.Z);
+
+                        return $"{time} | {point.X}, {point.Y}, {point.Z} | {perlin}";
+                    }).
+                    ToJoin("\r\n");
+
+
+                Clipboard.SetText(report);
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private static void GenerateTestPoints()
+        {
+            var get_num = new Func<string>(() => StaticRandom.NextDouble(-12, 12).ToStringSignificantDigits(4));
+
+            var inputs = Enumerable.Range(0, 12).
+                Select(o => $"{{ x = {get_num()}, y = {get_num()}, z = {get_num()} }},").
+                ToJoin("\r\n");
+
+            Clipboard.SetText(inputs);
+        }
+
         #endregion
 
         #region Private Methods

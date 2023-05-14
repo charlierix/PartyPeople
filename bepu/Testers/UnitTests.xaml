@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Game.Bepu.Testers"
         mc:Ignorable="d"
-        Title="Unit Tests" ResizeMode="CanResizeWithGrip" Width="400" Height="300">
+        Title="Unit Tests" ResizeMode="CanResizeWithGrip" Width="400" Height="400">
     <Grid Margin="8">
         <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
             <Button Content="Quaternions" Click="Quaternions_Click"/>
@@ -24,6 +24,10 @@
             <Button Content="Capicitor Charge" Margin="0,8,0,0" Click="CapacitorCharge_Click"/>
             <Button Content="Guassian Dropoff" Click="GuassianDropoff_Click"/>
             <Button Content="Cosine Dropoff" Click="Cosine_Click"/>
+
+            <Button Content="Perlin" Margin="0,8,0,0" Click="Perlin_Click"/>
+            <Button Content="Perlin (octaves)" Click="PerlinOctaves_Click"/>
+            <Button Visibility="Collapsed" Content="Perlin misc test 2" Click="PerlinMisc2_Click"/>
         </StackPanel>
     </Grid>
 </Window>
