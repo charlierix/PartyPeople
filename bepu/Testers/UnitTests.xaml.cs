@@ -5,8 +5,10 @@ using Game.Math_WPF.WPF.Controls3D;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Numerics;
+using System.Text;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
@@ -726,15 +728,42 @@ namespace Game.Bepu.Testers
             }
         }
 
-        private static void GenerateTestPoints()
+        private void IcoNormals_Click(object sender, RoutedEventArgs e)
         {
-            var get_num = new Func<string>(() => StaticRandom.NextDouble(-12, 12).ToStringSignificantDigits(4));
+            try
+            {
+                // this if for a lua mod to fire raycasts in all directions uniformly
+                string json = GetIcosahedronAsJson(chkIsoRandomRot.IsChecked.Value);
+                Clipboard.SetText(json.ToString());
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void IcoNormals2_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!Directory.Exists(txtFolder.Text))
+                {
+                    MessageBox.Show("Please select a folder", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
-            var inputs = Enumerable.Range(0, 12).
-                Select(o => $"{{ x = {get_num()}, y = {get_num()}, z = {get_num()} }},").
-                ToJoin("\r\n");
+                // this if for a lua mod to fire raycasts in all directions uniformly
+                for (int i = 0; i < 12; i++)
+                {
+                    string json = GetIcosahedronAsJson(true);
 
-            Clipboard.SetText(inputs);
+                    string filename = System.IO.Path.Combine(txtFolder.Text, $"icosahedron {i}.json");
+                    File.WriteAllText(filename, json);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         #endregion
@@ -903,6 +932,65 @@ namespace Game.Bepu.Testers
                 default:
                     throw new ApplicationException($"Unknown Axis: {normal}");
             }
+        }
+
+        private static void GenerateTestPoints()
+        {
+            var get_num = new Func<string>(() => StaticRandom.NextDouble(-12, 12).ToStringSignificantDigits(4));
+
+            var inputs = Enumerable.Range(0, 12).
+                Select(o => $"{{ x = {get_num()}, y = {get_num()}, z = {get_num()} }},").
+                ToJoin("\r\n");
+
+            Clipboard.SetText(inputs);
+        }
+
+        private static string GetIcosahedronAsJson(bool random_rotation)
+        {
+            var ico = Polytopes.GetIcosahedron(0.25).       // 0 recursions is 20 faces, 1 recursion is 80
+                Select(o => new Triangle_wpf(o.Point0, o.Point1, o.Point2)).
+                ToArray();
+
+            if (random_rotation)
+            {
+                var quat = Math3D.GetRandomRotation();
+
+                ico = ico.
+                    Select(o => new Triangle_wpf
+                    (
+                        quat.GetRotatedVector(o.Point0.ToVector()).ToPoint(),
+                        quat.GetRotatedVector(o.Point1.ToVector()).ToPoint(),
+                        quat.GetRotatedVector(o.Point2.ToVector()).ToPoint()
+                    )).
+                    ToArray();
+            }
+
+            var json = new StringBuilder();
+
+            json.AppendLine("{");
+            json.AppendLine("\t\"ico\": [");
+
+            for (int i = 0; i < ico.Length; i++)
+            {
+                json.AppendLine("\t\t{");
+
+                var pos = ico[i].GetCenterPoint().ToVector3();
+                var norm = ico[i].NormalUnit.ToVector3();
+
+                json.AppendLine($"\t\t\t\"pos_x\": {pos.X}, \"pos_y\": {pos.Y}, \"pos_z\": {pos.Z},");
+                json.AppendLine($"\t\t\t\"norm_x\": {norm.X}, \"norm_y\": {norm.Y}, \"norm_z\": {norm.Z}");
+
+                string comma = i < ico.Length - 1 ?
+                    "," :
+                    "";
+
+                json.AppendLine("\t\t}" + comma);
+            }
+
+            json.AppendLine("\t]");
+            json.AppendLine("}");
+
+            return json.ToString();
         }
 
         #endregion

@@ -5535,15 +5535,11 @@ namespace Game.Math_WPF.Mathematics
         public static Vector3D GetAverage(params (Vector3D vector, double weight)[] weightedVectors)
         {
             if (weightedVectors == null || weightedVectors.Length == 0)
-            {
                 return new Vector3D(0, 0, 0);
-            }
 
             double totalWeight = weightedVectors.Sum(o => o.weight);
             if (Math1D.IsNearZero(totalWeight))
-            {
                 return GetAverage(weightedVectors.Select(o => o.vector).ToArray());
-            }
 
             double x = 0d;
             double y = 0d;
@@ -7996,10 +7992,7 @@ namespace Game.Math_WPF.Mathematics
         }
 
 
-        //public static Vector3D GetRandomVector_Cone(Vector3D axis, double maxAngle, double radius)
-        //{
-        //    return GetRandomVector_Cone(axis, 0d, maxAngle);
-        //}
+        // not sure why this is called cone shell.  Sending minRadius of 0 will choose a random point anywhere inside the cone
         public static Vector3D GetRandomVector_ConeShell(Vector3D axis, double minAngle, double maxAngle, double minRadius, double maxRadius)
         {
             return GetRandomVectors_ConeShell(1, axis, minAngle, maxAngle, minRadius, maxRadius)[0];

@@ -1,4 +1,5 @@
 ﻿using Game.Core;
+using MathNet.Numerics;
 using MathNet.Numerics.LinearAlgebra;
 using System;
 using System.Collections;
@@ -95,20 +96,13 @@ namespace Game.Math_WPF.Mathematics
                 double difference = desiredDistance - springLength;
                 difference *= mult;
 
-                if (Math1D.IsNearZero(springLength) && !difference.IsNearZero())
-                {
-                    spring = GetRandomVector_Spherical_Shell(Math.Abs(difference), spring.Size);
-                }
-                else
-                {
-                    spring = spring.ToUnit() * Math.Abs(difference);
-                }
+                spring = Math1D.IsNearZero(springLength) && !difference.IsNearZero() ?
+                    GetRandomVector_Spherical_Shell(Math.Abs(difference), spring.Size) :
+                    spring.ToUnit() * Math.Abs(difference);
 
                 if (difference > 0)
-                {
                     // Gap needs to be bigger, push them away (default is closing the gap)
                     spring = spring.ToNegated();
-                }
 
                 return new[]
                 {
@@ -147,14 +141,9 @@ namespace Game.Math_WPF.Mathematics
             {
                 double lengthSquared = velocity.LengthSquared;
 
-                if (lengthSquared < maxSpeedSquared)
-                {
-                    return velocity;
-                }
-                else
-                {
-                    return (velocity / Math.Sqrt(lengthSquared)) * maxSpeed;
-                }
+                return lengthSquared < maxSpeedSquared ?
+                    velocity :
+                    (velocity / Math.Sqrt(lengthSquared)) * maxSpeed;
             }
 
             #endregion
@@ -1008,16 +997,12 @@ namespace Game.Math_WPF.Mathematics
         public static VectorND GetZeroVector(params VectorND[] examples)
         {
             if (examples == null || examples.Length == 0)
-            {
                 return new VectorND();
-            }
 
             for (int cntr = 0; cntr < examples.Length; cntr++)
             {
                 if (examples[cntr].VectorArray != null)
-                {
                     return new VectorND(examples[cntr].VectorArray.Length);
-                }
             }
 
             return new VectorND();
@@ -1026,24 +1011,18 @@ namespace Game.Math_WPF.Mathematics
         public static bool IsNearValue(double[] vector1, double[] vector2)
         {
             if (vector1 == null && vector2 == null)
-            {
                 return true;
-            }
+
             else if (vector1 == null || vector2 == null)
-            {
                 return false;
-            }
+
             else if (vector1.Length != vector2.Length)
-            {
                 return false;
-            }
 
             for (int cntr = 0; cntr < vector1.Length; cntr++)
             {
                 if (!Math1D.IsNearValue(vector1[cntr], vector2[cntr]))
-                {
                     return false;
-                }
             }
 
             return true;
@@ -1091,15 +1070,34 @@ namespace Game.Math_WPF.Mathematics
         public static VectorND[] GetRandomVectors_Open_EventDist(VectorND[] movable, Tuple<int, int>[] links, double linkDistance = 1d, double stopRadiusPercent = .004, int stopIterationCount = 1000)
         {
             if (linkDistance < 1d)
-            {
                 throw new ArgumentOutOfRangeException("linkDistance", linkDistance, "linkDistance can't be less than 1 (things get unstable): " + linkDistance.ToString());
-            }
 
             return EvenDistribution.GetOpenLinked(movable, links, linkDistance, stopRadiusPercent, stopIterationCount);
         }
 
         public static VectorND GetRandomVector_Spherical_Shell(int dimensions, double radius)
         {
+            //TODO: compare with this response from chatgpt
+            //This function generates a random vector in n dimensions using the Gaussian distribution. The vector is then normalized to lie on the surface of an n-dimensional sphere. You can use this function to generate a random spherical vector in n dimensions.
+            //public static double[] GetRandomSphericalVector(int n)
+            //{
+            //    double[] v = new double[n];
+            //    double norm = 0;
+            //    for (int i = 0; i < n; i++)
+            //    {
+            //        v[i] = GaussianRandom.NextGaussian();
+            //        norm += v[i] * v[i];
+            //    }
+            //    norm = Math.Sqrt(norm);
+            //    for (int i = 0; i < n; i++)
+            //    {
+            //        v[i] /= norm;
+            //    }
+            //    return v;
+            //}
+
+
+
             double[] retVal = new double[dimensions];
 
             Random rand = StaticRandom.GetRandomForThread();
@@ -1167,6 +1165,38 @@ namespace Game.Math_WPF.Mathematics
         }
         public static VectorND GetRandomVector_Spherical(int dimensions, double minRadius, double maxRadius)
         {
+            //TODO: compare with this response from chatgpt
+            //This function generates a random vector in n dimensions using the Gaussian distribution. The vector is then scaled by a random value between 0 and 1 raised to the power of 1/n. This ensures that the vector is uniformly distributed inside the n-dimensional sphere.
+            //public static double[] GetRandomVectorInsideSphere(int n)
+            //{
+            //    double[] v = new double[n];
+            //    double norm = 0;
+            //    for (int i = 0; i < n; i++)
+            //    {
+            //        v[i] = GaussianRandom.NextGaussian();
+            //        norm += v[i] * v[i];
+            //    }
+            //    norm = Math.Sqrt(norm);
+            //    double radius = Math.Pow(Random.NextDouble(), 1.0 / n);
+            //    for (int i = 0; i < n; i++)
+            //    {
+            //        v[i] *= radius / norm;
+            //    }
+            //    return v;
+            //}
+
+            //This is different than the RandN function
+            //public static double NextGaussian()
+            //{
+            //    double u1 = 1.0 - Random.NextDouble();
+            //    double u2 = 1.0 - Random.NextDouble();
+            //    double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) *
+            //        Math.Sin(2.0 * Math.PI * u2);
+            //    return randStdNormal;
+            //}
+
+
+
             //TODO: See if sqrt works for all dimensions
             double radius = minRadius + ((maxRadius - minRadius) * Math.Sqrt(StaticRandom.NextDouble()));		// without the square root, there is more chance at the center than the edges
 
@@ -1199,9 +1229,7 @@ namespace Game.Math_WPF.Mathematics
         {
             VectorND first = points.FirstOrDefault();
             if (first == null)
-            {
                 throw new ArgumentException("The list of points is empty.  Can't determine number of dimensions");
-            }
 
             double[] min = Enumerable.Range(0, first.Size).
                 Select(o => double.MaxValue).
@@ -1218,14 +1246,10 @@ namespace Game.Math_WPF.Mathematics
                 for (int cntr = 0; cntr < pointArr.Length; cntr++)
                 {
                     if (pointArr[cntr] < min[cntr])
-                    {
                         min[cntr] = pointArr[cntr];
-                    }
 
                     if (pointArr[cntr] > max[cntr])
-                    {
                         max[cntr] = pointArr[cntr];
-                    }
                 }
             }
 
@@ -1252,9 +1276,7 @@ namespace Game.Math_WPF.Mathematics
         public static VectorND GetCenter(IEnumerable<VectorND> points)
         {
             if (points == null)
-            {
                 throw new ArgumentException("Unknown number of dimensions");
-            }
 
             VectorND? retVal = null;
 
@@ -1263,9 +1285,7 @@ namespace Game.Math_WPF.Mathematics
             foreach (VectorND point in points)
             {
                 if (retVal == null)
-                {
                     retVal = new VectorND(point.Size);
-                }
 
                 // Add this point to the total
                 retVal += point;
@@ -1274,9 +1294,7 @@ namespace Game.Math_WPF.Mathematics
             }
 
             if (length == 0)
-            {
                 throw new ArgumentException("Unknown number of dimensions");
-            }
 
             // Divide by count
             retVal /= Convert.ToDouble(length);
@@ -1340,9 +1358,7 @@ namespace Game.Math_WPF.Mathematics
             for (int cntr = 0; cntr < test.Length; cntr++)
             {
                 if (test[cntr] < min[cntr] || test[cntr] > max[cntr])
-                {
                     return false;
-                }
             }
 
             return true;
@@ -1501,9 +1517,7 @@ namespace Game.Math_WPF.Mathematics
             double[] copy = _vectorArray?.ToArray();
 
             if (copy == null)
-            {
                 throw new InvalidOperationException("VectorArray hasn't been assigned yet");
-            }
 
             foreach (double number in copy)
             {
@@ -1516,9 +1530,7 @@ namespace Game.Math_WPF.Mathematics
             double[] copy = _vectorArray?.ToArray();
 
             if (copy == null)
-            {
                 throw new InvalidOperationException("VectorArray hasn't been assigned yet");
-            }
 
             return copy.GetEnumerator();
         }
@@ -1539,26 +1551,20 @@ namespace Game.Math_WPF.Mathematics
             get
             {
                 if (_vectorArray == null)
-                {
                     throw new InvalidOperationException("VectorArray hasn't been assigned yet");
-                }
+
                 else if (index < 0 || index >= _vectorArray.Length)
-                {
                     throw new ArgumentOutOfRangeException(string.Format("Index is out of range.  array size={0}, index={1}", _vectorArray.Length, index));
-                }
 
                 return _vectorArray[index];
             }
             set
             {
                 if (_vectorArray == null)
-                {
                     throw new InvalidOperationException("VectorArray hasn't been assigned yet");
-                }
+
                 else if (index < 0 || index >= _vectorArray.Length)
-                {
                     throw new ArgumentOutOfRangeException(string.Format("Index is out of range.  array size={0}, index={1}", _vectorArray.Length, index));
-                }
 
                 _vectorArray[index] = value;
             }
@@ -1572,9 +1578,7 @@ namespace Game.Math_WPF.Mathematics
             get
             {
                 if (_vectorArray == null)
-                {
                     throw new InvalidOperationException("VectorArray hasn't been assigned yet");
-                }
 
                 return _vectorArray.Length;
             }
@@ -1592,9 +1596,7 @@ namespace Game.Math_WPF.Mathematics
             get
             {
                 if (_vectorArray == null)
-                {
                     throw new InvalidOperationException("VectorArray hasn't been assigned yet");
-                }
 
                 return GetLengthSquared(_vectorArray);
             }
@@ -1610,24 +1612,19 @@ namespace Game.Math_WPF.Mathematics
             double[] arr2 = vector2.VectorArray;
 
             if (arr1 == null && arr2 == null)
-            {
                 //throw new ArgumentException("Both arrays are still null");
                 return new VectorND();
-            }
+
             else if (arr1 == null)
-            {
                 // same as taking 0 + v2
                 return vector2.Clone();
-            }
+
             else if (arr2 == null)
-            {
                 // same as taking v1 + 0
                 return vector1.Clone();
-            }
+
             else if (arr1.Length != arr2.Length)
-            {
                 throw new ArgumentException(string.Format("Vector sizes are different: size1={0}, size2={1}", arr1.Length, arr2.Length));
-            }
 
             double[] retVal = new double[arr1.Length];
 
@@ -1650,24 +1647,19 @@ namespace Game.Math_WPF.Mathematics
             double[] arr2 = vector2.VectorArray;
 
             if (arr1 == null && arr2 == null)
-            {
                 //throw new ArgumentException("Both arrays are still null");
                 return new VectorND();
-            }
+
             else if (arr1 == null)
-            {
                 // same as taking 0 - v2
                 return vector2.ToNegated();
-            }
+
             else if (arr2 == null)
-            {
                 // same as taking v1 - 0
                 return vector1.Clone();
-            }
+
             else if (arr1.Length != arr2.Length)
-            {
                 throw new ArgumentException(string.Format("Vector sizes are different: size1={0}, size2={1}", arr1.Length, arr2.Length));
-            }
 
             double[] retVal = new double[arr1.Length];
 
@@ -1683,10 +1675,8 @@ namespace Game.Math_WPF.Mathematics
             double[] arr = vector.VectorArray;
 
             if (arr == null)
-            {
                 //throw new ArgumentException("Array is still null");
                 return new VectorND();
-            }
 
             double[] retVal = new double[arr.Length];
 
@@ -1702,10 +1692,8 @@ namespace Game.Math_WPF.Mathematics
             double[] arr = vector.VectorArray;
 
             if (arr == null)
-            {
                 //throw new ArgumentException("Array is still null");
                 return new VectorND();
-            }
 
             double[] retVal = new double[arr.Length];
 
@@ -1720,10 +1708,8 @@ namespace Game.Math_WPF.Mathematics
         public VectorND Clone()
         {
             if (_vectorArray == null)
-            {
                 //throw new InvalidOperationException("VectorArray hasn't been assigned yet");
                 return new VectorND();
-            }
 
             return new VectorND(_vectorArray.ToArray());
         }
@@ -1733,9 +1719,7 @@ namespace Game.Math_WPF.Mathematics
             double[] retVal = _vectorArray?.ToArray();
 
             if (retVal == null)
-            {
                 throw new InvalidOperationException("VectorArray hasn't been assigned yet");
-            }
 
             for (int cntr = 0; cntr < retVal.Length; cntr++)
             {
@@ -1750,9 +1734,7 @@ namespace Game.Math_WPF.Mathematics
             double[] retVal = _vectorArray?.ToArray();
 
             if (retVal == null)
-            {
                 throw new InvalidOperationException("VectorArray hasn't been assigned yet");
-            }
 
             double length = Math.Sqrt(GetLengthSquared(retVal));
             if (Math1D.IsNearZero(length) || Math1D.IsNearValue(length, 1))
@@ -1763,14 +1745,9 @@ namespace Game.Math_WPF.Mathematics
             {
                 for (int cntr = 0; cntr < retVal.Length; cntr++)
                 {
-                    if (useNaNIfInvalid)
-                    {
-                        retVal[cntr] = double.NaN;
-                    }
-                    else
-                    {
-                        retVal[cntr] = 0;
-                    }
+                    retVal[cntr] = useNaNIfInvalid ?
+                        double.NaN :
+                        0;
                 }
             }
             else
@@ -1793,9 +1770,7 @@ namespace Game.Math_WPF.Mathematics
             double[] retVal = _vectorArray?.ToArray();
 
             if (retVal == null)
-            {
                 throw new InvalidOperationException("VectorArray hasn't been assigned yet");
-            }
 
             double min = retVal.Min();
             double max = retVal.Max();
@@ -1817,13 +1792,10 @@ namespace Game.Math_WPF.Mathematics
             double[] arr2 = vector2.VectorArray;
 
             if (arr1 == null || arr2 == null)
-            {
                 throw new ArgumentException(string.Format("One of the arrays is still null: arr1={0}, arr2={1}", arr1 == null ? "<null>" : "len " + arr1.Length.ToString(), arr2 == null ? "<null>" : "len " + arr2.Length.ToString()));
-            }
+
             else if (arr1.Length != arr2.Length)
-            {
                 throw new ArgumentException(string.Format("Vector sizes are different: size1={0}, size2={1}", arr1.Length, arr2.Length));
-            }
 
             double retVal = 0;
 
@@ -1861,24 +1833,18 @@ namespace Game.Math_WPF.Mathematics
         public static VectorND CrossProduct(VectorND[] vectors)
         {
             if (vectors == null)
-            {
                 throw new ArgumentNullException("vectors is null");
-            }
+
             else if (vectors.Length == 0)
-            {
                 throw new ArgumentException("vectors is empty");
-            }
 
             int dimensions = vectors[0].Size;
 
             if (!vectors.All(o => o.Size == dimensions))
-            {
                 throw new ArgumentException("All vectors need to be the same size: " + vectors.Select(o => o.Length.ToString()).Distinct().ToJoin(", "));
-            }
+
             else if (vectors.Length != dimensions - 1)
-            {
                 throw new ArgumentException($"Need number of dimensions - 1 vectors: dimensions={dimensions}, #vectors={vectors.Length}");
-            }
 
             double[] retVal = new double[dimensions];
 
@@ -1898,9 +1864,7 @@ namespace Game.Math_WPF.Mathematics
 
                 // Every other column needs to be negated
                 if (axis % 2 == 1)
-                {
                     determinant = -determinant;
-                }
 
                 // Store this determinant of the sub matrix for this axis
                 retVal[axis] = determinant;
@@ -1916,28 +1880,21 @@ namespace Game.Math_WPF.Mathematics
         {
             // If both are null, or both are same instance, return true.
             if (System.Object.ReferenceEquals(vector1, vector2))
-            {
                 return true;
-            }
 
             double[] arr1 = vector1.VectorArray;        // grabbing the arrays to reduce locks, and more thread safe
             double[] arr2 = vector2.VectorArray;
 
             if (arr1 == null || arr2 == null)
-            {
                 throw new ArgumentException(string.Format("One of the arrays is still null: arr1={0}, arr2={1}", arr1 == null ? "<null>" : "len " + arr1.Length.ToString(), arr2 == null ? "<null>" : "len " + arr2.Length.ToString()));
-            }
+
             else if (arr1.Length != arr2.Length)
-            {
                 return false;
-            }
 
             for (int cntr = 0; cntr < arr1.Length; cntr++)
             {
                 if (arr1[cntr] != arr2[cntr])
-                {
                     return false;
-                }
             }
 
             return true;
@@ -1949,25 +1906,15 @@ namespace Game.Math_WPF.Mathematics
         public override bool Equals(object obj)
         {
             if (obj is VectorND cast)
-            {
                 return VectorND.Equals(this, cast);
-            }
+
             else
-            {
                 return false;
-            }
         }
 
         public override int GetHashCode()
         {
-            if (_vectorArray == null)
-            {
-                return 0;
-            }
-            else
-            {
-                return _vectorArray.GetHashCode();
-            }
+            return _vectorArray?.GetHashCode() ?? 0;
         }
 
         public static bool IsNearZero(VectorND vector)
@@ -1975,16 +1922,12 @@ namespace Game.Math_WPF.Mathematics
             double[] arr = vector.VectorArray;        // grabbing the arrays to reduce locks, and more thread safe
 
             if (arr == null)
-            {
                 throw new ArgumentException("Array is still null");
-            }
 
             for (int cntr = 0; cntr < arr.Length; cntr++)
             {
                 if (Math.Abs(arr[cntr]) > Math1D.NEARZERO)
-                {
                     return false;
-                }
             }
 
             return true;
@@ -1995,20 +1938,15 @@ namespace Game.Math_WPF.Mathematics
             double[] arr2 = vector2.VectorArray;
 
             if (arr1 == null || arr2 == null)
-            {
                 throw new ArgumentException(string.Format("One of the arrays is still null: arr1={0}, arr2={1}", arr1 == null ? "<null>" : "len " + arr1.Length.ToString(), arr2 == null ? "<null>" : "len " + arr2.Length.ToString()));
-            }
+
             else if (arr1.Length != arr2.Length)
-            {
                 throw new ArgumentException(string.Format("Vector sizes are different: size1={0}, size2={1}", arr1.Length, arr2.Length));
-            }
 
             for (int cntr = 0; cntr < arr1.Length; cntr++)
             {
                 if (arr1[cntr] < arr2[cntr] - Math1D.NEARZERO || arr1[cntr] > arr2[cntr] + Math1D.NEARZERO)
-                {
                     return false;
-                }
             }
 
             return true;
@@ -2017,16 +1955,14 @@ namespace Game.Math_WPF.Mathematics
         public override string ToString()
         {
             double[] vector = VectorArray;
+
             if (vector == null)
-            {
                 return "null";
-            }
+
             else
-            {
                 return vector.
                     Select(o => o.ToString()).
                     ToJoin(", ");
-            }
         }
 
         //public static double AngleBetween(VectorND vector1, VectorND vector2)

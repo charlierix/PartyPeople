@@ -223,6 +223,8 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
         {
             try
             {
+                txtFile.ToolTip = null;
+
                 if (txtFile.Text == "")
                 {
                     txtFile.Effect = null;
@@ -247,9 +249,10 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
 
                 txtFile.Effect = null;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 txtFile.Effect = _errorEffect;
+                txtFile.ToolTip = ex.ToString();
             }
         }
 

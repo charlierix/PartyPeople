@@ -7,7 +7,13 @@
         mc:Ignorable="d"
         Title="Unit Tests" ResizeMode="CanResizeWithGrip" Width="400" Height="400">
     <Grid Margin="8">
-        <StackPanel HorizontalAlignment="Left" VerticalAlignment="Top">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="8"/>
+            <ColumnDefinition Width="auto"/>
+        </Grid.ColumnDefinitions>
+        
+        <StackPanel Grid.Column="0">
             <Button Content="Quaternions" Click="Quaternions_Click"/>
             <Button Content="Mirror Quat" Click="MirrorQuat_Click"/>
 
@@ -28,6 +34,14 @@
             <Button Content="Perlin" Margin="0,8,0,0" Click="Perlin_Click"/>
             <Button Content="Perlin (octaves)" Click="PerlinOctaves_Click"/>
             <Button Visibility="Collapsed" Content="Perlin misc test 2" Click="PerlinMisc2_Click"/>
+        </StackPanel>
+
+        <StackPanel Grid.Column="2">
+            <CheckBox x:Name="chkIsoRandomRot" Content="Random Rotation"/>
+            <Button Content="Ico Normals -> Json" Click="IcoNormals_Click"/>
+
+            <TextBox x:Name="txtFolder" Margin="0,8,0,0"/>
+            <Button Content="Ico Normals -> Json 2" Click="IcoNormals2_Click"/>
         </StackPanel>
     </Grid>
 </Window>

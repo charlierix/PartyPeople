@@ -841,8 +841,8 @@ namespace Game.Math_WPF.Mathematics
         {
             Point3D[] parentPoints = hull[0].AllPoints;
 
-            SortedList<Tuple<int, int>, Tuple<int, Point3D>> childPoints = new SortedList<Tuple<int, int>, Tuple<int, Point3D>>();
-            List<Tuple<int, int, int>> childFaces = new List<Tuple<int, int, int>>();
+            var childPoints = new SortedList<Tuple<int, int>, Tuple<int, Point3D>>();
+            var childFaces = new List<Tuple<int, int, int>>();
 
             // Cut each parent triangle into 4
             foreach (TriangleIndexed_wpf face in hull)
@@ -860,11 +860,17 @@ namespace Game.Math_WPF.Mathematics
             }
 
             // Combine the points
-            Point3D[] childPointsFinal = childPoints.Values.OrderBy(o => o.Item1).Select(o => o.Item2).ToArray();
+            Point3D[] childPointsFinal = childPoints.Values.
+                OrderBy(o => o.Item1).
+                Select(o => o.Item2).
+                ToArray();
+
             Point3D[] allNewPoints = UtilityCore.ArrayAdd(parentPoints, childPointsFinal);
 
             // Build the triangles
-            return childFaces.Select(o => new TriangleIndexed_wpf(o.Item1, o.Item2, o.Item3, allNewPoints)).ToArray();
+            return childFaces.
+                Select(o => new TriangleIndexed_wpf(o.Item1, o.Item2, o.Item3, allNewPoints)).
+                ToArray();
         }
         private static int GetIcosahedron_MidPoint(int index0, int index1, Point3D[] origPoints, double radius, SortedList<Tuple<int, int>, Tuple<int, Point3D>> newPoints)
         {
