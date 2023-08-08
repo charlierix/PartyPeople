@@ -15,7 +15,8 @@ using System.Windows.Media.Media3D;
 namespace Game.Math_WPF.Mathematics
 {
     /// <summary>
-    /// This divides the world into an infinite set of cells
+    /// This divides the world into an infinite set of cells.  Add shapes, then query for cells that touched one of those
+    /// shapes
     /// </summary>
     /// <remarks>
     /// Only the cells that are used are stored, but the class supports querying any point and treats that as a cell
@@ -88,9 +89,6 @@ namespace Game.Math_WPF.Mathematics
 
         private readonly List<TriangleToProcess> _pending_triangles = new List<TriangleToProcess>();
 
-        //TODO: may want to store a list of (GeometryBounds, VectorInt3[]), in case queries are from point with radius.  Would also help
-        //with doing fluid simulations
-
         #endregion
 
         #region Constructor
@@ -102,8 +100,6 @@ namespace Game.Math_WPF.Mathematics
         }
 
         #endregion
-
-        #region Public Methods
 
         public VectorInt3 GetIndex_Point(Point3D point)
         {
@@ -343,8 +339,6 @@ namespace Game.Math_WPF.Mathematics
 
             return GetCondensedPoints(combined, lines_distinct.all_points_distinct);
         }
-
-        #endregion
 
         #region Private Methods - line segments
 
