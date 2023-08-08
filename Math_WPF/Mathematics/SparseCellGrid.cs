@@ -109,11 +109,14 @@ namespace Game.Math_WPF.Mathematics
         {
             return new VectorInt3
             (
-                ((point.X - _cell_half) / _cell_size).ToInt_Ceiling(),
-                ((point.Y - _cell_half) / _cell_size).ToInt_Ceiling(),
-                ((point.Z - _cell_half) / _cell_size).ToInt_Ceiling()
+                GetIndex_1D(point.X),
+                GetIndex_1D(point.Y),
+                GetIndex_1D(point.Z)
             );
         }
+        /// <summary>
+        /// Returns all cells that touch this triangle
+        /// </summary>
         public VectorInt3[] GetIndices_Triangle(ITriangle_wpf triangle, bool show_debug = false)
         {
             var bounds = GetBounds_Triangle(triangle);
@@ -151,6 +154,9 @@ namespace Game.Math_WPF.Mathematics
 
             return marked_cells;
         }
+        /// <summary>
+        /// Returns all cells that touch this rectangle
+        /// </summary>
         public VectorInt3[,] GetIndices_Rect2D(Rect rect, double z)
         {
             var bounds = GetBounds_Rect2D(rect, z);
@@ -193,9 +199,6 @@ namespace Game.Math_WPF.Mathematics
         }
         public MarkResult Mark_Triangle(ITriangle_wpf triangle, bool return_marked_cells = false)
         {
-            //TODO: don't go to the expense of marking cells unless a cell within its aabb is requested
-            //Calculate the index aabb for the triangle, and store that in a to work list
-
             var bounds = GetBounds_Triangle(triangle);
 
             VectorInt3[] touching_cells = null;
@@ -247,9 +250,53 @@ namespace Game.Math_WPF.Mathematics
             };
         }
 
-        public VectorInt3[] GetMarked()
+        public VectorInt3[] GetMarked_All()
         {
-            throw new ApplicationException("finish this");
+            // Make sure all pending are processed
+            foreach (var pending in _pending_triangles)
+                MarkPending(pending);
+
+            _pending_triangles.Clear();
+
+            return _marked.ToArray();
+        }
+        public VectorInt3[] GetMarked_Sphere(Point3D center, double radius, bool aabb_good_enough = true)
+        {
+            ProcessPending_Touching(center, radius);
+
+            var aabb = GetAABB_Sphere(center, radius);
+            var retVal = new List<VectorInt3>();
+
+            foreach (var marked in _marked)
+            {
+                if (!IsInsideAABB(marked, aabb.min, aabb.max))
+                    continue;
+
+                if (aabb_good_enough)
+                    retVal.Add(marked);
+
+                else if ((center - GetCell(marked).center).LengthSquared <= radius * radius)
+                    retVal.Add(marked);
+            }
+
+            return retVal.ToArray();
+        }
+        public VectorInt3[] GetMarked_AABB(Point3D min, Point3D max)
+        {
+            ProcessPending_Touching(min, max);
+
+            VectorInt3 min_int = GetIndex_Point(min);
+            VectorInt3 max_int = GetIndex_Point(max);
+
+            var retVal = new List<VectorInt3>();
+
+            foreach (var marked in _marked)
+            {
+                if (IsInsideAABB(marked, min_int, max_int))
+                    retVal.Add(marked);
+            }
+
+            return retVal.ToArray();
         }
 
         public (Rect3D rect, Point3D center) GetCell(VectorInt3 index)
@@ -766,9 +813,92 @@ namespace Game.Math_WPF.Mathematics
         #endregion
         #region Private Methods - marking
 
+        private void ProcessPending_Touching(Point3D center, double radius)
+        {
+            int index = 0;
+
+            while (index < _pending_triangles.Count)
+            {
+                if (Math3D.IsIntersecting_AABB_Sphere(_pending_triangles[index].bounds.aabb_min_3D, _pending_triangles[index].bounds.aabb_max_3D, center, radius))
+                {
+                    MarkPending(_pending_triangles[index]);
+                    _pending_triangles.RemoveAt(index);
+                }
+                else
+                {
+                    index++;
+                }
+            }
+        }
+        private void ProcessPending_Touching(Point3D min, Point3D max)
+        {
+            int index = 0;
+
+            while (index < _pending_triangles.Count)
+            {
+                if (Math3D.IsIntersecting_AABB_AABB(min, max, _pending_triangles[index].bounds.aabb_min_3D, _pending_triangles[index].bounds.aabb_max_3D))
+                {
+                    MarkPending(_pending_triangles[index]);
+                    _pending_triangles.RemoveAt(index);
+                }
+                else
+                {
+                    index++;
+                }
+            }
+        }
+
+        private void MarkPending(TriangleToProcess triangle)
+        {
+            VectorInt3[] touching_cells = GetIndices_Triangle(triangle.triangle, false);
+            MarkCells(touching_cells);
+        }
+
         private void MarkCells(VectorInt3[] cells)
         {
             _marked.AddRange(cells.Except(_marked));
+        }
+
+        private (VectorInt3 min, VectorInt3 max) GetAABB_Sphere(Point3D center, double radius)
+        {
+            int min_x = GetIndex_1D(center.X - radius);
+            int max_x = GetIndex_1D(center.X + radius);
+
+            int min_y = GetIndex_1D(center.Y - radius);
+            int max_y = GetIndex_1D(center.Y + radius);
+
+            int min_z = GetIndex_1D(center.Z - radius);
+            int max_z = GetIndex_1D(center.Z + radius);
+
+            return
+            (
+                new VectorInt3(min_x, min_y, min_z),
+                new VectorInt3(max_x, max_y, max_z)
+            );
+        }
+
+        private int GetIndex_1D(double point)
+        {
+            return ((point - _cell_half) / _cell_size).ToInt_Ceiling();
+        }
+
+        private static bool IsInsideAABB(VectorInt3 test, VectorInt3 min, VectorInt3 max)
+        {
+            if (test.X < min.X || test.X > max.X)
+                return false;
+
+            else if (test.Y < min.Y || test.Y > max.Y)
+                return false;
+
+            else if (test.Z < min.Z || test.Z > max.Z)
+                return false;
+
+            return true;
+        }
+
+        private static double GetDistanceSquared(VectorInt3 a, VectorInt3 b)
+        {
+            return Math3D.LengthSquared((double)a.X, a.Y, a.Z, b.X, b.Y, b.Z);
         }
 
         #endregion

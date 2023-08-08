@@ -25,6 +25,10 @@
             
             <!-- This is several thoughts that never finished -->
             <Button Content="axis aligned plate" Click="AxisAligned_Click"/>
+            
+            
+            <!-- Once mark is proven, make a button that creates a random wing and marks the cells it touches -->
+            
         </StackPanel>
 
         <StackPanel Grid.Column="2">
@@ -33,6 +37,7 @@
             <Button Content="Cell Indices" Click="CellIndices_Click"/>
             <Button Content="Indices for Triangle" Click="IndicesForTriangle_Click"/>
             <Button Content="Indices for Rect2D" Click="IndicesForRect2D_Click"/>
+            <Button Content="Mark Cells" Click="MarkCells_Click"/>
         </StackPanel>
     </Grid>
 </Window>

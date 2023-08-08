@@ -4,23 +4,10 @@ using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
-using System.Windows.Shapes;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 
 namespace Game.Bepu.Testers
 {
@@ -295,7 +282,6 @@ namespace Game.Bepu.Testers
             {
                 var grid = new SparseCellGrid(CELL_SIZE);
 
-
                 double span = StaticRandom.NextDouble(0.5, 3);
                 double chord = StaticRandom.NextDouble(0.1, 1.3);
 
@@ -307,6 +293,108 @@ namespace Game.Bepu.Testers
             {
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        private void MarkCells_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var grid = new SparseCellGrid(CELL_SIZE);
+
+                // ------------------------------------ mark ------------------------------------
+
+                // Point
+                Point3D point = Math3D.GetRandomVector_Spherical(12).ToPoint();
+                var marked_point = grid.Mark_Point(point);
+
+                // Triangle
+                double radius = 1.5;
+                Point3D vertex0 = Math3D.GetRandomVector_Spherical(radius).ToPoint();
+                Point3D vertex1 = Math3D.GetRandomVector_Spherical(radius).ToPoint();
+                Point3D vertex2 = Math3D.GetRandomVector_Spherical(radius).ToPoint();
+                var triangle = new Triangle_wpf(vertex0, vertex1, vertex2);
+                var marked_triangle = grid.Mark_Triangle(triangle, true);
+
+                // Rect2D
+                double span = StaticRandom.NextDouble(0.5, 3);
+                double chord = StaticRandom.NextDouble(0.1, 1.3);
+                Rect rect = new Rect(new Point(-span / 2, -chord / 2), new Size(span, chord));
+                double rect_z = StaticRandom.NextDouble(-4, 4);
+                var marked_rect = grid.Mark_Rect2D(rect, rect_z);
+
+
+                // ------------------------------------ get marked ------------------------------------
+
+                // sphere
+                Point3D center = Math3D.GetRandomVector_Spherical(6).ToPoint();
+                double radius2 = StaticRandom.NextDouble(1, 4);
+
+                //var marked_sphere = grid.GetMarked_Sphere(center, radius2, true);
+                var marked_sphere = grid.GetMarked_Sphere(center, radius2, false);
+
+                // aabb
+                Point3D aabb1 = Math3D.GetRandomVector_Spherical(6).ToPoint();
+                Point3D aabb2 = Math3D.GetRandomVector_Spherical(6).ToPoint();
+                var aabb = Math3D.GetAABB(new[] { aabb1, aabb2 });
+                var marked_aabb = grid.GetMarked_AABB(aabb.min, aabb.max);
+
+                // all
+                var marked_all = grid.GetMarked_All();
+
+
+                // ------------------------------------ draw ------------------------------------
+
+                MarkCells_Click_Draw(marked_all, grid, point, triangle, rect, rect_z, "All", true, true, true);
+                MarkCells_Click_Draw(marked_point.MarkedCells, grid, point, triangle, rect, rect_z, "Point", true, false, false);
+                MarkCells_Click_Draw(marked_triangle.MarkedCells, grid, point, triangle, rect, rect_z, "Triangle", false, true, false);
+                MarkCells_Click_Draw(marked_rect.MarkedCells, grid, point, triangle, rect, rect_z, "Rect", false, false, true);
+
+                var window = MarkCells_Click_Draw(marked_sphere, grid, point, triangle, rect, rect_z, "All - Sphere", true, true, true);
+                window.AddDot(center, radius2, UtilityWPF.ColorFromHex("1FF0"), isHiRes: true);
+
+                window = MarkCells_Click_Draw(marked_aabb, grid, point, triangle, rect, rect_z, "All - AABB", true, true, true);
+                window.AddMesh(UtilityWPF.GetCube_IndependentFaces(aabb1, aabb2), UtilityWPF.ColorFromHex("1FF0"));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private static Debug3DWindow MarkCells_Click_Draw(VectorInt3[] cells, SparseCellGrid grid, Point3D point, Triangle_wpf triangle, Rect rect, double rect_z, string title_suffix, bool draw_point, bool draw_triangle, bool draw_rect)
+        {
+            //var sizes = Debug3DWindow.GetDrawSizes(12);
+            var sizes = Debug3DWindow.GetDrawSizes(4);
+
+            var window = new Debug3DWindow()
+            {
+                Title = $"Mark Shapes - {title_suffix}",
+            };
+
+            // Marked
+            //window.AddDots(cells.Select(o => grid.GetCell(o).center), sizes.dot, Colors.White);
+
+            var cell_lines = cells.
+                SelectMany(o => Polytopes.GetCubeLines(ToPoint(o, grid), ToPoint(o, grid, true)));
+
+            var distinct_lines = Math3D.GetDistinctLineSegments(cell_lines);
+
+            window.AddLines(distinct_lines.index_pairs, distinct_lines.all_points_distinct, sizes.line / 4, Colors.White);
+
+            // Point
+            if (draw_point)
+                window.AddDot(point, sizes.dot, Colors.Black);
+
+            // Triangle
+            if (draw_triangle)
+                window.AddTriangle(triangle, UtilityWPF.ColorFromHex("4000"), UtilityWPF.ColorFromHex("A000"));
+
+            // Rect2D
+            if (draw_rect)
+                window.AddSquare(rect, UtilityWPF.ColorFromHex("4000"), true, rect_z);
+
+            window.Show();
+
+            return window;
         }
 
         #endregion
@@ -404,6 +492,20 @@ namespace Game.Bepu.Testers
                 ((max.Y - min.Y) / cell_size).ToInt_Ceiling(),
                 ((max.Z - min.Z) / cell_size).ToInt_Ceiling()
             );
+        }
+
+        private static Point3D ToPoint(VectorInt3 index, SparseCellGrid grid, bool is_bottomright = false)
+        {
+            var cell = grid.GetCell(index);
+
+            return is_bottomright ?
+                cell.rect.Location + cell.rect.Size.ToVector() :
+                cell.rect.Location;
+        }
+
+        private static Point3D ToPositive(Point3D point)
+        {
+            return new Point3D(Math.Abs(point.X), Math.Abs(point.Y), Math.Abs(point.Z));
         }
 
         #endregion
