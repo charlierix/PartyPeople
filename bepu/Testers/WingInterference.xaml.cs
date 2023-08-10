@@ -313,7 +313,7 @@ namespace Game.Bepu.Testers
                 Point3D vertex1 = Math3D.GetRandomVector_Spherical(radius).ToPoint();
                 Point3D vertex2 = Math3D.GetRandomVector_Spherical(radius).ToPoint();
                 var triangle = new Triangle_wpf(vertex0, vertex1, vertex2);
-                var marked_triangle = grid.Mark_Triangle(triangle, true);
+                var marked_triangle = grid.Mark_Triangle(triangle, return_marked_cells: true);
 
                 // Rect2D
                 double span = StaticRandom.NextDouble(0.5, 3);
@@ -395,6 +395,76 @@ namespace Game.Bepu.Testers
             window.Show();
 
             return window;
+        }
+
+        private void MarkCellsKeys_Click(object sender, RoutedEventArgs e)
+        {
+            const string POINT = "point";
+            const string TRIANGLE = "triangle";
+            const string RECT = "rect";
+
+            try
+            {
+                var grid = new SparseCellGrid(CELL_SIZE);
+
+                // ------------------------------------ mark ------------------------------------
+
+                // Point
+                Point3D point = Math3D.GetRandomVector_Spherical(12).ToPoint();
+                var marked_point = grid.Mark_Point(point, POINT);
+
+                // Triangle
+                double radius = 1.5;
+                Point3D vertex0 = Math3D.GetRandomVector_Spherical(radius).ToPoint();
+                Point3D vertex1 = Math3D.GetRandomVector_Spherical(radius).ToPoint();
+                Point3D vertex2 = Math3D.GetRandomVector_Spherical(radius).ToPoint();
+                var triangle = new Triangle_wpf(vertex0, vertex1, vertex2);
+                var marked_triangle = grid.Mark_Triangle(triangle, TRIANGLE, true);
+
+                // Rect2D
+                double span = StaticRandom.NextDouble(0.5, 3);
+                double chord = StaticRandom.NextDouble(0.1, 1.3);
+                Rect rect = new Rect(new Point(-span / 2, -chord / 2), new Size(span, chord));
+                double rect_z = StaticRandom.NextDouble(-4, 4);
+                var marked_rect = grid.Mark_Rect2D(rect, rect_z, RECT);
+
+
+                // ------------------------------------ get marked ------------------------------------
+
+                // sphere
+                Point3D center = Math3D.GetRandomVector_Spherical(6).ToPoint();
+                double radius2 = StaticRandom.NextDouble(4, 8);
+
+                //var marked_sphere = grid.GetMarked_Sphere(center, radius2, true);
+                var marked_sphere = grid.GetMarked_Sphere(center, radius2, false, new[] { RECT });
+
+                // aabb
+                Point3D aabb1 = Math3D.GetRandomVector_Spherical(9).ToPoint();
+                Point3D aabb2 = Math3D.GetRandomVector_Spherical(9).ToPoint();
+                var aabb = Math3D.GetAABB(new[] { aabb1, aabb2 });
+                var marked_aabb = grid.GetMarked_AABB(aabb.min, aabb.max, null, new[] { RECT });
+
+                // all
+                var marked_all = grid.GetMarked_All(new[] { POINT, TRIANGLE }, new[] { POINT });
+
+
+                // ------------------------------------ draw ------------------------------------
+
+                MarkCells_Click_Draw(marked_all, grid, point, triangle, rect, rect_z, "All", true, true, true);
+                MarkCells_Click_Draw(marked_point.MarkedCells, grid, point, triangle, rect, rect_z, "Point", true, false, false);
+                MarkCells_Click_Draw(marked_triangle.MarkedCells, grid, point, triangle, rect, rect_z, "Triangle", false, true, false);
+                MarkCells_Click_Draw(marked_rect.MarkedCells, grid, point, triangle, rect, rect_z, "Rect", false, false, true);
+
+                var window = MarkCells_Click_Draw(marked_sphere, grid, point, triangle, rect, rect_z, "All - Sphere", true, true, true);
+                window.AddDot(center, radius2, UtilityWPF.ColorFromHex("1FF0"), isHiRes: true);
+
+                window = MarkCells_Click_Draw(marked_aabb, grid, point, triangle, rect, rect_z, "All - AABB", true, true, true);
+                window.AddMesh(UtilityWPF.GetCube_IndependentFaces(aabb1, aabb2), UtilityWPF.ColorFromHex("1FF0"));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         #endregion

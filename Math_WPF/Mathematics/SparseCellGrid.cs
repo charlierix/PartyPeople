@@ -5,15 +5,14 @@ using Game.Math_WPF.WPF.Controls3D;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
 namespace Game.Math_WPF.Mathematics
 {
+    //TODO: Most usage of this class will be GetMarked_Sphere, so store in a structure that's efficient (probably octree)
+
     /// <summary>
     /// This divides the world into an infinite set of cells.  Add shapes, then query for cells that touched one of those
     /// shapes
@@ -59,6 +58,7 @@ namespace Game.Math_WPF.Mathematics
 
         private record TriangleToProcess
         {
+            public string key { get; init; }
             public GeometryBounds bounds { get; init; }
             public ITriangle_wpf triangle { get; init; }
         }
@@ -80,12 +80,14 @@ namespace Game.Math_WPF.Mathematics
 
         #region Declaration Section
 
+        private const string NULL_KEY = "SparseCellGrid NULL 7710b37a-4291-4ee0-bde7-7907dbf42520";
+
         private readonly double _cell_size;
         public double CellSize => _cell_size;
 
         private readonly double _cell_half;
 
-        private readonly List<VectorInt3> _marked = new List<VectorInt3>();
+        private readonly Dictionary<string, List<VectorInt3>> _marked = new Dictionary<string, List<VectorInt3>>();
 
         private readonly List<TriangleToProcess> _pending_triangles = new List<TriangleToProcess>();
 
@@ -178,13 +180,15 @@ namespace Game.Math_WPF.Mathematics
             return retVal;
         }
 
-        public MarkResult Mark_Point(Point3D point)
+        public MarkResult Mark_Point(Point3D point, string key = null)
         {
+            key = key ?? NULL_KEY;
+
             VectorInt3 index = GetIndex_Point(point);
 
             VectorInt3[] index_arr = new[] { index };
 
-            MarkCells(index_arr);
+            MarkCells(index_arr, key);
 
             return new MarkResult()
             {
@@ -193,21 +197,24 @@ namespace Game.Math_WPF.Mathematics
                 MarkedCells = index_arr,
             };
         }
-        public MarkResult Mark_Triangle(ITriangle_wpf triangle, bool return_marked_cells = false)
+        public MarkResult Mark_Triangle(ITriangle_wpf triangle, string key = null, bool return_marked_cells = false)
         {
+            key = key ?? NULL_KEY;
+
             var bounds = GetBounds_Triangle(triangle);
 
             VectorInt3[] touching_cells = null;
             if (return_marked_cells)
             {
                 touching_cells = GetIndices_Triangle(triangle, false);
-                MarkCells(touching_cells);
+                MarkCells(touching_cells, key);
             }
             else
             {
                 // Store this for later
                 _pending_triangles.Add(new TriangleToProcess()
                 {
+                    key = key,
                     bounds = bounds,
                     triangle = new Triangle_wpf(triangle.Point0, triangle.Point1, triangle.Point2),     // clone in case the triangle changes
                 });
@@ -221,8 +228,10 @@ namespace Game.Math_WPF.Mathematics
                 MarkedCells = touching_cells,
             };
         }
-        public MarkResult Mark_Rect2D(Rect rect, double z)
+        public MarkResult Mark_Rect2D(Rect rect, double z, string key = null)
         {
+            key = key ?? NULL_KEY;
+
             var indices = GetIndices_Rect2D(rect, z);
 
             VectorInt3[] flattened = new VectorInt3[indices.Length];
@@ -236,7 +245,7 @@ namespace Game.Math_WPF.Mathematics
                 }
             }
 
-            MarkCells(flattened);
+            MarkCells(flattened, key);
 
             return new MarkResult()
             {
@@ -246,7 +255,7 @@ namespace Game.Math_WPF.Mathematics
             };
         }
 
-        public VectorInt3[] GetMarked_All()
+        public VectorInt3[] GetMarked_All(string[] include_keys = null, string[] except_keys = null)
         {
             // Make sure all pending are processed
             foreach (var pending in _pending_triangles)
@@ -254,16 +263,16 @@ namespace Game.Math_WPF.Mathematics
 
             _pending_triangles.Clear();
 
-            return _marked.ToArray();
+            return IterateMarked(include_keys, except_keys).ToArray();
         }
-        public VectorInt3[] GetMarked_Sphere(Point3D center, double radius, bool aabb_good_enough = true)
+        public VectorInt3[] GetMarked_Sphere(Point3D center, double radius, bool aabb_good_enough = true, string[] include_keys = null, string[] except_keys = null)
         {
             ProcessPending_Touching(center, radius);
 
             var aabb = GetAABB_Sphere(center, radius);
             var retVal = new List<VectorInt3>();
 
-            foreach (var marked in _marked)
+            foreach (var marked in IterateMarked(include_keys, except_keys))
             {
                 if (!IsInsideAABB(marked, aabb.min, aabb.max))
                     continue;
@@ -277,7 +286,7 @@ namespace Game.Math_WPF.Mathematics
 
             return retVal.ToArray();
         }
-        public VectorInt3[] GetMarked_AABB(Point3D min, Point3D max)
+        public VectorInt3[] GetMarked_AABB(Point3D min, Point3D max, string[] include_keys = null, string[] except_keys = null)
         {
             ProcessPending_Touching(min, max);
 
@@ -286,7 +295,7 @@ namespace Game.Math_WPF.Mathematics
 
             var retVal = new List<VectorInt3>();
 
-            foreach (var marked in _marked)
+            foreach (var marked in IterateMarked(include_keys, except_keys))
             {
                 if (IsInsideAABB(marked, min_int, max_int))
                     retVal.Add(marked);
@@ -845,12 +854,46 @@ namespace Game.Math_WPF.Mathematics
         private void MarkPending(TriangleToProcess triangle)
         {
             VectorInt3[] touching_cells = GetIndices_Triangle(triangle.triangle, false);
-            MarkCells(touching_cells);
+            MarkCells(touching_cells, triangle.key);
         }
 
-        private void MarkCells(VectorInt3[] cells)
+        private void MarkCells(VectorInt3[] cells, string key)
         {
-            _marked.AddRange(cells.Except(_marked));
+            if (!_marked.ContainsKey(key))
+                _marked.Add(key, new List<VectorInt3>());
+
+            _marked[key].AddRange(cells.Except(_marked[key]));
+        }
+
+        private IEnumerable<VectorInt3> IterateMarked(string[] include_keys, string[] except_keys)
+        {
+            // Need to convert null keys into the string constant
+            // It could be argued that cells under the null key should always be returned.  But it's easy enough to just add null to the include list
+            include_keys = include_keys == null ?
+                null :
+                include_keys.
+                    Select(o => o ?? NULL_KEY).
+                    ToArray();
+
+            except_keys = except_keys == null ?
+                null :
+                except_keys.
+                    Select(o => o ?? NULL_KEY).
+                    ToArray();
+
+            foreach (string key in _marked.Keys)
+            {
+                if (include_keys != null && !include_keys.Contains(key))
+                    continue;
+
+                if (except_keys != null && except_keys.Contains(key))
+                    continue;
+
+                foreach (VectorInt3 cell in _marked[key])
+                {
+                    yield return cell;
+                }
+            }
         }
 
         private (VectorInt3 min, VectorInt3 max) GetAABB_Sphere(Point3D center, double radius)
