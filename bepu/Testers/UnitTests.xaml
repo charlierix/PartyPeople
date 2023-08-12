@@ -34,6 +34,9 @@
             <Button Content="Perlin" Margin="0,8,0,0" Click="Perlin_Click"/>
             <Button Content="Perlin (octaves)" Click="PerlinOctaves_Click"/>
             <Button Visibility="Collapsed" Content="Perlin misc test 2" Click="PerlinMisc2_Click"/>
+
+            <Button Content="Octree - points" Margin="0,8,0,0" Click="OctreePoints_Click"/>
+            <Button Content="Octree - rects" Click="OctreeRects_Click"/>
         </StackPanel>
 
         <StackPanel Grid.Column="2">
