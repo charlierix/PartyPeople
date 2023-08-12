@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Windows;
 using System.Windows.Media.Media3D;
 
@@ -738,6 +736,11 @@ namespace Game.Math_WPF.Mathematics
             return new Vector3D(size.X, size.Y, size.Z);
         }
 
+        public static System.Numerics.Vector3 ToVector3(this Size3D size)
+        {
+            return new System.Numerics.Vector3((float)size.X, (float)size.Y, (float)size.Z);
+        }
+
         #endregion
 
         #region Rect
@@ -779,6 +782,16 @@ namespace Game.Math_WPF.Mathematics
         #endregion
 
         #region Rect3D
+
+        public static Point3D Center(this Rect3D rect)
+        {
+            return new Point3D
+            (
+                rect.X + (rect.SizeX / 2d),
+                rect.Y + (rect.SizeY / 2d),
+                rect.Z + (rect.SizeZ / 2d)
+            );
+        }
 
         public static double CenterX(this Rect3D rect)
         {

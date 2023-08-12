@@ -18,6 +18,8 @@
             <ColumnDefinition Width="auto"/>
             <ColumnDefinition Width="8"/>
             <ColumnDefinition Width="auto"/>
+            <ColumnDefinition Width="8"/>
+            <ColumnDefinition Width="auto"/>
         </Grid.ColumnDefinitions>
         
         <StackPanel Grid.Column="0">
@@ -39,6 +41,12 @@
             <Button Content="Indices for Rect2D" Click="IndicesForRect2D_Click"/>
             <Button Content="Mark Cells" Click="MarkCells_Click"/>
             <Button Content="Mark Cells - keys" Click="MarkCellsKeys_Click"/>
+        </StackPanel>
+
+        <StackPanel Grid.Column="4">
+            <Label Content="Octree"/>
+            <Button Content="PointTree 1" Click="Octree_Point_1_Click"/>
+            <Button Content="BoundsTree 1" Click="Octree_Bounds_1_Click"/>
         </StackPanel>
     </Grid>
 </Window>
