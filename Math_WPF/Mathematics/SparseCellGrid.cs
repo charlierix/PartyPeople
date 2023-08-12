@@ -2,6 +2,7 @@
 using Game.Core;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
+using Octree;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -65,6 +66,16 @@ namespace Game.Math_WPF.Mathematics
         }
 
         #endregion
+        #region record: MarkedStorage
+
+        private record MarkedStorage
+        {
+            public List<VectorInt3> List { get; init; }
+            public PointOctree<VectorInt3> Octree_Points { get; init; }
+            public BoundsOctree<VectorInt3> Octree_Cells { get; init; }
+        }
+
+        #endregion
 
         #region record: MarkResult
 
@@ -88,7 +99,10 @@ namespace Game.Math_WPF.Mathematics
 
         private readonly double _cell_half;
 
-        private readonly Dictionary<string, List<VectorInt3>> _marked = new Dictionary<string, List<VectorInt3>>();
+        private readonly bool _supportsearch_sphere;
+        private readonly bool _supportsearch_aabb;
+
+        private readonly Dictionary<string, MarkedStorage> _marked = new Dictionary<string, MarkedStorage>();
 
         private readonly List<TriangleToProcess> _pending_triangles = new List<TriangleToProcess>();
 
@@ -96,10 +110,15 @@ namespace Game.Math_WPF.Mathematics
 
         #region Constructor
 
-        public SparseCellGrid(double cell_size)
+        /// <param name="supportsearch_sphere">Required if using GetMarked_Sphere (cell centers will also be stored in an octree)</param>
+        /// <param name="supportsearch_aabb">Required if using GetMarked_AABB (cells will also be stored in an octree)</param>
+        public SparseCellGrid(double cell_size, bool supportsearch_sphere = false, bool supportsearch_aabb = false)
         {
             _cell_size = cell_size;
             _cell_half = cell_size / 2;
+
+            _supportsearch_sphere = supportsearch_sphere;
+            _supportsearch_aabb = supportsearch_aabb;
         }
 
         #endregion
@@ -264,46 +283,55 @@ namespace Game.Math_WPF.Mathematics
 
             _pending_triangles.Clear();
 
-            return IterateMarked(include_keys, except_keys).ToArray();
+            return IterateMarkedStorages(include_keys, except_keys).
+                SelectMany(o => o.List).
+                ToArray();
         }
-        public VectorInt3[] GetMarked_Sphere(Point3D center, double radius, bool aabb_good_enough = true, string[] include_keys = null, string[] except_keys = null)
+
+
+
+        //TODO: Verify if the octree is threadsafe
+
+        /// <summary>
+        /// Returns cells that are within a search sphere
+        /// NOTE: supportsearch_sphere must be true in constructor
+        /// NOTE: This only considers the center point of the cells.  So cells that touch, but the center is outside the radius won't be returned
+        /// </summary>
+        public VectorInt3[] GetMarked_Sphere(Point3D center, double radius, string[] include_keys = null, string[] except_keys = null)
         {
+            if (!_supportsearch_sphere)
+                throw new InvalidOperationException("GetMarked_Sphere() requires supportsearch_sphere to be true in the constructor");
+
             ProcessPending_Touching(center, radius);
 
-            var aabb = GetAABB_Sphere(center, radius);
-            var retVal = new List<VectorInt3>();
-
-            foreach (var marked in IterateMarked(include_keys, except_keys))
-            {
-                if (!IsInsideAABB(marked, aabb.min, aabb.max))
-                    continue;
-
-                if (aabb_good_enough)
-                    retVal.Add(marked);
-
-                else if ((center - GetCell(marked).center).LengthSquared <= radius * radius)
-                    retVal.Add(marked);
-            }
-
-            return retVal.ToArray();
+            return IterateMarkedStorages(include_keys, except_keys).
+                SelectMany(o => o.Octree_Points.GetNearby(center.ToVector3(), (float)radius)).
+                ToArray();
         }
+        /// <summary>
+        /// Returns cells that touch the search box
+        /// NOTE: supportsearch_aabb must be true in constructor
+        /// </summary>
         public VectorInt3[] GetMarked_AABB(Point3D min, Point3D max, string[] include_keys = null, string[] except_keys = null)
         {
+            if (!_supportsearch_aabb)
+                throw new InvalidOperationException("GetMarked_AABB() requires _supportsearch_aabb to be true in the constructor");
+
             ProcessPending_Touching(min, max);
 
-            VectorInt3 min_int = GetIndex_Point(min);
-            VectorInt3 max_int = GetIndex_Point(max);
+            var aabb = Math3D.GetAABB(new[] { min, max });      // use this to make sure min and max are correct
 
-            var retVal = new List<VectorInt3>();
+            Point3D search_center = Math3D.GetCenter(aabb.min, aabb.max);
+            Vector3D search_size = aabb.max - aabb.min;
 
-            foreach (var marked in IterateMarked(include_keys, except_keys))
-            {
-                if (IsInsideAABB(marked, min_int, max_int))
-                    retVal.Add(marked);
-            }
+            var search_box = new BoundingBox(search_center.ToVector3(), search_size.ToVector3());
 
-            return retVal.ToArray();
+            return IterateMarkedStorages(include_keys, except_keys).
+                SelectMany(o => o.Octree_Cells.GetColliding(search_box)).
+                ToArray();
         }
+
+
 
         public (Rect3D rect, Point3D center) GetCell(VectorInt3 index)
         {
@@ -860,13 +888,60 @@ namespace Game.Math_WPF.Mathematics
 
         private void MarkCells(VectorInt3[] cells, string key)
         {
-            if (!_marked.ContainsKey(key))
-                _marked.Add(key, new List<VectorInt3>());
+            EnsureKeyExists(key);
 
-            _marked[key].AddRange(cells.Except(_marked[key]));
+            // Figure out which cells will actually be added
+            VectorInt3[] adding_cells = cells.
+                Except(_marked[key].List).
+                ToArray();
+
+            // Always populate this list
+            _marked[key].List.AddRange(adding_cells);
+
+            // Specialized octrees
+            if (_supportsearch_sphere || _supportsearch_aabb)
+            {
+                foreach (VectorInt3 index in adding_cells)
+                {
+                    var cell = GetCell(index);
+
+                    if (_supportsearch_sphere)
+                        _marked[key].Octree_Points.Add(index, cell.center.ToVector3());
+
+                    if (_supportsearch_aabb)
+                        _marked[key].Octree_Cells.Add(index, new BoundingBox(cell.center.ToVector3(), cell.rect.Size.ToVector3()));
+                }
+            }
         }
 
-        private IEnumerable<VectorInt3> IterateMarked(string[] include_keys, string[] except_keys)
+        private void EnsureKeyExists(string key)
+        {
+            if (_marked.ContainsKey(key))
+                return;
+
+            // Look here for explanations of the values
+            // https://github.com/mcserep/NetOctree
+
+            float initial_size = (float)(_cell_size * 24);
+            float min_size = (float)(_cell_size * 6);
+
+            var storage = new MarkedStorage()
+            {
+                List = new List<VectorInt3>(),
+
+                Octree_Points = _supportsearch_sphere ?
+                    new PointOctree<VectorInt3>(initial_size, new System.Numerics.Vector3(), min_size) :
+                    null,
+
+                Octree_Cells = _supportsearch_aabb ?
+                    new BoundsOctree<VectorInt3>(initial_size, new System.Numerics.Vector3(), min_size, 1.25f) :
+                    null,
+            };
+
+            _marked.Add(key, storage);
+        }
+
+        private IEnumerable<MarkedStorage> IterateMarkedStorages(string[] include_keys, string[] except_keys)
         {
             // Need to convert null keys into the string constant
             // It could be argued that cells under the null key should always be returned.  But it's easy enough to just add null to the include list
@@ -890,10 +965,7 @@ namespace Game.Math_WPF.Mathematics
                 if (except_keys != null && except_keys.Contains(key))
                     continue;
 
-                foreach (VectorInt3 cell in _marked[key])
-                {
-                    yield return cell;
-                }
+                yield return _marked[key];
             }
         }
 

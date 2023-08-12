@@ -299,7 +299,7 @@ namespace Game.Bepu.Testers
         {
             try
             {
-                var grid = new SparseCellGrid(CELL_SIZE);
+                var grid = new SparseCellGrid(CELL_SIZE, true, true);
 
                 // ------------------------------------ mark ------------------------------------
 
@@ -329,8 +329,7 @@ namespace Game.Bepu.Testers
                 Point3D center = Math3D.GetRandomVector_Spherical(6).ToPoint();
                 double radius2 = StaticRandom.NextDouble(1, 4);
 
-                //var marked_sphere = grid.GetMarked_Sphere(center, radius2, true);
-                var marked_sphere = grid.GetMarked_Sphere(center, radius2, false);
+                var marked_sphere = grid.GetMarked_Sphere(center, radius2);
 
                 // aabb
                 Point3D aabb1 = Math3D.GetRandomVector_Spherical(6).ToPoint();
@@ -405,7 +404,7 @@ namespace Game.Bepu.Testers
 
             try
             {
-                var grid = new SparseCellGrid(CELL_SIZE);
+                var grid = new SparseCellGrid(CELL_SIZE, true, true);
 
                 // ------------------------------------ mark ------------------------------------
 
@@ -435,8 +434,7 @@ namespace Game.Bepu.Testers
                 Point3D center = Math3D.GetRandomVector_Spherical(6).ToPoint();
                 double radius2 = StaticRandom.NextDouble(4, 8);
 
-                //var marked_sphere = grid.GetMarked_Sphere(center, radius2, true);
-                var marked_sphere = grid.GetMarked_Sphere(center, radius2, false, new[] { RECT });
+                var marked_sphere = grid.GetMarked_Sphere(center, radius2, new[] { RECT });
 
                 // aabb
                 Point3D aabb1 = Math3D.GetRandomVector_Spherical(9).ToPoint();
