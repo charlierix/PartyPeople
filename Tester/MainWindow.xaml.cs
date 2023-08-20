@@ -106,5 +106,9 @@ namespace Game.Tester
         {
             new Game.Bepu.Testers.AnimationCurveVisualizer().Show();
         }
+        private void PasswordGenerator_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.PasswordGenerator().Show();
+        }
     }
 }
