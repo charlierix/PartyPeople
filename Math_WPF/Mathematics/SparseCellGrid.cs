@@ -287,15 +287,11 @@ namespace Game.Math_WPF.Mathematics
                 SelectMany(o => o.List).
                 ToArray();
         }
-
-
-
-        //TODO: Verify if the octree is threadsafe
-
         /// <summary>
         /// Returns cells that are within a search sphere
         /// NOTE: supportsearch_sphere must be true in constructor
         /// NOTE: This only considers the center point of the cells.  So cells that touch, but the center is outside the radius won't be returned
+        /// WARNING: This is NOT threadsafe.  A node's bounds get increased, the check is done, then the bounds get put back.  Multiple threads would make a mess of that logic
         /// </summary>
         public VectorInt3[] GetMarked_Sphere(Point3D center, double radius, string[] include_keys = null, string[] except_keys = null)
         {
@@ -311,6 +307,7 @@ namespace Game.Math_WPF.Mathematics
         /// <summary>
         /// Returns cells that touch the search box
         /// NOTE: supportsearch_aabb must be true in constructor
+        /// NOTE: This looks like it's threadsafe (assuming you're done populating the tree before doing searches)
         /// </summary>
         public VectorInt3[] GetMarked_AABB(Point3D min, Point3D max, string[] include_keys = null, string[] except_keys = null)
         {
@@ -330,8 +327,6 @@ namespace Game.Math_WPF.Mathematics
                 SelectMany(o => o.Octree_Cells.GetColliding(search_box)).
                 ToArray();
         }
-
-
 
         public (Rect3D rect, Point3D center) GetCell(VectorInt3 index)
         {

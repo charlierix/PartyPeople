@@ -26,9 +26,11 @@
             <!-- This is several thoughts that never finished -->
             <Button Content="axis aligned plate" Click="AxisAligned_Click"/>
             
-            
-            <!-- Once mark is proven, make a button that creates a random wing and marks the cells it touches -->
-            
+            <Button Content="mark wing" Click="MarkWing_Click"/>
+            <Button Content="wing1 sees wing2" Click="Wing1SeesWing2_Click"/>
+            <Button Content="wing1 interfered by wing2" Click="Wing1InterferedByWing2_Click"/>
+
+            <Button Content="random plane" Click="RandomPlane_Click"/>
         </StackPanel>
 
         <StackPanel Grid.Column="2">
