@@ -868,7 +868,7 @@ namespace Game.Bepu.Testers
 
         #endregion
 
-        #region Private Methods - Random Definition 1
+        #region Private Methods - Get Definition 1
 
         private static WingDef GetRandomWing(bool random_position = false, bool random_rotation = false)
         {
@@ -915,13 +915,19 @@ namespace Game.Bepu.Testers
         }
 
         #endregion
-        #region Private Methods - Random Definition 2
+        #region Private Methods - Get Definition 2
 
         //NOTE: Using unity's coords, so Y is up, Z is along fuselage
 
-        //TODO: constant for max size (maybe 2 or 3)
-        // random rotation should be a power curve so is very minor for the most part
-
+        private static PlaneDefinition GetDefaultPlane()
+        {
+            return new PlaneDefinition()
+            {
+                Engine_0 = GetDefaultEngine(),
+                Wing_0 = GetDefaultWing(),
+                Tail = GetDefaultTail(),
+            };
+        }
         private static PlaneDefinition GetRandomPlane()
         {
             int num_engines = StaticRandom.Next(1, 4);      // this will return 1 2 or 3
@@ -942,6 +948,14 @@ namespace Game.Bepu.Testers
             };
         }
 
+        private static EngineDefinition GetDefaultEngine()
+        {
+            return new EngineDefinition()
+            {
+                Offset = new Vector3(0, 0, 1),
+                Rotation = Quaternion.Identity,
+            };
+        }
         private static EngineDefinition GetRandomEngine()
         {
             Random rand = StaticRandom.GetRandomForThread();
@@ -973,6 +987,14 @@ namespace Game.Bepu.Testers
             };
         }
 
+        private static WingDefinition GetDefaultWing()
+        {
+            return new WingDefinition()
+            {
+                Offset = new Vector3(0.25f, 0, 0.5f),
+                Rotation = Quaternion.Identity,
+            };
+        }
         private static WingDefinition GetRandomWing2()
         {
             Random rand = StaticRandom.GetRandomForThread();
@@ -1052,6 +1074,17 @@ namespace Game.Bepu.Testers
             };
         }
 
+        private static TailDefinition GetDefaultTail()
+        {
+            return new TailDefinition()
+            {
+                Boom = new TailDefinition_Boom(),
+                Tail = new TailDefinition_Tail(),
+
+                Offset = new Vector3(0, 0, -0.25f),
+                Rotation = Quaternion.Identity,
+            };
+        }
         private static TailDefinition GetRandomTail()
         {
             const double SPAN_MIN = 0.05;
