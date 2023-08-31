@@ -36,6 +36,11 @@ namespace Game.Bepu.Testers.WingInterference
         public float Size { get; init; } = 1;
 
         // ------------- for the tester -------------
+
+        // These are in world coords (they've already been transformed by offset and rotation)
+        public Vector3 Cylinder_From { get; init; }
+        public Vector3 Cylinder_To { get; init; }
+        public float Cylinder_Radius { get; init; }
     }
 
     public record WingDefinition
