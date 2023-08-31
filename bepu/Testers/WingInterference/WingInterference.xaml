@@ -39,6 +39,7 @@
             <Button Content="Cell Indices" Click="CellIndices_Click"/>
             <Button Content="Indices for Triangle" Click="IndicesForTriangle_Click"/>
             <Button Content="Indices for Rect2D" Click="IndicesForRect2D_Click"/>
+            <Button Content="Mark Sphere" Click="Mark_Sphere"/>
             <Button Content="Mark Cells" Click="MarkCells_Click"/>
             <Button Content="Mark Cells - keys" Click="MarkCellsKeys_Click"/>
         </StackPanel>

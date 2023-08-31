@@ -507,6 +507,25 @@ namespace Game.Bepu.Testers.WingInterference
             }
         }
 
+        private void Mark_Sphere(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var grid = new SparseCellGrid(CELL_SIZE, true, true);
+
+                Point3D center = Math3D.GetRandomVector_Spherical(12).ToPoint();
+                double radius = StaticRandom.NextDouble(0.5, 1.5);
+                var marked_sphere = grid.Mark_Sphere(center, radius);
+
+                var window = MarkCells_Click_Draw(marked_sphere.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Sphere", false, false, false);
+                window.AddDot(center, radius, UtilityWPF.ColorFromHex("14D4"), isHiRes: true);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void MarkCells_Click(object sender, RoutedEventArgs e)
         {
             try

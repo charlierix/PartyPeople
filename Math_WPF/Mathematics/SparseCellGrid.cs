@@ -199,6 +199,53 @@ namespace Game.Math_WPF.Mathematics
 
             return retVal;
         }
+        public VectorInt3[] GetIndices_Sphere(Point3D center, double radius)
+        {
+            var retVal = new List<VectorInt3>();
+
+            double radius_sqr = radius * radius;
+
+            var aabb = GetAABB_Sphere(center, radius);
+
+            for(int x = aabb.min.X; x <= aabb.max.X; x++)
+            {
+                for (int y = aabb.min.Y; y <= aabb.max.Y; y++)
+                {
+                    for (int z = aabb.min.Z; z <= aabb.max.Z; z++)
+                    {
+                        var index = new VectorInt3(x, y, z);
+
+                        var cell = GetCell(index);
+
+                        // Quick check
+                        if ((center - cell.center).LengthSquared <= radius_sqr)
+                        {
+                            retVal.Add(index);
+                            continue;
+                        }
+
+
+                        //TODO: compare each of the 6 sides with the sphere
+
+                        //Tuple<Point3D, double> circleIntersect = Math3D.GetIntersection_Plane_Sphere(plane, center, radius);
+                        //if (circleIntersect != null)
+
+
+                        // This might also be useful, but will miss cases where the intersect circle is around all 4 points.
+                        // May want to expand this function to also return the circle instersect
+                        //GetIntersection_Face_Sphere
+
+                        
+
+                        // See if the circle is touching this square, or at least one of the 4 points is inside the circle
+
+
+                    }
+                }
+            }
+
+            return retVal.ToArray();
+        }
 
         public MarkResult Mark_Point(Point3D point, string key = null)
         {
@@ -272,6 +319,23 @@ namespace Game.Math_WPF.Mathematics
                 AABB_Min = indices[0, 0],
                 AABB_Max = indices[indices.GetUpperBound(0), indices.GetUpperBound(1)],
                 MarkedCells = flattened,
+            };
+        }
+        public MarkResult Mark_Sphere(Point3D center, double radius, string key = null)
+        {
+            key = key ?? NULL_KEY;
+
+            var aabb = GetAABB_Sphere(center, radius);
+
+            VectorInt3[] indices = GetIndices_Sphere(center, radius);
+
+            MarkCells(indices, key);
+
+            return new MarkResult()
+            {
+                AABB_Min = aabb.min,
+                AABB_Max = aabb.max,
+                MarkedCells = indices,
             };
         }
 

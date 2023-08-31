@@ -7279,9 +7279,7 @@ namespace Game.Math_WPF.Mathematics
 
             Tuple<Point3D, double> circleIntersect = Math3D.GetIntersection_Plane_Sphere(plane, sphereCenter, sphereRadius);
             if (circleIntersect == null)
-            {
                 return new Point3D[0];
-            }
 
             // There is an intersection, edge intersections need to be done in 2D
             var transform2D = Math2D.GetTransformTo2D(plane);
