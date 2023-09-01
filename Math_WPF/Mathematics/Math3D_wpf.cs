@@ -6623,9 +6623,9 @@ namespace Game.Math_WPF.Mathematics
 
         public static Point3D GetClosestPoint_LineSegment_Point(Point3D segmentStart, Point3D segmentStop, Point3D testPoint)
         {
-            return GetClosestPoint_LineSegment_Point_verbose(segmentStart, segmentStop, testPoint).Item1;
+            return GetClosestPoint_LineSegment_Point_verbose(segmentStart, segmentStop, testPoint).point_on_line;
         }
-        public static Tuple<Point3D, LocationOnLineSegment> GetClosestPoint_LineSegment_Point_verbose(Point3D segmentStart, Point3D segmentStop, Point3D testPoint)
+        public static (Point3D point_on_line, LocationOnLineSegment where_on_line) GetClosestPoint_LineSegment_Point_verbose(Point3D segmentStart, Point3D segmentStop, Point3D testPoint)
         {
             Vector3D lineDir = segmentStop - segmentStart;
 
@@ -6636,17 +6636,17 @@ namespace Game.Math_WPF.Mathematics
             if (Vector3D.DotProduct(lineDir, returnDir) < 0)
             {
                 // It's going in the wrong direction, so start point is the closest
-                return Tuple.Create(segmentStart, LocationOnLineSegment.Start);
+                return (segmentStart, LocationOnLineSegment.Start);
             }
             else if (returnDir.LengthSquared > lineDir.LengthSquared)
             {
                 // It's past the segment stop
-                return Tuple.Create(segmentStop, LocationOnLineSegment.Stop);
+                return (segmentStop, LocationOnLineSegment.Stop);
             }
             else
             {
                 // The return point is sitting somewhere on the line segment
-                return Tuple.Create(retVal, LocationOnLineSegment.Middle);
+                return (retVal, LocationOnLineSegment.Middle);
             }
         }
 
@@ -7103,6 +7103,12 @@ namespace Game.Math_WPF.Mathematics
 
             // Get the distance from point1 from the plane uMath.Sing: Ax + By + Cz + D = (The distance from the plane)
             return DistanceFromPlane(normal, originDistance, point);
+        }
+        public static double DistanceFromPlane(Point3D point_on_plane, Vector3D normal_unit, Point3D test_point)
+        {
+            double originDistance = GetPlaneOriginDistance(normal_unit, point_on_plane);
+
+            return DistanceFromPlane(normal_unit, originDistance, test_point);
         }
         public static double DistanceFromPlane(Vector3D normalUnit, double originDistance, Vector3D point)
         {

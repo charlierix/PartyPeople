@@ -507,41 +507,6 @@ namespace Game.Bepu.Testers.WingInterference
             }
         }
 
-        private void Mark_Sphere(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                var grid = new SparseCellGrid(CELL_SIZE, true, true);
-
-                Point3D center = Math3D.GetRandomVector_Spherical(12).ToPoint();
-                double radius = StaticRandom.NextDouble(0.5, 1.5);
-                bool is_hollow = StaticRandom.NextBool();
-
-                VectorInt3 center_index = grid.GetIndex_Point(center);
-
-                var marked_sphere = grid.Mark_Sphere(center, radius, is_hollow);
-
-                var marked_sphere_pos = marked_sphere with
-                {
-                    MarkedCells = marked_sphere.MarkedCells.
-                        Where(o => o.X >= center_index.X && o.Y >= center_index.Y && o.Z >= center_index.Z).
-                        ToArray(),
-                };
-
-                var window = MarkCells_Click_Draw(marked_sphere.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Sphere", false, false, false);
-                window.AddDot(center, radius, UtilityWPF.ColorFromHex("14D4"), isHiRes: true);
-                window.AddText($"is hollow: {is_hollow}");
-
-                window = MarkCells_Click_Draw(marked_sphere_pos.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Sphere", false, false, false);
-                window.AddDot(center, radius, UtilityWPF.ColorFromHex("14D4"), isHiRes: true);
-                window.AddText($"is hollow: {is_hollow}");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
         private void MarkCells_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -705,6 +670,122 @@ namespace Game.Bepu.Testers.WingInterference
 
                 window = MarkCells_Click_Draw(marked_aabb, grid, point, triangle, rect, rect_z, "All - AABB", true, true, true);
                 window.AddMesh(UtilityWPF.GetCube_IndependentFaces(aabb1, aabb2), UtilityWPF.ColorFromHex("1FF0"));
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void Mark_Sphere(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var grid = new SparseCellGrid(CELL_SIZE, true, true);
+
+                Point3D center = Math3D.GetRandomVector_Spherical(12).ToPoint();
+                double radius = StaticRandom.NextDouble(0.5, 1.5);
+                bool is_hollow = StaticRandom.NextBool();
+
+                VectorInt3 center_index = grid.GetIndex_Point(center);
+
+                var marked_sphere = grid.Mark_Sphere(center, radius, is_hollow);
+
+                var marked_sphere_pos = marked_sphere with
+                {
+                    MarkedCells = marked_sphere.MarkedCells.
+                        Where(o => o.X >= center_index.X && o.Y >= center_index.Y && o.Z >= center_index.Z).
+                        ToArray(),
+                };
+
+                var window = MarkCells_Click_Draw(marked_sphere.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Sphere", false, false, false);
+                window.AddDot(center, radius, UtilityWPF.ColorFromHex("14D4"), isHiRes: true);
+                window.AddText($"is hollow: {is_hollow}");
+
+                window = MarkCells_Click_Draw(marked_sphere_pos.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Sphere", false, false, false);
+                window.AddDot(center, radius, UtilityWPF.ColorFromHex("14D4"), isHiRes: true);
+                window.AddText($"is hollow: {is_hollow}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void Mark_Capsule(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var grid = new SparseCellGrid(CELL_SIZE, true, true);
+
+                Point3D point0 = Math3D.GetRandomVector_Spherical(4).ToPoint();
+                Point3D point1 = Math3D.GetRandomVector_Spherical(4).ToPoint();
+                double radius = StaticRandom.NextDouble(0.5, 1.5);
+                bool is_hollow = StaticRandom.NextBool();
+
+                VectorInt3 center_index = grid.GetIndex_Point(Math3D.GetCenter(point0, point1));
+
+                var marked_capsule = grid.Mark_Capsule(point0, point1, radius, is_hollow);
+
+                var marked_capsule_pos = marked_capsule with
+                {
+                    MarkedCells = marked_capsule.MarkedCells.
+                        Where(o => o.X >= center_index.X && o.Y >= center_index.Y && o.Z >= center_index.Z).
+                        ToArray(),
+                };
+
+
+
+                //TODO: this isn't working make an explicit tester for this
+                var mesh = UtilityWPF.GetCapsule(24, 24, point0, point1, radius);
+
+
+
+                var window = MarkCells_Click_Draw(marked_capsule.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Capsule", false, false, false);
+                window.AddMesh(mesh, UtilityWPF.ColorFromHex("14D4"));
+                window.AddText($"is hollow: {is_hollow}");
+
+                window = MarkCells_Click_Draw(marked_capsule_pos.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Capsule", false, false, false);
+                window.AddMesh(mesh, UtilityWPF.ColorFromHex("14D4"));
+                window.AddText($"is hollow: {is_hollow}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void Mark_Cylinder(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var grid = new SparseCellGrid(CELL_SIZE, true, true);
+
+                Point3D point0 = Math3D.GetRandomVector_Spherical(4).ToPoint();
+                Point3D point1 = Math3D.GetRandomVector_Spherical(4).ToPoint();
+                double radius = StaticRandom.NextDouble(0.5, 1.5);
+                bool is_hollow = StaticRandom.NextBool();
+
+                VectorInt3 center_index = grid.GetIndex_Point(Math3D.GetCenter(point0, point1));
+
+                var marked_cylinder = grid.Mark_Cylinder(point0, point1, radius, is_hollow);
+
+                var marked_cylinder_pos = marked_cylinder with
+                {
+                    MarkedCells = marked_cylinder.MarkedCells.
+                        Where(o => o.X >= center_index.X && o.Y >= center_index.Y && o.Z >= center_index.Z).
+                        ToArray(),
+                };
+
+                //var mesh = UtilityWPF.GetCapsule(24, 24, point0, point1, radius);
+
+                var window = MarkCells_Click_Draw(marked_cylinder.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Cylinder", false, false, false);
+                //window.AddMesh(mesh, UtilityWPF.ColorFromHex("14D4"));
+                window.AddText($"is hollow: {is_hollow}");
+
+                window = MarkCells_Click_Draw(marked_cylinder_pos.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Cylinder", false, false, false);
+                //window.AddMesh(mesh, UtilityWPF.ColorFromHex("14D4"));
+                window.AddText($"is hollow: {is_hollow}");
             }
             catch (Exception ex)
             {

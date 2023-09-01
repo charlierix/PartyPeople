@@ -833,6 +833,22 @@ namespace Game.Math_WPF.Mathematics
                 rect.SizeZ * multiplier);
         }
 
+        public static Point3D[] GetPointsArray(this Rect3D rect)
+        {
+            return new[]
+            {
+                new Point3D(rect.X,                 rect.Y,                 rect.Z),
+                new Point3D(rect.X + rect.SizeX,    rect.Y,                 rect.Z),
+                new Point3D(rect.X,                 rect.Y + rect.SizeY,    rect.Z),
+                new Point3D(rect.X + rect.SizeX,    rect.Y + rect.SizeY,    rect.Z),
+
+                new Point3D(rect.X,                 rect.Y,                 rect.Z + rect.SizeZ),
+                new Point3D(rect.X + rect.SizeX,    rect.Y,                 rect.Z + rect.SizeZ),
+                new Point3D(rect.X,                 rect.Y + rect.SizeY,    rect.Z + rect.SizeZ),
+                new Point3D(rect.X + rect.SizeX,    rect.Y + rect.SizeY,    rect.Z + rect.SizeZ),
+            };
+        }
+
         public static Rect ToRect2D(this Rect3D rect)
         {
             return new Rect(rect.Location.ToPoint2D(), rect.Size.ToSize2D());

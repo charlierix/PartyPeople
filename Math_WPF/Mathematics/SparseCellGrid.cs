@@ -230,6 +230,112 @@ namespace Game.Math_WPF.Mathematics
 
             return retVal.ToArray();
         }
+        public VectorInt3[] GetIndices_Capsule(Point3D point0, Point3D point1, double radius, bool is_hollow)
+        {
+            var retVal = new List<VectorInt3>();
+
+            double radius_sqr = radius * radius;
+
+            var aabb = GetAABB_Capsule(point0, point1, radius);
+
+            for (int x = aabb.min.X; x <= aabb.max.X; x++)
+            {
+                for (int y = aabb.min.Y; y <= aabb.max.Y; y++)
+                {
+                    for (int z = aabb.min.Z; z <= aabb.max.Z; z++)
+                    {
+                        var index = new VectorInt3(x, y, z);
+                        var cell = GetCell(index);
+
+                        double[] distances_sqr = cell.rect.GetPointsArray().
+                            Select(o =>
+                            {
+                                Point3D nearest_point = Math3D.GetClosestPoint_LineSegment_Point(point0, point1, o);
+                                return (o - nearest_point).LengthSquared;
+                            }).
+                            ToArray();
+
+
+                        if (distances_sqr.Any(o => o <= radius_sqr))
+                        {
+                            if (is_hollow && distances_sqr.Any(o => o > radius_sqr))      // if all of the cell's points are inside the capsule, then that's an interior cell, so only look for cells that the surface goes through
+                                retVal.Add(index);
+
+                            else if (!is_hollow)        // solid filled capsule, so include any cells inside or touching the capsule
+                                retVal.Add(index);
+                        }
+                    }
+                }
+            }
+
+            return retVal.ToArray();
+        }
+        public VectorInt3[] GetIndices_Cylinder(Point3D point0, Point3D point1, double radius, bool is_hollow)
+        {
+            if (point0.IsNearValue(point1))
+                return new VectorInt3[0];
+
+            var retVal = new List<VectorInt3>();
+
+            double radius_sqr = radius * radius;
+            Vector3D normal_unit = (point1 - point0).ToUnit();
+
+            var aabb = GetAABB_Capsule(point0, point1, radius);
+
+            for (int x = aabb.min.X; x <= aabb.max.X; x++)
+            {
+                for (int y = aabb.min.Y; y <= aabb.max.Y; y++)
+                {
+                    for (int z = aabb.min.Z; z <= aabb.max.Z; z++)
+                    {
+                        var index = new VectorInt3(x, y, z);
+                        var cell = GetCell(index);
+
+                        var nearest = cell.rect.GetPointsArray().
+                            Select(o =>
+                            {
+                                var nearest_point = Math3D.GetClosestPoint_LineSegment_Point_verbose(point0, point1, o);
+                                return (rect_point: o, nearest_point.point_on_line, nearest_point.where_on_line);
+                            }).
+                            ToArray();
+
+                        var middle_distances_sqr = nearest.
+                            Where(o => o.where_on_line == Math3D.LocationOnLineSegment.Middle).
+                            Select(o => (o.rect_point - o.point_on_line).LengthSquared).
+                            ToArray();
+
+                        if (middle_distances_sqr.Any(o => o <= radius_sqr))
+                        {
+                            if (is_hollow && middle_distances_sqr.Any(o => o > radius_sqr))      // if all of the cell's points are inside the capsule, then that's an interior cell, so only look for cells that the surface goes through
+                                retVal.Add(index);
+
+                            else if (!is_hollow)        // solid filled capsule, so include any cells inside or touching the capsule
+                                retVal.Add(index);
+                        }
+                        else if (is_hollow)     // if it's solid, the end caps are already filled.  But hollow would just be a tube without the special logic in this else
+                        {
+                            var end_distances = nearest.
+                                Where(o => o.where_on_line != Math3D.LocationOnLineSegment.Middle).
+                                Select(o => new
+                                {
+                                    //o.rect_point,
+                                    //o.point_on_line,
+                                    //o.where_on_line,
+                                    dist_sqr = (o.rect_point - o.point_on_line).LengthSquared,
+                                    plane_dist = Math.Abs(Math3D.DistanceFromPlane(o.point_on_line, normal_unit, o.rect_point)),
+                                }).
+                                Where(o => o.dist_sqr <= radius_sqr && o.plane_dist <= CellSize).
+                                ToArray();
+
+                            if (end_distances.Length > 0)
+                                retVal.Add(index);
+                        }
+                    }
+                }
+            }
+
+            return retVal.ToArray();
+        }
 
         public MarkResult Mark_Point(Point3D point, string key = null)
         {
@@ -312,6 +418,41 @@ namespace Game.Math_WPF.Mathematics
             var aabb = GetAABB_Sphere(center, radius);
 
             VectorInt3[] indices = GetIndices_Sphere(center, radius, is_hollow);
+
+            MarkCells(indices, key);
+
+            return new MarkResult()
+            {
+                AABB_Min = aabb.min,
+                AABB_Max = aabb.max,
+                MarkedCells = indices,
+            };
+        }
+        public MarkResult Mark_Capsule(Point3D point0, Point3D point1, double radius, bool is_hollow, string key = null)
+        {
+            key = key ?? NULL_KEY;
+
+            var aabb = GetAABB_Capsule(point0, point1, radius);
+
+            VectorInt3[] indices = GetIndices_Capsule(point0, point1, radius, is_hollow);
+
+            MarkCells(indices, key);
+
+            return new MarkResult()
+            {
+                AABB_Min = aabb.min,
+                AABB_Max = aabb.max,
+                MarkedCells = indices,
+            };
+        }
+        public MarkResult Mark_Cylinder(Point3D point0, Point3D point1, double radius, bool is_hollow, string key = null)
+        {
+            key = key ?? NULL_KEY;
+
+            // capsule should be good enough
+            var aabb = GetAABB_Capsule(point0, point1, radius);
+
+            VectorInt3[] indices = GetIndices_Cylinder(point0, point1, radius, is_hollow);
 
             MarkCells(indices, key);
 
@@ -425,72 +566,23 @@ namespace Game.Math_WPF.Mathematics
 
         private static bool AnyInside_Sphere(Point3D center, Rect3D rect, double radius_sqr)
         {
-            if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y, rect.Z) <= radius_sqr)
-                return true;
+            foreach (Point3D point in rect.GetPointsArray())
+            {
+                if ((center - point).LengthSquared <= radius_sqr)
+                    return true;
+            }
 
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y, rect.Z) <= radius_sqr)
-                return true;
-
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y + rect.SizeY, rect.Z) <= radius_sqr)
-                return true;
-
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y + rect.SizeY, rect.Z) <= radius_sqr)
-                return true;
-
-
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y, rect.Z + rect.SizeZ) <= radius_sqr)
-                return true;
-
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y, rect.Z + rect.SizeZ) <= radius_sqr)
-                return true;
-
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y + rect.SizeY, rect.Z + rect.SizeZ) <= radius_sqr)
-                return true;
-
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y + rect.SizeY, rect.Z + rect.SizeZ) <= radius_sqr)
-                return true;
-
-            else
-                return false;
+            return false;
         }
         private static bool AnyOutside_Sphere(Point3D center, Rect3D rect, double radius_sqr)
         {
-            if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y, rect.Z) > radius_sqr)
-                return true;
+            foreach (Point3D point in rect.GetPointsArray())
+            {
+                if ((center - point).LengthSquared > radius_sqr)
+                    return true;
+            }
 
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y, rect.Z) > radius_sqr)
-                return true;
-
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y + rect.SizeY, rect.Z) > radius_sqr)
-                return true;
-
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y + rect.SizeY, rect.Z) > radius_sqr)
-                return true;
-
-
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y, rect.Z + rect.SizeZ) > radius_sqr)
-                return true;
-
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y, rect.Z + rect.SizeZ) > radius_sqr)
-                return true;
-
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y + rect.SizeY, rect.Z + rect.SizeZ) > radius_sqr)
-                return true;
-
-            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y + rect.SizeY, rect.Z + rect.SizeZ) > radius_sqr)
-                return true;
-
-            else
-                return false;
-        }
-
-        private static double GetDistanceSquared(double x1, double y1, double z1, double x2, double y2, double z2)
-        {
-            double diffX = x2 - x1;
-            double diffY = y2 - y1;
-            double diffZ = z2 - z1;
-
-            return (diffX * diffX) + (diffY * diffY) + (diffZ * diffZ);
+            return false;
         }
 
         #endregion
@@ -1101,6 +1193,16 @@ namespace Game.Math_WPF.Mathematics
                 new VectorInt3(min_x, min_y, min_z),
                 new VectorInt3(max_x, max_y, max_z)
             );
+        }
+        private (VectorInt3 min, VectorInt3 max) GetAABB_Capsule(Point3D point0, Point3D point1, double radius)
+        {
+            var aabb0 = GetAABB_Sphere(point0, radius);
+            var aabb1 = GetAABB_Sphere(point1, radius);
+
+            VectorInt3 aabb_min = new VectorInt3(Math.Min(aabb0.min.X, aabb1.min.X), Math.Min(aabb0.min.Y, aabb1.min.Y), Math.Min(aabb0.min.Z, aabb1.min.Z));
+            VectorInt3 aabb_max = new VectorInt3(Math.Max(aabb0.max.X, aabb1.max.X), Math.Max(aabb0.max.Y, aabb1.max.Y), Math.Max(aabb0.max.Z, aabb1.max.Z));
+
+            return (aabb_min, aabb_max);
         }
 
         private int GetIndex_1D(double point)

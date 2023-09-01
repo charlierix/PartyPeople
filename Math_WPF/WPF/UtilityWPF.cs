@@ -4204,7 +4204,7 @@ namespace Game.Math_WPF.WPF
         /// be less than diameter)
         /// </summary>
         /// <param name="numSegmentsPhi">This is the number of segments for one dome</param>
-        public static MeshGeometry3D GetCapsule_AlongZ(int numSegmentsTheta, int numSegmentsPhi, double radius, double height, RotateTransform3D rotateTransform = null)
+        public static MeshGeometry3D GetCapsule_AlongZ(int numSegmentsTheta, int numSegmentsPhi, double radius, double height, Transform3D transform = null)
         {
             //NOTE: All the other geometries in this class are along the x axis, so I want to follow suit, but I think best along the z axis.  So I'll transform the points before commiting them to the geometry
             //TODO: This is so close to GetMultiRingedTube, the only difference is the multi ring tube has "hard" faces, and this has "soft" faces (this one shares points and normals, so the lighting is smoother)
@@ -4224,14 +4224,16 @@ namespace Game.Math_WPF.WPF
 
             #region Initial calculations
 
-            Transform3DGroup transform = new Transform3DGroup();
-            //transform.Children.Add(new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), 90d)));
+            transform = transform ?? new Transform3DGroup();
 
-            if (rotateTransform != null)
-            {
-                // This is in case they want it oriented other than along the z axis
-                transform.Children.Add(rotateTransform);
-            }
+            //Transform3DGroup transform = new Transform3DGroup();
+            ////transform.Children.Add(new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), 90d)));
+
+            //if (rotateTransform != null)
+            //{
+            //    // This is in case they want it oriented other than along the z axis
+            //    transform.Children.Add(rotateTransform);
+            //}
 
             double halfHeight = (height - (radius * 2d)) / 2d;
             //double deltaTheta = 2d * Math.PI / numSegmentsTheta;
@@ -4308,6 +4310,21 @@ namespace Game.Math_WPF.WPF
 
             //retVal.Freeze();
             return retVal;
+        }
+        public static MeshGeometry3D GetCapsule(int numSegmentsTheta, int numSegmentsPhi, Point3D point0, Point3D point1, double radius)
+        {
+            Point3D center = Math3D.GetCenter(point0, point1);
+            Quaternion quat = point0.IsNearValue(point1) ?
+                Quaternion.Identity :
+                Math3D.GetRotation(new Vector3D(0, 0, 1), point1 - point0);
+
+            Transform3DGroup transform = new Transform3DGroup();
+            transform.Children.Add(new RotateTransform3D(new QuaternionRotation3D(quat)));
+            transform.Children.Add(new TranslateTransform3D(center.X, center.Y, center.Z));
+
+            double height = (point1 - point0).Length;
+
+            return GetCapsule_AlongZ(numSegmentsTheta, numSegmentsPhi, radius, height, transform);
         }
 
         /// <summary>
