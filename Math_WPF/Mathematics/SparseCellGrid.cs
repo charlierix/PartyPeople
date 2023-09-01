@@ -199,7 +199,7 @@ namespace Game.Math_WPF.Mathematics
 
             return retVal;
         }
-        public VectorInt3[] GetIndices_Sphere(Point3D center, double radius)
+        public VectorInt3[] GetIndices_Sphere(Point3D center, double radius, bool is_hollow)
         {
             var retVal = new List<VectorInt3>();
 
@@ -207,39 +207,23 @@ namespace Game.Math_WPF.Mathematics
 
             var aabb = GetAABB_Sphere(center, radius);
 
-            for(int x = aabb.min.X; x <= aabb.max.X; x++)
+            for (int x = aabb.min.X; x <= aabb.max.X; x++)
             {
                 for (int y = aabb.min.Y; y <= aabb.max.Y; y++)
                 {
                     for (int z = aabb.min.Z; z <= aabb.max.Z; z++)
                     {
                         var index = new VectorInt3(x, y, z);
-
                         var cell = GetCell(index);
 
-                        // Quick check
-                        if ((center - cell.center).LengthSquared <= radius_sqr)
+                        if (AnyInside_Sphere(center, cell.rect, radius_sqr))
                         {
-                            retVal.Add(index);
-                            continue;
+                            if (is_hollow && AnyOutside_Sphere(center, cell.rect, radius_sqr))      // if all of the cell's points are inside the sphere, then that's an interior cell, so only look for cells that the surface goes through
+                                retVal.Add(index);
+
+                            else if (!is_hollow)        // solid filled sphere, so include any cells inside or touching the sphere
+                                retVal.Add(index);
                         }
-
-
-                        //TODO: compare each of the 6 sides with the sphere
-
-                        //Tuple<Point3D, double> circleIntersect = Math3D.GetIntersection_Plane_Sphere(plane, center, radius);
-                        //if (circleIntersect != null)
-
-
-                        // This might also be useful, but will miss cases where the intersect circle is around all 4 points.
-                        // May want to expand this function to also return the circle instersect
-                        //GetIntersection_Face_Sphere
-
-                        
-
-                        // See if the circle is touching this square, or at least one of the 4 points is inside the circle
-
-
                     }
                 }
             }
@@ -321,13 +305,13 @@ namespace Game.Math_WPF.Mathematics
                 MarkedCells = flattened,
             };
         }
-        public MarkResult Mark_Sphere(Point3D center, double radius, string key = null)
+        public MarkResult Mark_Sphere(Point3D center, double radius, bool is_hollow, string key = null)
         {
             key = key ?? NULL_KEY;
 
             var aabb = GetAABB_Sphere(center, radius);
 
-            VectorInt3[] indices = GetIndices_Sphere(center, radius);
+            VectorInt3[] indices = GetIndices_Sphere(center, radius, is_hollow);
 
             MarkCells(indices, key);
 
@@ -437,6 +421,79 @@ namespace Game.Math_WPF.Mathematics
             return GetCondensedPoints(combined, lines_distinct.all_points_distinct);
         }
 
+        #region Private Methods
+
+        private static bool AnyInside_Sphere(Point3D center, Rect3D rect, double radius_sqr)
+        {
+            if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y, rect.Z) <= radius_sqr)
+                return true;
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y, rect.Z) <= radius_sqr)
+                return true;
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y + rect.SizeY, rect.Z) <= radius_sqr)
+                return true;
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y + rect.SizeY, rect.Z) <= radius_sqr)
+                return true;
+
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y, rect.Z + rect.SizeZ) <= radius_sqr)
+                return true;
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y, rect.Z + rect.SizeZ) <= radius_sqr)
+                return true;
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y + rect.SizeY, rect.Z + rect.SizeZ) <= radius_sqr)
+                return true;
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y + rect.SizeY, rect.Z + rect.SizeZ) <= radius_sqr)
+                return true;
+
+            else
+                return false;
+        }
+        private static bool AnyOutside_Sphere(Point3D center, Rect3D rect, double radius_sqr)
+        {
+            if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y, rect.Z) > radius_sqr)
+                return true;
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y, rect.Z) > radius_sqr)
+                return true;
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y + rect.SizeY, rect.Z) > radius_sqr)
+                return true;
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y + rect.SizeY, rect.Z) > radius_sqr)
+                return true;
+
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y, rect.Z + rect.SizeZ) > radius_sqr)
+                return true;
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y, rect.Z + rect.SizeZ) > radius_sqr)
+                return true;
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X, rect.Y + rect.SizeY, rect.Z + rect.SizeZ) > radius_sqr)
+                return true;
+
+            else if (GetDistanceSquared(center.X, center.Y, center.Z, rect.X + rect.SizeX, rect.Y + rect.SizeY, rect.Z + rect.SizeZ) > radius_sqr)
+                return true;
+
+            else
+                return false;
+        }
+
+        private static double GetDistanceSquared(double x1, double y1, double z1, double x2, double y2, double z2)
+        {
+            double diffX = x2 - x1;
+            double diffY = y2 - y1;
+            double diffZ = z2 - z1;
+
+            return (diffX * diffX) + (diffY * diffY) + (diffZ * diffZ);
+        }
+
+        #endregion
         #region Private Methods - line segments
 
         /// <summary>

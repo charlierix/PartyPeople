@@ -515,10 +515,26 @@ namespace Game.Bepu.Testers.WingInterference
 
                 Point3D center = Math3D.GetRandomVector_Spherical(12).ToPoint();
                 double radius = StaticRandom.NextDouble(0.5, 1.5);
-                var marked_sphere = grid.Mark_Sphere(center, radius);
+                bool is_hollow = StaticRandom.NextBool();
+
+                VectorInt3 center_index = grid.GetIndex_Point(center);
+
+                var marked_sphere = grid.Mark_Sphere(center, radius, is_hollow);
+
+                var marked_sphere_pos = marked_sphere with
+                {
+                    MarkedCells = marked_sphere.MarkedCells.
+                        Where(o => o.X >= center_index.X && o.Y >= center_index.Y && o.Z >= center_index.Z).
+                        ToArray(),
+                };
 
                 var window = MarkCells_Click_Draw(marked_sphere.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Sphere", false, false, false);
                 window.AddDot(center, radius, UtilityWPF.ColorFromHex("14D4"), isHiRes: true);
+                window.AddText($"is hollow: {is_hollow}");
+
+                window = MarkCells_Click_Draw(marked_sphere_pos.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Sphere", false, false, false);
+                window.AddDot(center, radius, UtilityWPF.ColorFromHex("14D4"), isHiRes: true);
+                window.AddText($"is hollow: {is_hollow}");
             }
             catch (Exception ex)
             {
