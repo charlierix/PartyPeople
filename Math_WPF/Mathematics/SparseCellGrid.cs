@@ -324,7 +324,7 @@ namespace Game.Math_WPF.Mathematics
                                     dist_sqr = (o.rect_point - o.point_on_line).LengthSquared,
                                     plane_dist = Math.Abs(Math3D.DistanceFromPlane(o.point_on_line, normal_unit, o.rect_point)),
                                 }).
-                                Where(o => o.dist_sqr <= radius_sqr && o.plane_dist <= CellSize).
+                                Where(o => o.dist_sqr <= radius_sqr && o.plane_dist <= CellSize * 0.55).     // a full cell size distance from the cap's plane is a bit much.  Choosing something just over half
                                 ToArray();
 
                             if (end_distances.Length > 0)

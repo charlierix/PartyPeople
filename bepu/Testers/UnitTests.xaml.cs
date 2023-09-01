@@ -898,6 +898,115 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void DrawCapsuleZ_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var window = new Debug3DWindow()
+                {
+                    Title = "Capsule Along Z",
+                };
+
+                var sizes = Debug3DWindow.GetDrawSizes(1);
+
+                window.AddAxisLines(1, sizes.line);
+
+                var mesh = UtilityWPF.GetCapsule_AlongZ(24, 24, 1, 4);
+
+                window.AddMesh(mesh, UtilityWPF.ColorFromHex("801E90FF"));
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void DrawCapsule_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var window = new Debug3DWindow()
+                {
+                    Title = "Capsule",
+                };
+
+                var sizes = Debug3DWindow.GetDrawSizes(1);
+
+                window.AddAxisLines(1, sizes.line);
+
+                Point3D point0 = Math3D.GetRandomVector_Spherical(6).ToPoint();
+                Point3D point1 = Math3D.GetRandomVector_Spherical(6).ToPoint();
+
+                window.AddDot(point0, sizes.dot * 6, Colors.Black);
+                window.AddDot(point1, sizes.dot * 6, Colors.Black);
+
+                var mesh = UtilityWPF.GetCapsule(24, 24, point0, point1, 1);
+
+                window.AddMesh(mesh, UtilityWPF.ColorFromHex("801E90FF"));
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void DrawCylinderZ_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var window = new Debug3DWindow()
+                {
+                    Title = "Cylinder Along Z",
+                };
+
+                var sizes = Debug3DWindow.GetDrawSizes(1);
+
+                window.AddAxisLines(1, sizes.line);
+
+                var mesh = UtilityWPF.GetCylinder_AlongZ(24, 1, 4);
+
+                window.AddMesh(mesh, UtilityWPF.ColorFromHex("801E90FF"));
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void DrawCylinder_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var window = new Debug3DWindow()
+                {
+                    Title = "Cylinder",
+                };
+
+                var sizes = Debug3DWindow.GetDrawSizes(1);
+
+                window.AddAxisLines(1, sizes.line);
+
+                Point3D point0 = Math3D.GetRandomVector_Spherical(6).ToPoint();
+                Point3D point1 = Math3D.GetRandomVector_Spherical(6).ToPoint();
+
+                window.AddDot(point0, sizes.dot * 6, Colors.Black);
+                window.AddDot(point1, sizes.dot * 6, Colors.Black);
+
+                var mesh = UtilityWPF.GetCylinder(24, point0, point1, 1);
+
+                window.AddMesh(mesh, UtilityWPF.ColorFromHex("801E90FF"));
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
 
         #region Private Methods

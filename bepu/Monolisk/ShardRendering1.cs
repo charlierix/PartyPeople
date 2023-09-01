@@ -336,7 +336,7 @@ namespace Game.Bepu.Monolisk
             {
                 Material = material,
                 BackMaterial = material,
-                Geometry = UtilityWPF.GetCylinder_AlongX(8, .4, TILE_Z, new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), -90d))),
+                Geometry = UtilityWPF.GetCylinder_AlongZ(8, .4, TILE_Z, new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), -90d))),
                 Transform = new TranslateTransform3D(pos.center.X, pos.center.Y, TILE_Z * 1.5),     //TODO: expose a porition of this transform so the item can be rotated
             };
 

@@ -734,12 +734,10 @@ namespace Game.Bepu.Testers.WingInterference
                         ToArray(),
                 };
 
-
-
-                //TODO: this isn't working make an explicit tester for this
-                var mesh = UtilityWPF.GetCapsule(24, 24, point0, point1, radius);
-
-
+                Vector3D dir_0to1 = (point1 - point0).ToUnit();
+                Point3D point0_extended = point0 + (dir_0to1 * -radius);
+                Point3D point1_extended = point1 + (dir_0to1 * radius);
+                var mesh = UtilityWPF.GetCapsule(24, 24, point0_extended, point1_extended, radius);     // this function uses the points at the tips instead of boundry between cylinder and dome portions
 
                 var window = MarkCells_Click_Draw(marked_capsule.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Capsule", false, false, false);
                 window.AddMesh(mesh, UtilityWPF.ColorFromHex("14D4"));
@@ -777,14 +775,14 @@ namespace Game.Bepu.Testers.WingInterference
                         ToArray(),
                 };
 
-                //var mesh = UtilityWPF.GetCapsule(24, 24, point0, point1, radius);
+                var mesh = UtilityWPF.GetCylinder(24, point0, point1, radius);
 
                 var window = MarkCells_Click_Draw(marked_cylinder.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Cylinder", false, false, false);
-                //window.AddMesh(mesh, UtilityWPF.ColorFromHex("14D4"));
+                window.AddMesh(mesh, UtilityWPF.ColorFromHex("14D4"));
                 window.AddText($"is hollow: {is_hollow}");
 
                 window = MarkCells_Click_Draw(marked_cylinder_pos.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Cylinder", false, false, false);
-                //window.AddMesh(mesh, UtilityWPF.ColorFromHex("14D4"));
+                window.AddMesh(mesh, UtilityWPF.ColorFromHex("14D4"));
                 window.AddText($"is hollow: {is_hollow}");
             }
             catch (Exception ex)

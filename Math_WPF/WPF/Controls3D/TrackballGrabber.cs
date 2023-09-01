@@ -434,7 +434,7 @@ namespace Game.Math_WPF.WPF.Controls3D
             GeometryModel3D geometry = new GeometryModel3D();
             geometry.Material = materials;
             geometry.BackMaterial = materials;
-            geometry.Geometry = UtilityWPF.GetCylinder_AlongX(20, cylinderRadius, cylinderHeight);
+            geometry.Geometry = UtilityWPF.GetCylinder_AlongZ(20, cylinderRadius, cylinderHeight);
 
             var cylinder_transform = new Transform3DGroup();
             cylinder_transform.Children.Add(new TranslateTransform3D(new Vector3D(cylinderHeight / 2d, 0, 0)));
@@ -491,7 +491,7 @@ namespace Game.Math_WPF.WPF.Controls3D
             GeometryModel3D geometry = new GeometryModel3D();
             geometry.Material = materials;
             geometry.BackMaterial = materials;
-            geometry.Geometry = UtilityWPF.GetCylinder_AlongX(20, cylinderRadius, cylinderHeight);
+            geometry.Geometry = UtilityWPF.GetCylinder_AlongZ(20, cylinderRadius, cylinderHeight);
 
             retVal.Children.Add(geometry);
 
