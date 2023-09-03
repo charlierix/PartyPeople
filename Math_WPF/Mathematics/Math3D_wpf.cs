@@ -5669,8 +5669,7 @@ namespace Game.Math_WPF.Mathematics
 
             foreach (Point3D point in arr)
             {
-                var asVect = point.ToVector3();
-                tree.Add(point, asVect);
+                tree.Add(point, point.ToVector3());
             }
 
             var nodes = tree.GetAllUsedNodes();
@@ -5704,8 +5703,7 @@ namespace Game.Math_WPF.Mathematics
 
             foreach (Vector3D vector in arr)
             {
-                var asVect = vector.ToVector3();
-                tree.Add(vector, asVect);
+                tree.Add(vector, vector.ToVector3());
             }
 
             var nodes = tree.GetAllUsedNodes();

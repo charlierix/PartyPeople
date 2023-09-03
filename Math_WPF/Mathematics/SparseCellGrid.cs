@@ -12,9 +12,6 @@ using System.Windows.Media.Media3D;
 
 namespace Game.Math_WPF.Mathematics
 {
-    //TODO: Most usage of this class will be GetMarked_Sphere, so store in a structure that's efficient (probably octree)
-    //https://github.com/mcserep/NetOctree
-
     /// <summary>
     /// This divides the world into an infinite set of cells.  Add shapes, then query for cells that touched one of those
     /// shapes

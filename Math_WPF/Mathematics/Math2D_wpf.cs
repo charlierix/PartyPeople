@@ -107,7 +107,7 @@ namespace Game.Math_WPF.Mathematics
                 }
 
                 // Dedupe
-                outputList = Math2D.DedupePoints(outputList);
+                outputList = DedupePoints(outputList);
 
                 if (outputList.Count < 3)       // only one or two points is just the two polygons touching, not an intersection that creates a new polygon
                 {
@@ -131,6 +131,31 @@ namespace Game.Math_WPF.Mathematics
                 }
 
                 return !isLeft.Value;
+            }
+
+            /// <summary>
+            /// This is quicker than Math2D.GetUnique, but expects the points to be added in order around a polygon
+            /// </summary>
+            private static List<Point> DedupePoints(List<Point> points)
+            {
+                List<Point> retVal = new List<Point>();
+
+                if (points.Count == 0)
+                {
+                    return retVal;
+                }
+
+                retVal.Add(points[0]);
+
+                for (int cntr = 1; cntr < points.Count; cntr++)
+                {
+                    if (!IsNearValue(points[cntr], retVal[retVal.Count - 1]))       // don't need to dedupe against all existing points, just the prev one
+                    {
+                        retVal.Add(points[cntr]);
+                    }
+                }
+
+                return retVal;
             }
 
             #endregion
@@ -1621,9 +1646,7 @@ namespace Game.Math_WPF.Mathematics
             public static ITriangle_wpf GetAveragePlane(Point3D[] points, bool matchPolyNormalDirection = false)
             {
                 if (points.Length < 3)
-                {
                     return null;
-                }
 
                 // The plane will go through this center point
                 Point3D center = Math3D.GetCenter(points);
@@ -2861,28 +2884,6 @@ namespace Game.Math_WPF.Mathematics
                 From3D_To2D = transformTo2D,
                 From2D_BackTo3D = transformTo3D,
             };
-        }
-
-        public static List<Point> DedupePoints(List<Point> points)
-        {
-            List<Point> retVal = new List<Point>();
-
-            if (points.Count == 0)
-            {
-                return retVal;
-            }
-
-            retVal.Add(points[0]);
-
-            for (int cntr = 1; cntr < points.Count; cntr++)
-            {
-                if (!IsNearValue(points[cntr], retVal[retVal.Count - 1]))       // don't need to dedupe against all existing points, just the prev one
-                {
-                    retVal.Add(points[cntr]);
-                }
-            }
-
-            return retVal;
         }
 
         /// <summary>
