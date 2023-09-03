@@ -5655,48 +5655,76 @@ namespace Game.Math_WPF.Mathematics
             return new Vector3D(x, y, z);
         }
 
-
-
-
-
-        //TODO: This is really slow when number of points gets over a couple thousand.  See if an octree will help when then number of points is large
-
-
-        //TODO: See if there is a way to do something like points.Distinct((o,p) => IsNearValue(o,p))
         public static Point3D[] GetUnique(IEnumerable<Point3D> points)
         {
-            List<Point3D> retVal = new List<Point3D>();
+            Point3D[] arr = points.ToArray();
 
-            foreach (Point3D point in points)
+            var aabb = GetAABB(arr);
+            float size = (float)Math1D.Avg(aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y, aabb.max.Z - aabb.min.Z);
+
+            var center = GetCenter(arr).ToVector3();
+
+            //NOTE: using the custom copy of octree (not the nuget reference)
+            var tree = new NetOctree.Octree.PointOctree<Point3D>(size * 2, center, size * 0.02f);
+
+            foreach (Point3D point in arr)
             {
-                if (!retVal.Any(o => IsNearValue(o, point)))
-                {
-                    retVal.Add(point);
-                }
+                var asVect = point.ToVector3();
+                tree.Add(point, asVect);
             }
 
-            return retVal.ToArray();
+            var nodes = tree.GetAllUsedNodes();
+
+            var retVal = nodes.
+                AsParallel().
+                Select(o =>
+                {
+                    var list = new List<Point3D>();
+                    o.GetAll(list);
+                    return GetUnique_BRUTEFORCE(list);
+                }).
+                SelectMany(o => o).
+                ToArray();
+
+            //Point3D[] test = GetUnique_BRUTEFORCE(retVal);      // the count is the same
+
+            return retVal;
         }
         public static Vector3D[] GetUnique(IEnumerable<Vector3D> vectors)
         {
-            List<Vector3D> retVal = new List<Vector3D>();
+            Vector3D[] arr = vectors.ToArray();
 
-            foreach (Vector3D vector in vectors)
+            var aabb = GetAABB(arr);
+            float size = (float)Math1D.Avg(aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y, aabb.max.Z - aabb.min.Z);
+
+            var center = GetAverage(arr).ToVector3();
+
+            //NOTE: using the custom copy of octree (not the nuget reference)
+            var tree = new NetOctree.Octree.PointOctree<Vector3D>(size * 2, center, size * 0.02f);
+
+            foreach (Vector3D vector in arr)
             {
-                if (!retVal.Any(o => IsNearValue(o, vector)))
-                {
-                    retVal.Add(vector);
-                }
+                var asVect = vector.ToVector3();
+                tree.Add(vector, asVect);
             }
 
-            return retVal.ToArray();
+            var nodes = tree.GetAllUsedNodes();
+
+            var retVal = nodes.
+                AsParallel().
+                Select(o =>
+                {
+                    var list = new List<Vector3D>();
+                    o.GetAll(list);
+                    return GetUnique_BRUTEFORCE(list);
+                }).
+                SelectMany(o => o).
+                ToArray();
+
+            //Vector3D[] test = GetUnique_BRUTEFORCE(retVal);      // the count is the same
+
+            return retVal;
         }
-
-
-
-
-
-
 
         public static Point3D LERP(Point3D a, Point3D b, double percent)
         {
@@ -6050,19 +6078,13 @@ namespace Game.Math_WPF.Mathematics
             int z = cuberoot;
 
             if (x * y * z < count)
-            {
                 x++;
-            }
 
             if (x * y * z < count)
-            {
                 y++;
-            }
 
             if (x * y * z < count)
-            {
                 z++;
-            }
 
             return GetCells(cellSize, x, y, z, margin, center);
         }
@@ -8529,6 +8551,35 @@ namespace Game.Math_WPF.Mathematics
             }
 
             return retVal;
+        }
+
+        private static Point3D[] GetUnique_BRUTEFORCE(IEnumerable<Point3D> points)
+        {
+            List<Point3D> retVal = new List<Point3D>();
+
+            foreach (Point3D point in points)
+            {
+                if (!retVal.Any(o => IsNearValue(o, point)))
+                {
+                    retVal.Add(point);
+                }
+            }
+
+            return retVal.ToArray();
+        }
+        private static Vector3D[] GetUnique_BRUTEFORCE(IEnumerable<Vector3D> vectors)
+        {
+            List<Vector3D> retVal = new List<Vector3D>();
+
+            foreach (Vector3D vector in vectors)
+            {
+                if (!retVal.Any(o => IsNearValue(o, vector)))
+                {
+                    retVal.Add(vector);
+                }
+            }
+
+            return retVal.ToArray();
         }
 
         #region Circle/Line Intersect Helpers

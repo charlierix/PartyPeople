@@ -1,0 +1,6 @@
+This is copied from
+https://github.com/mcserep/NetOctree
+
+This solution also has a nuget reference to octree, but some customizations are needed
+
+When making a point deduper, I wanted to get a copy of the private cells.  Maybe at some point, this custom copy will go into a pull request.  But for now, it's just an independent copy of the code
