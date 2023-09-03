@@ -230,8 +230,18 @@ namespace Game.Math_WPF.Mathematics
 
             return retVal.ToArray();
         }
-        public VectorInt3[] GetIndices_Capsule(Point3D point0, Point3D point1, double radius, bool is_hollow)
+        /// <param name="points_are_interior">
+        /// true: the points are at the boundry between cylidner and base of end domes (one radius away from the surface)
+        /// false: the points are at the extreme tips of the capsule (the poles of the caps)
+        /// </param>
+        public VectorInt3[] GetIndices_Capsule(Point3D point0, Point3D point1, double radius, bool is_hollow, bool points_are_interior = true)
         {
+            if (!points_are_interior)
+                MoveCapsulePointsToInterior(ref point0, ref point1, radius);
+
+            if (point0.IsNearValue(point1))
+                return GetIndices_Sphere(point0, radius, is_hollow);
+
             var retVal = new List<VectorInt3>();
 
             double radius_sqr = radius * radius;
@@ -254,7 +264,6 @@ namespace Game.Math_WPF.Mathematics
                                 return (o - nearest_point).LengthSquared;
                             }).
                             ToArray();
-
 
                         if (distances_sqr.Any(o => o <= radius_sqr))
                         {
@@ -428,13 +437,23 @@ namespace Game.Math_WPF.Mathematics
                 MarkedCells = indices,
             };
         }
-        public MarkResult Mark_Capsule(Point3D point0, Point3D point1, double radius, bool is_hollow, string key = null)
+        /// <param name="points_are_interior">
+        /// true: the points are at the boundry between cylidner and base of end domes (one radius away from the surface)
+        /// false: the points are at the extreme tips of the capsule (the poles of the caps)
+        /// </param>
+        public MarkResult Mark_Capsule(Point3D point0, Point3D point1, double radius, bool is_hollow, string key = null, bool points_are_interior = true)
         {
             key = key ?? NULL_KEY;
 
+            if (!points_are_interior)
+                MoveCapsulePointsToInterior(ref point0, ref point1, radius);
+
+            if (point0.IsNearValue(point1))
+                return Mark_Sphere(point0, radius, is_hollow, key);
+
             var aabb = GetAABB_Capsule(point0, point1, radius);
 
-            VectorInt3[] indices = GetIndices_Capsule(point0, point1, radius, is_hollow);
+            VectorInt3[] indices = GetIndices_Capsule(point0, point1, radius, is_hollow, points_are_interior: true);
 
             MarkCells(indices, key);
 
@@ -583,6 +602,29 @@ namespace Game.Math_WPF.Mathematics
             }
 
             return false;
+        }
+
+        private static void MoveCapsulePointsToInterior(ref Point3D point0, ref Point3D point1, double radius)
+        {
+            Vector3D dir_0to1 = point1 - point0;
+            double distance = dir_0to1.Length;
+
+            if (distance < radius * 2)
+            {
+                // Not enough distance to make a capsule.  Make a sphere instead
+                Point3D center = Math3D.GetCenter(point0, point1);
+
+                point0 = center;
+                point1 = center;
+            }
+            else
+            {
+                // Standard capsule, pull the points in by one radius so they sit at the base of the dome caps (boundry between cylinder and caps)
+                Vector3D dir_0to1_radius = dir_0to1 * (radius / distance);
+
+                point0 += dir_0to1_radius;
+                point1 -= dir_0to1_radius;
+            }
         }
 
         #endregion

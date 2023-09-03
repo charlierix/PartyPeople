@@ -59,6 +59,7 @@ namespace Game.Bepu.Testers.WingInterference
             try
             {
                 var cells = Math3D.GetCells(1, 12, 12, 12);
+                //var cells = Math3D.GetCells(1, 3, 3, 3);
 
                 var window = new Debug3DWindow()
                 {
@@ -73,7 +74,11 @@ namespace Game.Bepu.Testers.WingInterference
 
                 var distinct_lines = Math3D.GetDistinctLineSegments(cell_lines);
 
-                window.AddLines(distinct_lines.index_pairs, distinct_lines.all_points_distinct, sizes.line / 4, Colors.White);
+                //window.AddLines(distinct_lines.index_pairs, distinct_lines.all_points_distinct, sizes.line / 4, Colors.White);
+                foreach (var line in distinct_lines.index_pairs)
+                {
+                    window.AddLine(distinct_lines.all_points_distinct[line.i1], distinct_lines.all_points_distinct[line.i2], sizes.line / 4, UtilityWPF.GetRandomColor(128, 225));
+                }
 
                 window.Show();
             }
@@ -725,7 +730,7 @@ namespace Game.Bepu.Testers.WingInterference
 
                 VectorInt3 center_index = grid.GetIndex_Point(Math3D.GetCenter(point0, point1));
 
-                var marked_capsule = grid.Mark_Capsule(point0, point1, radius, is_hollow);
+                var marked_capsule = grid.Mark_Capsule(point0, point1, radius, is_hollow, points_are_interior: false);
 
                 var marked_capsule_pos = marked_capsule with
                 {
@@ -734,10 +739,12 @@ namespace Game.Bepu.Testers.WingInterference
                         ToArray(),
                 };
 
-                Vector3D dir_0to1 = (point1 - point0).ToUnit();
-                Point3D point0_extended = point0 + (dir_0to1 * -radius);
-                Point3D point1_extended = point1 + (dir_0to1 * radius);
-                var mesh = UtilityWPF.GetCapsule(24, 24, point0_extended, point1_extended, radius);     // this function uses the points at the tips instead of boundry between cylinder and dome portions
+                //Vector3D dir_0to1 = (point1 - point0).ToUnit();
+                //Point3D point0_extended = point0 + (dir_0to1 * -radius);
+                //Point3D point1_extended = point1 + (dir_0to1 * radius);
+                //var mesh = UtilityWPF.GetCapsule(24, 24, point0_extended, point1_extended, radius);     // this function uses the points at the tips instead of boundry between cylinder and dome portions
+
+                var mesh = UtilityWPF.GetCapsule(24, 24, point0, point1, radius);     // this function uses the points at the tips instead of boundry between cylinder and dome portions
 
                 var window = MarkCells_Click_Draw(marked_capsule.MarkedCells, grid, new Point3D(), null, new Rect(), 0, "Capsule", false, false, false);
                 window.AddMesh(mesh, UtilityWPF.ColorFromHex("14D4"));

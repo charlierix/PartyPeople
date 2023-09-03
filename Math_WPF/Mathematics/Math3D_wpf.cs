@@ -5655,6 +5655,13 @@ namespace Game.Math_WPF.Mathematics
             return new Vector3D(x, y, z);
         }
 
+
+
+
+
+        //TODO: This is really slow when number of points gets over a couple thousand.  See if an octree will help when then number of points is large
+
+
         //TODO: See if there is a way to do something like points.Distinct((o,p) => IsNearValue(o,p))
         public static Point3D[] GetUnique(IEnumerable<Point3D> points)
         {
@@ -5684,6 +5691,12 @@ namespace Game.Math_WPF.Mathematics
 
             return retVal.ToArray();
         }
+
+
+
+
+
+
 
         public static Point3D LERP(Point3D a, Point3D b, double percent)
         {
@@ -6109,7 +6122,7 @@ namespace Game.Math_WPF.Mathematics
             return retVal;
         }
 
-        public static ((int i1, int i2)[] index_pairs, Point3D[] all_points_distinct) GetDistinctLineSegments(IEnumerable<(Point3D point1, Point3D point2)> lines)
+        public static ((int i1, int i2)[] index_pairs, Point3D[] all_points_distinct) GetDistinctLineSegments(IEnumerable<(Point3D point1, Point3D point2)> lines, bool merge_colinear_segments = true)
         {
             var lines_arr = lines.ToArray();
 
@@ -6130,7 +6143,11 @@ namespace Game.Math_WPF.Mathematics
                 Distinct().
                 ToArray();
 
-            return (index_pairs, distinct_points);
+            if (merge_colinear_segments)
+                return MergeColinearSegments(index_pairs, distinct_points);
+
+            else
+                return (index_pairs, distinct_points);
         }
 
         /// <summary>
@@ -8470,6 +8487,48 @@ namespace Game.Math_WPF.Mathematics
                 (q1.Y * q2.Y) +
                 (q1.Z * q2.Z) +
                 (q1.W * q2.W);
+        }
+
+        private static ((int i1, int i2)[] index_pairs, Point3D[] all_points_distinct) MergeColinearSegments_ATTEMPT1((int, int)[] index_pairs, Point3D[] distinct_points)
+        {
+            var candidates = MergeColinearSegments_PairsByIndex(index_pairs);
+
+            return (index_pairs, distinct_points);
+        }
+        private static ((int i1, int i2)[] index_pairs, Point3D[] all_points_distinct) MergeColinearSegments((int, int)[] index_pairs, Point3D[] distinct_points)
+        {
+            var merger = new SegmentMerger(distinct_points);
+
+            foreach (var pair in index_pairs)
+            {
+                merger.AddSegment(pair.Item1, pair.Item2);
+            }
+
+            return merger.GetMergedSegments();
+        }
+        /// <summary>
+        /// Store every pair in the list.  Every segment will be in the list twice, but it's sorted, so searching should be fast
+        /// </summary>
+        private static SortedList<int, List<int>> MergeColinearSegments_PairsByIndex((int, int)[] index_pairs)
+        {
+            var retVal = new SortedList<int, List<int>>();
+
+            foreach (var pair in index_pairs)
+            {
+                // 1 - 2
+                if (retVal.TryGetValue(pair.Item1, out List<int> other2))
+                    other2.Add(pair.Item2);
+                else
+                    retVal.Add(pair.Item1, new List<int>() { pair.Item2 });
+
+                // 2 - 1
+                if (retVal.TryGetValue(pair.Item2, out List<int> other1))
+                    other1.Add(pair.Item1);
+                else
+                    retVal.Add(pair.Item2, new List<int>() { pair.Item1 });
+            }
+
+            return retVal;
         }
 
         #region Circle/Line Intersect Helpers
