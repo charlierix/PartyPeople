@@ -5659,6 +5659,9 @@ namespace Game.Math_WPF.Mathematics
         {
             Point3D[] arr = points.ToArray();
 
+            if (arr.Length < 1000)
+                return GetUnique_BRUTEFORCE(arr);
+
             var aabb = GetAABB(arr);
             float size = (float)Math1D.Avg(aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y, aabb.max.Z - aabb.min.Z);
 
@@ -5692,6 +5695,9 @@ namespace Game.Math_WPF.Mathematics
         public static Vector3D[] GetUnique(IEnumerable<Vector3D> vectors)
         {
             Vector3D[] arr = vectors.ToArray();
+
+            if (arr.Length < 1000)
+                return GetUnique_BRUTEFORCE(arr);
 
             var aabb = GetAABB(arr);
             float size = (float)Math1D.Avg(aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y, aabb.max.Z - aabb.min.Z);

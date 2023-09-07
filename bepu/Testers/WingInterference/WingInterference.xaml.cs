@@ -802,11 +802,78 @@ namespace Game.Bepu.Testers.WingInterference
         {
             try
             {
-                PlaneDefinition plane_def = GetPlaneDefinition.GetRandomPlane();
+                //PlaneDefinition plane_def = GetPlaneDefinition.GetRandomPlane();
+                PlaneDefinition plane_def = GetPlaneDefinition.GetDefaultPlane();
 
+                PlaneDefinition plane_built = PlaneBuilder.BuildPlane(plane_def);
 
+                // Look for parts intersecting each other
+                // validated = Validate(plane_built);
 
+                // Break into cells, see which cells are too close to other cells, populate wing modifiers
+                // marked = MarkNearby(validated);
 
+                var window = new Debug3DWindow()
+                {
+                    Title = "Random Plane",
+                };
+
+                // -------- Engines --------
+
+                var add_engine = new Action<EngineDefinition>(def =>
+                {
+                    if (def != null)
+                    {
+                        var mesh = UtilityWPF.GetCapsule(24, 24, def.Meshes.Cylinder_From_Tip.ToPoint_wpf(), def.Meshes.Cylinder_To_Tip.ToPoint_wpf(), def.Meshes.Cylinder_Radius);
+                        window.AddMesh(mesh, UtilityWPF.ColorFromHex("96BE59"));
+                    }
+                });
+
+                add_engine(plane_built.Engine_0);
+                add_engine(plane_built.Engine_1);
+                add_engine(plane_built.Engine_2);
+
+                // -------- Wings --------
+
+                var add_wing = new Action<WingDefinition>(def =>
+                {
+                    if (def != null)
+                    {
+                        foreach (var triangle in def.Meshes.Triangles)
+                        {
+                            window.AddTriangle(triangle, UtilityWPF.ColorFromHex("B2B295"));
+                        }
+                    }
+                });
+
+                add_wing(plane_built.Wing_0);
+                add_wing(plane_built.Wing_1);
+                add_wing(plane_built.Wing_2);
+
+                // -------- Tails --------
+
+                var add_tail = new Action<TailDefinition>(def =>
+                {
+                    if (def != null)
+                    {
+                        foreach (var triangle in def.Boom.Meshes.Triangles)
+                        {
+                            window.AddTriangle(triangle, UtilityWPF.ColorFromHex("B2B295"));
+                        }
+
+                        if (def.Tail != null)
+                        {
+                            foreach (var triangle in def.Tail.Meshes.Triangles)
+                            {
+                                window.AddTriangle(triangle, UtilityWPF.ColorFromHex("B2B295"));
+                            }
+                        }
+                    }
+                });
+
+                add_tail(plane_built.Tail);
+
+                window.Show();
             }
             catch (Exception ex)
             {

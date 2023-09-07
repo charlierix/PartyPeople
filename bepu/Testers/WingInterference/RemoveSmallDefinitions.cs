@@ -14,6 +14,7 @@ namespace Game.Bepu.Testers.WingInterference
         private const float MIN_WING_CHORD = 0.08f;
 
         private const float MIN_TAIL_TOTAL = 0.1f;
+        private const float MIN_TAIL_SPAN_VERT = 0.1f;
 
         public static PlaneDefinition ExaminePlane(PlaneDefinition def)
         {
@@ -64,10 +65,23 @@ namespace Game.Bepu.Testers.WingInterference
             if (def == null)
                 return null;
 
-            if (def.Boom.Length + def.Tail.Chord < MIN_TAIL_TOTAL)
+            if (def.Boom.Length + (def.Tail?.Chord ?? 0) < MIN_TAIL_TOTAL)
                 return null;
 
-            return def;
+            bool has_span = def.Boom.Span_Base >= MIN_TAIL_SPAN_VERT && def.Boom.Span_Mid >= MIN_TAIL_SPAN_VERT && def.Boom.Span_Tip >= MIN_TAIL_SPAN_VERT;
+            bool has_vert = def.Boom.Vert_Base >= MIN_TAIL_SPAN_VERT && def.Boom.Vert_Mid >= MIN_TAIL_SPAN_VERT && def.Boom.Vert_Tip >= MIN_TAIL_SPAN_VERT;
+
+            if (!has_span && !has_vert)
+                return null;
+
+            return def with
+            {
+                Boom = def.Boom with
+                {
+                    Has_Span = has_span,
+                    Has_Vert = has_vert,
+                },
+            };
         }
     }
 }

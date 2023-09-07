@@ -1,3 +1,4 @@
+using Game.Math_WPF.Mathematics;
 using System.Numerics;
 
 namespace Game.Bepu.Testers.WingInterference
@@ -30,6 +31,12 @@ namespace Game.Bepu.Testers.WingInterference
 
     public record EngineDefinition
     {
+        public const float STANDARD_HEIGHT = 0.4f;      // these are what the scale of the engine should be when size is "one"
+        public const float STANDARD_RADIUS = 0.3f;
+
+        public float THRUST_AT_HALF = 36;
+        public float THRUST_AT_DOUBLE = 144;
+
         public Vector3 Offset { get; init; }        // this is for the right wing.  The left will be mirroed
         public Quaternion Rotation { get; init; }
 
@@ -37,9 +44,19 @@ namespace Game.Bepu.Testers.WingInterference
 
         // ------------- for the tester -------------
 
+        public EngineDefinition_Meshes Meshes { get; init; }
+    }
+
+    public record EngineDefinition_Meshes
+    {
         // These are in world coords (they've already been transformed by offset and rotation)
-        public Vector3 Cylinder_From { get; init; }
-        public Vector3 Cylinder_To { get; init; }
+        // From/To points are interior (full capsule height is 2R+H)
+        public Vector3 Cylinder_From_Interior { get; init; }
+        public Vector3 Cylinder_To_Interior { get; init; }
+
+        public Vector3 Cylinder_From_Tip { get; init; }
+        public Vector3 Cylinder_To_Tip { get; init; }
+
         public float Cylinder_Radius { get; init; }
     }
 
@@ -126,6 +143,14 @@ namespace Game.Bepu.Testers.WingInterference
         public float VerticalStabilizer_Power { get; init; } = 16;
 
         // ------------- for the tester -------------
+        
+        public WingDefinition_Meshes Meshes { get; init; }
+    }
+
+    public record WingDefinition_Meshes
+    {
+        //TODO: these need to be broken out by wing part to help with analyzing marked cells
+        public ITriangle_wpf[] Triangles { get; init; }
     }
 
     public record WingModifier
@@ -165,14 +190,23 @@ namespace Game.Bepu.Testers.WingInterference
         public float Span_Base { get; init; } = 0.5f;
         public float Span_Mid { get; init; } = 0.2f;
         public float Span_Tip { get; init; } = 0.3f;
+        public bool Has_Span { get; init; }     // this gets populated by RemoveSmallDefinitions.ExamineTail
 
         public float Vert_Base { get; init; } = 0.5f;
         public float Vert_Mid { get; init; } = 0.2f;
         public float Vert_Tip { get; init; } = 0.3f;
+        public bool Has_Vert { get; init; }     // this gets populated by RemoveSmallDefinitions.ExamineTail
 
         public float Bezier_PinchPercent { get; init; } = 0.2f;       // 0 to 0.4 (affects the curviness of the bezier, 0 is linear)
 
         // ------------- for the tester -------------
+
+        public TailDefinition_Boom_Meshes Meshes { get; init; }
+    }
+
+    public record TailDefinition_Boom_Meshes
+    {
+        public ITriangle_wpf[] Triangles { get; init; }
     }
 
     public record TailDefinition_Tail
@@ -184,5 +218,12 @@ namespace Game.Bepu.Testers.WingInterference
         public float Vert_Height { get; init; } = 0.5f;       // if < MIN_TAIL_SIZE, there is no vertical wing
 
         // ------------- for the tester -------------
+
+        public TailDefinition_Tail_Meshes Meshes { get; init; } 
+    }
+
+    public record TailDefinition_Tail_Meshes
+    {
+        public ITriangle_wpf[] Triangles { get; init; }
     }
 }
