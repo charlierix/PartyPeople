@@ -32,7 +32,7 @@ namespace Game.Bepu.Testers.WingInterference
     public record EngineDefinition
     {
         public const float STANDARD_HEIGHT = 0.4f;      // these are what the scale of the engine should be when size is "one"
-        public const float STANDARD_RADIUS = 0.3f;
+        public const float STANDARD_DIAMETER = 0.3f;
 
         public float THRUST_AT_HALF = 36;
         public float THRUST_AT_DOUBLE = 144;
@@ -92,7 +92,7 @@ namespace Game.Bepu.Testers.WingInterference
         /// Total length of the wing (wing span)
         /// X scale
         /// </summary>
-        public float Span { get; init; } = 1f;
+        public float Span { get; init; } = 2f;
         /// <summary>
         /// How the wing segments are spaced apart
         /// </summary>

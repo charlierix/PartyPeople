@@ -5753,26 +5753,8 @@ namespace Game.Math_WPF.WPF
 
             #region Positions/Normals
 
-            // Can't use all of the transform passed in for the normal, because translate portions will skew the normal funny
-            Transform3DGroup normalTransform = new Transform3DGroup();
-            if (transform is Transform3DGroup)
-            {
-                foreach (var subTransform in ((Transform3DGroup)transform).Children)
-                {
-                    if (!(subTransform is TranslateTransform3D))
-                    {
-                        normalTransform.Children.Add(subTransform);
-                    }
-                }
-            }
-            else if (transform is TranslateTransform3D)
-            {
-                normalTransform.Children.Add(Transform3D.Identity);
-            }
-            else
-            {
-                normalTransform.Children.Add(transform);
-            }
+            var normalTransform = new Transform3DGroup();
+            GetDome_BuildNormalTransform(normalTransform, transform);
 
             //for (int phiCntr = 0; phiCntr < numSegmentsPhi; phiCntr++)		// The top point will be added after this loop
             for (int phiCntr = pointsPhi.Length - 1; phiCntr > 0; phiCntr--)
@@ -5856,6 +5838,25 @@ namespace Game.Math_WPF.WPF
             #endregion
 
             pointOffset = geometry.Positions.Count;
+        }
+
+        private static void GetDome_BuildNormalTransform(Transform3DGroup normal_transform, Transform3D transform)
+        {
+            // Can't use all of the transform passed in for the normal, because translate portions will skew the normal funny
+
+            // Ran into a nested group transform:
+            //  Group
+            //      Translate
+            //      Group
+            //          Rotate
+            //          Translate
+
+            if (transform is RotateTransform3D rot)
+                normal_transform.Children.Add(rot);
+
+            else if (transform is Transform3DGroup group)
+                foreach (var child in group.Children)
+                    GetDome_BuildNormalTransform(normal_transform, child);
         }
 
         /// <summary>

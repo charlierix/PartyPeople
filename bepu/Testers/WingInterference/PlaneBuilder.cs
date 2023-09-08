@@ -70,14 +70,14 @@ namespace Game.Bepu.Testers.WingInterference
                 return null;
 
             float cylinder_half_height = EngineDefinition.STANDARD_HEIGHT * def.Size / 2;
-            float radius = EngineDefinition.STANDARD_RADIUS * def.Size;
+            float radius = EngineDefinition.STANDARD_DIAMETER * def.Size / 2;
 
             // In unity, the height of a capsule is 2R+H.  So the endpoints are interior
-            var direction_interior = new Vector3(0, cylinder_half_height, 0);
+            var direction_interior = new Vector3(0, 0, cylinder_half_height);
             direction_interior = def.Rotation.GetRotatedVector(direction_interior);
 
             // UtilityWPF works with tip points
-            var direction_tip = new Vector3(0, cylinder_half_height + radius, 0);
+            var direction_tip = new Vector3(0, 0, cylinder_half_height + radius);
             direction_tip = def.Rotation.GetRotatedVector(direction_tip);
 
             return def with

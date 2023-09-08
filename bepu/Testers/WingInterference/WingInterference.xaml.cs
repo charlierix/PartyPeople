@@ -4,7 +4,6 @@ using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
 using System;
 using System.Linq;
-using System.Numerics;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
@@ -818,6 +817,10 @@ namespace Game.Bepu.Testers.WingInterference
                     Title = "Random Plane",
                 };
 
+                var sizes = Debug3DWindow.GetDrawSizes(3);
+
+                window.AddAxisLines(3, sizes.line);
+
                 // -------- Engines --------
 
                 var add_engine = new Action<EngineDefinition>(def =>
@@ -872,6 +875,33 @@ namespace Game.Bepu.Testers.WingInterference
                 });
 
                 add_tail(plane_built.Tail);
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void CapsuleSizeTest_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // The capsule seems to be double size.  Compare it with a cube
+                // When radius is .5, it's the same with as a cube of size 1
+
+                var window = new Debug3DWindow();
+
+                var sizes = Debug3DWindow.GetDrawSizes(1);
+
+                window.AddAxisLines(1, sizes.line);
+
+                var mesh = UtilityWPF.GetCapsule(24, 24, new Point3D(0, 0, -1), new Point3D(0, 0, 1), 0.5);
+                window.AddMesh(mesh, UtilityWPF.ColorFromHex("8DDD"));
+
+                mesh = UtilityWPF.GetCube_IndependentFaces(new Vector3D(-.5, -.5, -.5), new Vector3D(.5, .5, .5));
+                window.AddMesh(mesh, UtilityWPF.ColorFromHex("6444"));
 
                 window.Show();
             }
