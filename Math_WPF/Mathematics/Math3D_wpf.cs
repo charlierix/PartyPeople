@@ -1,11 +1,9 @@
 ﻿using Game.Core;
-using Game.Math_WPF.WPF.Controls3D;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Windows;
-using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
 namespace Game.Math_WPF.Mathematics
@@ -6621,46 +6619,73 @@ namespace Game.Math_WPF.Mathematics
             else
                 return true;
         }
-        public static bool GetClosestPoints_Line_LineSegment(out Point3D[] resultPointsLine, out Point3D[] resultPointsLineSegment, Point3D pointOnLine, Vector3D lineDirection, Point3D lineSegmentStart, Point3D lineSegmentStop)
+        public static bool GetClosestPoints_Line_LineSegment(out Point3D? resultPointLine, out Point3D? resultPointLineSegment, Point3D pointOnLine, Vector3D lineDirection, Point3D lineSegmentStart, Point3D lineSegmentStop)
         {
-            Point3D? result1, result2;
-            if (!GetClosestPoints_Line_Line(out result1, out result2, pointOnLine, pointOnLine + lineDirection, lineSegmentStart, lineSegmentStop))
+            if (!GetClosestPoints_Line_Line(out Point3D? result1, out Point3D? result2, pointOnLine, pointOnLine + lineDirection, lineSegmentStart, lineSegmentStop))
             {
                 // If line/line fails, it's because they are parallel.  If the lines coincide, then return the segment start and stop
 
-
                 //TODO: Finish this
 
-
-
-                resultPointsLine = new Point3D[0];
-                resultPointsLineSegment = new Point3D[0];
+                resultPointLine = null;
+                resultPointLineSegment = null;
                 return false;
             }
 
             // Make sure the line segment result isn't beyond the line segment
-            Vector3D segmentDirLen = lineSegmentStop - lineSegmentStart;
-            Vector3D resultDirLen = result2.Value - lineSegmentStart;
-
-            if (!Math1D.IsNearValue(Vector3D.DotProduct(segmentDirLen.ToUnit(), resultDirLen.ToUnit()), 1d))
+            int beyondInd = IsBeyondLineSegment(lineSegmentStart, lineSegmentStop, result2.Value);
+            if (beyondInd != 0)
             {
-                // It's the other direction (beyond segment start)
-                resultPointsLine = new Point3D[0];
-                resultPointsLineSegment = new Point3D[0];
-                return false;
-            }
-
-            if (resultDirLen.LengthSquared > segmentDirLen.LengthSquared)
-            {
-                // It's beyond segment stop
-                resultPointsLine = new Point3D[0];
-                resultPointsLineSegment = new Point3D[0];
+                resultPointLine = null;
+                resultPointLineSegment = null;
                 return false;
             }
 
             // Return single points (this is the standard flow)
-            resultPointsLine = new Point3D[] { result1.Value };
-            resultPointsLineSegment = new Point3D[] { result2.Value };
+            resultPointLine = result1.Value;
+            resultPointLineSegment = result2.Value;
+            return true;
+        }
+        /// <param name="use_endpoints_if_beyond">
+        /// When the closest point is outside of a line segment...
+        ///      True: the endpoint is used (function returns true)
+        ///     False: nulls are returned (function returns false)
+        /// </param>
+        public static bool GetClosestPoints_LineSegment_LineSegment(out Point3D? resultPoint1, out Point3D? resultPoint2, Point3D segment1_start, Point3D segment1_stop, Point3D segment2_start, Point3D segment2_stop, bool use_endpoints_if_beyond = false)
+        {
+            if (!GetClosestPoints_Line_Line(out Point3D? result1, out Point3D? result2, segment1_start, segment1_stop, segment2_start, segment2_stop))
+            {
+                resultPoint1 = null;
+                resultPoint2 = null;
+                return false;
+            }
+
+            int beyond1Ind = IsBeyondLineSegment(segment1_start, segment1_stop, result1.Value);
+            int beyond2Ind = IsBeyondLineSegment(segment2_start, segment2_stop, result2.Value);
+
+            if (!use_endpoints_if_beyond && (beyond1Ind != 0 || beyond2Ind != 0))
+            {
+                resultPoint1 = null;
+                resultPoint2 = null;
+                return false;
+            }
+
+            resultPoint1 = beyond1Ind switch
+            {
+                -1 => segment1_start,
+                0 => result1.Value,
+                1 => segment1_stop,
+                _ => throw new ApplicationException($"beyond line segment indicator out of range: {beyond1Ind}"),
+            };
+
+            resultPoint2 = beyond2Ind switch
+            {
+                -1 => segment2_start,
+                0 => result2.Value,
+                1 => segment2_stop,
+                _ => throw new ApplicationException($"beyond line segment indicator out of range: {beyond2Ind}"),
+            };
+
             return true;
         }
 
@@ -7018,22 +7043,16 @@ namespace Game.Math_WPF.Mathematics
             Point3D pointOnLine;
             Vector3D lineDirection;
             if (!GetIntersection_Plane_Plane(out pointOnLine, out lineDirection, triangle1, triangle2))
-            {
                 return null;
-            }
 
             // Cap to the triangles
             Tuple<Point3D, Point3D> segment1 = GetIntersection_Line_Triangle_sameplane(pointOnLine, lineDirection, triangle1);
             if (segment1 == null)
-            {
                 return null;
-            }
 
             Tuple<Point3D, Point3D> segment2 = GetIntersection_Line_Triangle_sameplane(pointOnLine, lineDirection, triangle2);
             if (segment2 == null)
-            {
                 return null;
-            }
 
             // Cap the line segments
             Point3D? point1_A = GetIntersection_LineSegment_Point_colinear(segment1.Item1, segment1.Item2, segment2.Item1);
@@ -7050,23 +7069,18 @@ namespace Game.Math_WPF.Mathematics
             AddIfUnique(retVal, point2_B);
 
             if (retVal.Count == 0)
-            {
                 // The triangles aren't touching
                 return null;
-            }
+
             else if (retVal.Count == 1)
-            {
                 // The triangles are touching at a point, just consider that a non touch
                 return null;
-            }
+
             else if (retVal.Count == 2)
-            {
                 return Tuple.Create(retVal[0], retVal[1]);
-            }
+
             else
-            {
                 throw new ApplicationException(string.Format("Didn't expect more than 2 unique points.  Got {0} unique points", retVal.Count));
-            }
         }
         public static Tuple<Point3D, Point3D> GetIntersection_Face_Triangle(Face3D_wpf face, ITriangle_wpf triangle, double rayLength = 1000)
         {
@@ -8304,62 +8318,38 @@ namespace Game.Math_WPF.Mathematics
             // Cap the line to the triangle
             foreach (TriangleEdge edge in Triangle_wpf.Edges)
             {
-                Point3D[] resultsLine, resultsLineSegment;
-                if (!GetClosestPoints_Line_LineSegment(out resultsLine, out resultsLineSegment, pointOnLine, lineDirection, triangle.GetPoint(edge, true), triangle.GetPoint(edge, false)))
-                {
+                if (!GetClosestPoints_Line_LineSegment(out Point3D? resultLine, out Point3D? resultLineSegment, pointOnLine, lineDirection, triangle.GetPoint(edge, true), triangle.GetPoint(edge, false)))
                     continue;
-                }
 
-                if (resultsLine.Length != resultsLineSegment.Length)
-                {
-                    throw new ApplicationException("The line vs line segments have a different number of matches");
-                }
+                if (resultLine == null || resultLineSegment == null)
+                    throw new ApplicationException("Result points are null when GetClosestPoints_Line_LineSegment returned true");
 
                 // This method is dealing with lines that are in the same plane, so if the result point for the plane/plane line is different
                 // than the triangle edge, then throw out this match
-                bool allMatched = true;
-                for (int cntr = 0; cntr < resultsLine.Length; cntr++)
-                {
-                    if (!IsNearValue(resultsLine[cntr], resultsLineSegment[cntr]))
-                    {
-                        allMatched = false;
-                        break;
-                    }
-                }
-
-                if (!allMatched)
-                {
+                if (!IsNearValue(resultLine.Value, resultLineSegment.Value))
                     continue;
-                }
 
-                retval.AddRange(resultsLineSegment);
+                retval.Add(resultLineSegment.Value);
 
                 if (retval.Count >= 2)
-                {
                     // No need to keep looking, there will only be up to two points of intersection
                     break;
-                }
             }
 
             // Exit Function
             if (retval.Count == 0)
-            {
                 return null;
-            }
+
             else if (retval.Count == 1)
-            {
                 // Only touched one vertex
                 return Tuple.Create(retval[0], retval[0]);
-            }
+
             else if (retval.Count == 2)
-            {
                 // Standard result
                 return Tuple.Create(retval[0], retval[1]);
-            }
+
             else
-            {
                 throw new ApplicationException("Found more than two intersection points");
-            }
         }
 
         private static Point3D? GetIntersection_LineSegment_Point_colinear(Point3D segmentStart, Point3D segmentStop, Point3D point)
@@ -8584,6 +8574,32 @@ namespace Game.Math_WPF.Mathematics
             }
 
             return retVal.ToArray();
+        }
+
+        /// <returns>
+        ///  0: inside line segment
+        /// -1: past start
+        ///  1: past stop
+        /// </returns>
+        private static int IsBeyondLineSegment(Point3D start, Point3D stop, Point3D result)
+        {
+            // Make sure the line segment result isn't beyond the line segment
+            Vector3D segment_dir = stop - start;
+            Vector3D result_dir = result - start;
+
+            if (Vector3D.DotProduct(segment_dir, result_dir) < 0)
+            {
+                // It's the other direction (beyond segment start)
+                return -1;
+            }
+
+            if (result_dir.LengthSquared > segment_dir.LengthSquared)
+            {
+                // It's beyond segment stop
+                return 1;
+            }
+
+            return 0;
         }
 
         #region Circle/Line Intersect Helpers

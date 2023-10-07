@@ -860,6 +860,38 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void ClosestSegmentSegment_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Point3D[] points = Enumerable.Range(0, 4).
+                    Select(o => Math3D.GetRandomVector_Spherical(4).ToPoint()).
+                    ToArray();
+
+                bool found = Math3D.GetClosestPoints_LineSegment_LineSegment(out Point3D? result1, out Point3D? result2, points[0], points[1], points[2], points[3], chkAllowBeyond.IsChecked.Value);
+
+                var window = new Debug3DWindow();
+
+                var sizes = Debug3DWindow.GetDrawSizes(4);
+
+                window.AddLine(points[0], points[1], sizes.line, Colors.Black);
+                window.AddLine(points[2], points[3], sizes.line, Colors.Black);
+
+                if (found)
+                {
+                    window.AddDot(result1.Value, sizes.dot, Colors.DodgerBlue);
+                    window.AddDot(result2.Value, sizes.dot, Colors.DodgerBlue);
+                    window.AddLine(result1.Value, result2.Value, sizes.line, Colors.White);
+                }
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void IcoNormals_Click(object sender, RoutedEventArgs e)
         {
             try

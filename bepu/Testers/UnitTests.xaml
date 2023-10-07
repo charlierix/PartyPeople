@@ -39,6 +39,9 @@
 
             <Button Content="Octree - points" Margin="0,8,0,0" Click="OctreePoints_Click"/>
             <Button Content="Octree - rects" Click="OctreeRects_Click"/>
+
+            <CheckBox x:Name="chkAllowBeyond" Content="Allow Beyond" Margin="0,8,0,0"/>
+            <Button Content="Closest Points: Segment - Segment" Click="ClosestSegmentSegment_Click"/>
         </StackPanel>
 
         <StackPanel Grid.Column="2">

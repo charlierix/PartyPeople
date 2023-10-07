@@ -46,11 +46,11 @@ namespace Game.Bepu.Testers.WingInterference
 
         public EngineDefinition_Meshes Meshes { get; init; }
     }
-
     public record EngineDefinition_Meshes
     {
         // These are in world coords (they've already been transformed by offset and rotation)
-        // From/To points are interior (full capsule height is 2R+H)
+        // From/To points are interior (full capsule height is 2R+H
+        // )
         public Vector3 Cylinder_From_Interior { get; init; }
         public Vector3 Cylinder_To_Interior { get; init; }
 
@@ -146,7 +146,6 @@ namespace Game.Bepu.Testers.WingInterference
         
         public WingDefinition_Meshes Meshes { get; init; }
     }
-
     public record WingDefinition_Meshes
     {
         //TODO: these need to be broken out by wing part to help with analyzing marked cells
@@ -161,7 +160,6 @@ namespace Game.Bepu.Testers.WingInterference
         public float From { get; init; }
         public float To { get; init; }
     }
-
     public record MultAtAngle
     {
         public float Neg_90 { get; init; } = 1f;
@@ -203,7 +201,6 @@ namespace Game.Bepu.Testers.WingInterference
 
         public TailDefinition_Boom_Meshes Meshes { get; init; }
     }
-
     public record TailDefinition_Boom_Meshes
     {
         public ITriangle_wpf[] Triangles { get; init; }
@@ -221,7 +218,6 @@ namespace Game.Bepu.Testers.WingInterference
 
         public TailDefinition_Tail_Meshes Meshes { get; init; } 
     }
-
     public record TailDefinition_Tail_Meshes
     {
         public ITriangle_wpf[] Triangles { get; init; }
