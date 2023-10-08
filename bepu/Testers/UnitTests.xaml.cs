@@ -892,6 +892,79 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void CollidingCapsules_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Point3D[] points = Enumerable.Range(0, 4).
+                    Select(o => Math3D.GetRandomVector_Spherical(4).ToPoint()).
+                    ToArray();
+
+                double[] radii = Enumerable.Range(0, 2).
+                    Select(o => StaticRandom.NextDouble(0.2, 3)).
+                    ToArray();
+
+                if (StaticRandom.NextDouble() < 0.3 || (points[1] - points[0]).LengthSquared <= radii[0] * radii[0])
+                    points[1] = points[0].ToVector().ToPoint();
+
+                if (StaticRandom.NextDouble() < 0.3 || (points[3] - points[2]).LengthSquared <= radii[1] * radii[1])
+                    points[3] = points[2].ToVector().ToPoint();
+
+                var capsule1 = new Capsule_wpf()
+                {
+                    From = points[0],
+                    To = points[1],
+                    Radius = radii[0],
+                    IsInterior = true,
+                };
+
+                var capsule2 = new Capsule_wpf()
+                {
+                    From = points[2],
+                    To = points[3],
+                    Radius = radii[1],
+                    IsInterior = true,
+                };
+
+                bool is_intersecting = Math3D.IsIntersecting_Capsule_Capsule(capsule1, capsule2);
+
+                var window = new Debug3DWindow();
+
+                var sizes = Debug3DWindow.GetDrawSizes(4);
+
+                window.AddDot(capsule1.From, sizes.dot, Colors.Black);
+                window.AddDot(capsule1.To, sizes.dot, Colors.Black);
+
+                window.AddDot(capsule2.From, sizes.dot, Colors.White);
+                window.AddDot(capsule2.To, sizes.dot, Colors.White);
+
+                string color = is_intersecting ?
+                    "80CD5C5C" :
+                    "8032CD32";
+
+                var capsule1_exterior = capsule1.ToExterior();
+                var capsule2_exterior = capsule2.ToExterior();
+
+                var mesh = UtilityWPF.GetCapsule(24, 24, capsule1_exterior.From, capsule1_exterior.To, capsule1.Radius);
+                window.AddMesh(mesh, UtilityWPF.ColorFromHex(color));
+
+                mesh = UtilityWPF.GetCapsule(24, 24, capsule2_exterior.From, capsule2_exterior.To, capsule2.Radius);
+                window.AddMesh(mesh, UtilityWPF.ColorFromHex(color));
+
+                window.AddText($"1 int: {capsule1.From.ToStringSignificantDigits(2)} - {capsule1.To.ToStringSignificantDigits(2)}");
+                window.AddText($"1 ext: {capsule1_exterior.From.ToStringSignificantDigits(2)} - {capsule1_exterior.To.ToStringSignificantDigits(2)}");
+
+                window.AddText($"2 int: {capsule2.From.ToStringSignificantDigits(2)} - {capsule2.To.ToStringSignificantDigits(2)}");
+                window.AddText($"2 ext: {capsule2_exterior.From.ToStringSignificantDigits(2)} - {capsule2_exterior.To.ToStringSignificantDigits(2)}");
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void IcoNormals_Click(object sender, RoutedEventArgs e)
         {
             try

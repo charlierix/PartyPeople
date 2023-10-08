@@ -3840,9 +3840,9 @@ namespace Game.Math_WPF.WPF
             return retVal;
         }
 
-        public static MeshGeometry3D GetSphere_LatLon(int separators, double radius)
+        public static MeshGeometry3D GetSphere_LatLon(int separators, double radius, Transform3D transform = null)
         {
-            return GetSphere_LatLon(separators, radius, radius, radius);
+            return GetSphere_LatLon(separators, radius, radius, radius, transform);
         }
         /// <summary>
         /// This creates a sphere using latitude, longitude
@@ -3882,8 +3882,10 @@ namespace Game.Math_WPF.WPF
         /// 28=13,224
         /// 29=14,160 
         /// </param>
-        public static MeshGeometry3D GetSphere_LatLon(int separators, double radiusX, double radiusY, double radiusZ)
+        public static MeshGeometry3D GetSphere_LatLon(int separators, double radiusX, double radiusY, double radiusZ, Transform3D transform = null)
         {
+            transform = transform ?? Transform3D.Identity;
+
             double segmentRad = Math.PI / 2 / (separators + 1);
             int numberOfSeparators = 4 * separators + 4;
 
@@ -3899,11 +3901,11 @@ namespace Game.Math_WPF.WPF
                 {
                     double z_s = radiusZ * r_e * Math.Sin(segmentRad * s) * (-1);
                     double x_s = radiusX * r_e * Math.Cos(segmentRad * s);
-                    retVal.Positions.Add(new Point3D(x_s, y_e, z_s));
+                    retVal.Positions.Add(transform.Transform(new Point3D(x_s, y_e, z_s)));
                 }
             }
-            retVal.Positions.Add(new Point3D(0, radiusY, 0));
-            retVal.Positions.Add(new Point3D(0, -1 * radiusY, 0));
+            retVal.Positions.Add(transform.Transform(new Point3D(0, radiusY, 0)));
+            retVal.Positions.Add(transform.Transform(new Point3D(0, -1 * radiusY, 0)));
 
             // Main Body
             int maxIterate = 2 * separators;
@@ -4232,17 +4234,18 @@ namespace Game.Math_WPF.WPF
                 throw new ArgumentException("numSegmentsTheta must be at least 3: " + numSegmentsTheta.ToString(), "numSegmentsTheta");
             }
 
-            if (height < radius * 2d)
+            double diameter = radius * 2d;
+            if (height < diameter || height.IsNearValue(diameter))
             {
                 //NOTE:  The separators aren't the same.  I believe the sphere method uses 2N+1 separators (or something like that)
-                return GetSphere_LatLon(numSegmentsTheta, radius);
+                return GetSphere_LatLon(numSegmentsTheta, radius, transform);
             }
 
             MeshGeometry3D retVal = new MeshGeometry3D();
 
             #region Initial calculations
 
-            transform = transform ?? new Transform3DGroup();
+            transform = transform ?? Transform3D.Identity;
 
             //Transform3DGroup transform = new Transform3DGroup();
             ////transform.Children.Add(new RotateTransform3D(new AxisAngleRotation3D(new Vector3D(0, 1, 0), 90d)));

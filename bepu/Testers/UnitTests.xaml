@@ -14,7 +14,7 @@
             <ColumnDefinition Width="8"/>
             <ColumnDefinition Width="auto"/>
         </Grid.ColumnDefinitions>
-        
+
         <StackPanel Grid.Column="0">
             <Button Content="Quaternions" Click="Quaternions_Click"/>
             <Button Content="Mirror Quat" Click="MirrorQuat_Click"/>
@@ -42,6 +42,8 @@
 
             <CheckBox x:Name="chkAllowBeyond" Content="Allow Beyond" Margin="0,8,0,0"/>
             <Button Content="Closest Points: Segment - Segment" Click="ClosestSegmentSegment_Click"/>
+
+            <Button Content="Colliding Capsules" Margin="0,8,0,0" Click="CollidingCapsules_Click"/>
         </StackPanel>
 
         <StackPanel Grid.Column="2">

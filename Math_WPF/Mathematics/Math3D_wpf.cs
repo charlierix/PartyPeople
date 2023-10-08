@@ -6689,6 +6689,55 @@ namespace Game.Math_WPF.Mathematics
             return true;
         }
 
+        public static bool IsIntersecting_Capsule_Capsule(Capsule_wpf capsule1, Capsule_wpf capsule2)
+        {
+            double sum_radius = capsule1.Radius + capsule2.Radius;
+            double sum_radius_squared = sum_radius * sum_radius;
+
+            // Make sure the points are interior
+            capsule1 = capsule1.IsInterior ?
+                capsule1 :
+                capsule1.ToInterior();
+
+            capsule2 = capsule2.IsInterior ?
+                capsule2 :
+                capsule2.ToInterior();
+
+            // Spheres have simpler checks
+            bool is_sphere_1 = capsule1.From.IsNearValue(capsule1.To);
+            bool is_sphere_2 = capsule2.From.IsNearValue(capsule2.To);
+
+            if(is_sphere_1 && is_sphere_2)
+            {
+                return (capsule2.From - capsule1.From).LengthSquared < sum_radius_squared;
+            }
+            else if(is_sphere_1)
+            {
+                Point3D nearest2 = GetClosestPoint_LineSegment_Point(capsule2.From, capsule2.To, capsule1.From);
+                return (nearest2 - capsule1.From).LengthSquared < sum_radius_squared;
+            }
+            else if(is_sphere_2)
+            {
+                Point3D nearest1 = GetClosestPoint_LineSegment_Point(capsule1.From, capsule1.To, capsule2.From);
+                return (nearest1 - capsule2.From).LengthSquared < sum_radius_squared;
+            }
+
+            // Treat the capsules like line segments
+            if (GetClosestPoints_LineSegment_LineSegment(out Point3D? result1, out Point3D? result2, capsule1.From, capsule1.To, capsule2.From, capsule2.To, true))
+            {
+                double dist_sqr = (result2.Value - result1.Value).LengthSquared;
+                return dist_sqr < sum_radius_squared;
+            }
+            else
+            {
+                // Lines are parallel.  Find the closest point on line 2 from one of the points on line 1
+                Point3D nearest2 = GetClosestPoint_Line_Point(capsule2.From, capsule2.To - capsule2.From, capsule1.From);
+
+                double dist_sqr = (nearest2 - capsule1.From).LengthSquared;
+                return dist_sqr < sum_radius_squared;
+            }
+        }
+
         public static Point3D GetClosestPoint_LineSegment_Point(Point3D segmentStart, Point3D segmentStop, Point3D testPoint)
         {
             return GetClosestPoint_LineSegment_Point_verbose(segmentStart, segmentStop, testPoint).point_on_line;
