@@ -6,20 +6,12 @@ using Game.Math_WPF.WPF.Controls3D;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
-using System.Windows.Media.Imaging;
 using System.Windows.Media.Media3D;
-using System.Windows.Shapes;
 
 namespace Game.Bepu.Testers
 {
@@ -111,19 +103,19 @@ namespace Game.Bepu.Testers
 
             try
             {
-                if(_samples == null || _samples.Length == 0)
+                if (_samples == null || _samples.Length == 0)
                 {
                     MessageBox.Show("Invalid samples", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                if(!int.TryParse(txtDegree.Text, out int degree))
+                if (!int.TryParse(txtDegree.Text, out int degree))
                 {
                     MessageBox.Show("Invalid degree", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                // Let's retrieve the input and output data:
+                // Retrieve the input and output data:
                 double[] inputs = _samples.
                     Select(o => o.X).
                     ToArray();
@@ -132,13 +124,13 @@ namespace Game.Bepu.Testers
                     Select(o => o.Y).
                     ToArray();
 
-                // We can create a learning algorithm
+                // Create a learning algorithm
                 var ls = new PolynomialLeastSquares()
                 {
                     Degree = degree,
                 };
 
-                // Now, we can use the algorithm to learn a polynomial
+                // Use the algorithm to learn a polynomial
                 PolynomialRegression poly = ls.Learn(inputs, outputs);
 
                 // The learned polynomial will be given by
@@ -148,46 +140,17 @@ namespace Game.Bepu.Testers
                 //double[] weights = poly.Weights;   // { 1.0000000000000024, -1.2407665029287351E-13 }
                 //double intercept = poly.Intercept; // 1.5652369518855253E-12
 
-                // Finally, we can use this polynomial
-                // to predict values for the input data
+                // Finally, use this polynomial to predict values for the input data
                 double[] pred = poly.Transform(inputs);
 
                 // Where the mean-squared-error (MSE) should be
                 double error = new SquareLoss(outputs).Loss(pred); // 0.0
 
 
-
-
-
-                var window = new Debug3DWindow();
-
-                double min_x = inputs.Min();
-                double max_x = inputs.Max();
-
-                int sample_count = 144;
-
-                var examples = Enumerable.Range(0, sample_count).
-                    Select(o => UtilityMath.GetScaledValue(min_x, max_x, 0, sample_count - 1, o)).
-                    Select(o => new Point3D(o, poly.Transform(o), 0)).
-                    ToArray();
-
-                var aabb = Math3D.GetAABB(examples.Concat(_samples.Select(o => o.ToPoint3D())));
-
-                var sizes = Debug3DWindow.GetDrawSizes(Math.Max(aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y));
-
-                window.AddLine(new Point3D(aabb.min.X, aabb.min.Y, 0), new Point3D(aabb.max.X, aabb.min.Y, 0), sizes.line, Colors.Black);
-                window.AddLine(new Point3D(aabb.min.X, aabb.min.Y, 0), new Point3D(aabb.min.X, aabb.max.Y, 0), sizes.line, Colors.Black);
-
-                window.AddLines(examples, sizes.line, Colors.White);
-
-                window.AddDots(_samples.Select(o => o.ToPoint3D()), sizes.dot, Colors.DodgerBlue);
-
-                window.AddText(poly.ToString("N2"));
-                window.AddText($"error: {error}");
-
                 txtResult.Text = $"{poly}\r\n{poly.ToString("N6")}\r\n{poly.ToString("N3")}\r\n{poly.ToString("N1")}";
 
-                window.Show();
+                PlotResult(inputs, _samples, poly, error, false);
+                PlotResult(inputs, _samples, poly, error, true);
             }
             catch (Exception ex)
             {
@@ -229,6 +192,67 @@ namespace Game.Bepu.Testers
             }
 
             return retVal.ToArray();
+        }
+
+        private static void PlotResult(double[] inputs, Point[] samples, PolynomialRegression poly, double error, bool should_normalize)
+        {
+            var window = new Debug3DWindow()
+            {
+                Title = should_normalize ? "Normalized" : "1:1",
+            };
+
+            double min_x = inputs.Min();
+            double max_x = inputs.Max();
+
+            int sample_count = 144;
+
+            var examples = Enumerable.Range(0, sample_count).
+                Select(o => UtilityMath.GetScaledValue(min_x, max_x, 0, sample_count - 1, o)).
+                Select(o => new Point3D(o, poly.Transform(o), 0)).
+                ToArray();
+
+            var aabb = Math3D.GetAABB(examples.Concat(samples.Select(o => o.ToPoint3D())));
+
+            if (should_normalize)
+            {
+                var normalized = NormalizeExamples(samples, examples, aabb.min, aabb.max);
+                samples = normalized.samples;
+                examples = normalized.examples;
+                aabb = Math3D.GetAABB(examples.Concat(samples.Select(o => o.ToPoint3D())));
+            }
+
+            var sizes = Debug3DWindow.GetDrawSizes(Math.Max(aabb.max.X - aabb.min.X, aabb.max.Y - aabb.min.Y));
+
+            window.AddLine(new Point3D(aabb.min.X, aabb.min.Y, 0), new Point3D(aabb.max.X, aabb.min.Y, 0), sizes.line, Colors.Black);
+            window.AddLine(new Point3D(aabb.min.X, aabb.min.Y, 0), new Point3D(aabb.min.X, aabb.max.Y, 0), sizes.line, Colors.Black);
+
+            window.AddLines(examples, sizes.line, Colors.White);
+
+            window.AddDots(samples.Select(o => o.ToPoint3D()), sizes.dot, Colors.DodgerBlue);
+
+            window.AddText(poly.ToString("N2"));
+            window.AddText($"error: {error}");
+
+
+            window.Show();
+        }
+
+        private static (Point[] samples, Point3D[] examples) NormalizeExamples(Point[] samples, Point3D[] examples, Point3D aabb_min, Point3D aabb_max)
+        {
+            var samples2 = samples.
+                Select(o => new Point(
+                    UtilityMath.GetScaledValue(0, 1, aabb_min.X, aabb_max.X, o.X),
+                    UtilityMath.GetScaledValue(0, 1, aabb_min.Y, aabb_max.Y, o.Y))).
+                ToArray();
+
+            var examples2 = examples.
+                Select(o => new Point3D(
+                    UtilityMath.GetScaledValue(0, 1, aabb_min.X, aabb_max.X, o.X),
+                    UtilityMath.GetScaledValue(0, 1, aabb_min.Y, aabb_max.Y, o.Y),
+                    UtilityMath.GetScaledValue(0, 1, aabb_min.Z, aabb_max.Z, o.Z))).
+                ToArray();
+
+            return (samples2, examples2);
         }
 
         #endregion
