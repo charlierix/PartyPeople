@@ -704,6 +704,26 @@ namespace Game.Core
 
         #endregion
 
+        #region IEnumerator
+
+        public static IEnumerable AsEnumerable(this IEnumerator enumerator)
+        {
+            while (enumerator.MoveNext())
+            {
+                yield return enumerator.Current;
+            }
+        }
+
+        public static IEnumerable<T> AsEnumerable<T>(this IEnumerator<T> enumerator)
+        {
+            while (enumerator.MoveNext())
+            {
+                yield return enumerator.Current;
+            }
+        }
+
+        #endregion
+
         #region IList
 
         //NOTE: AsEnumerable doesn't exist for IList, but when I put it here, it was ambiguous with other collections.  So this is spelled with an i
