@@ -677,6 +677,23 @@ namespace Game.Core
         #region lists
 
         /// <summary>
+        /// This returns all permutations of the list
+        /// WARNING: The result list will be Length!, so only use with small lists
+        /// </summary>
+        /// <remarks>
+        /// Got this here
+        /// https://stackoverflow.com/a/21843611
+        /// </remarks>
+        public static IEnumerable<T[]> Permutations<T>(T[] items)
+        {
+            // Need to do .ToArray because the private Permute function manipulates the array as it recurses
+            foreach (T[] set in Permute(items.ToArray(), 0, items.Length - 1))
+            {
+                yield return set;
+            }
+        }
+
+        /// <summary>
         /// This iterates over all combinations of a set of numbers
         /// NOTE: The number of iterations is (2^inputSize) - 1, so be careful with input sizes over 10 to 15
         /// </summary>
@@ -2362,6 +2379,28 @@ namespace Game.Core
 
             else
                 throw new ArgumentException(nameof(value), $"Unexpected value: {value}");
+        }
+
+        private static IEnumerable<T[]> Permute<T>(T[] arry, int i, int n)
+        {
+            if (i == n)
+            {
+                yield return arry;
+            }
+            else
+            {
+                for (int j = i; j <= n; j++)
+                {
+                    if (i != j)
+                        Swap(ref arry[i], ref arry[j]);
+
+                    foreach (var set in Permute(arry, i + 1, n))
+                        yield return set;
+
+                    if (i != j)
+                        Swap(ref arry[i], ref arry[j]); //backtrack
+                }
+            }
         }
 
         #endregion
