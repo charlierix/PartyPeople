@@ -689,7 +689,9 @@ namespace Game.Core
             // Need to do .ToArray because the private Permute function manipulates the array as it recurses
             foreach (T[] set in Permute(items.ToArray(), 0, items.Length - 1))
             {
-                yield return set;
+                // Also need to return an array clone.  Otherwise the same array instance keeps getting returned and
+                // manipulated, resulting in lots of copies of the same array
+                yield return set.ToArray();
             }
         }
 
