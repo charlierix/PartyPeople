@@ -696,6 +696,114 @@ namespace Game.Core
         }
 
         /// <summary>
+        /// This iterates all possible values, rolling over like an odemeter
+        /// </summary>
+        /// <remarks>
+        /// Example:
+        /// char[][] input = [['A', 'B', 'C'], ['A', 'B'], ['A', 'B', 'C']];
+        /// 
+        /// Results:
+        /// A A A
+        /// A A B
+        /// A A C
+        /// A B A
+        /// A B B
+        /// A B C
+        /// B A A
+        /// B A B
+        /// B A C
+        /// B B A
+        /// B B B
+        /// B B C
+        /// C A A
+        /// C A B
+        /// C A C
+        /// C B A
+        /// C B B
+        /// C B C
+        /// </remarks>
+        public static IEnumerable<T[]> JaggedOdemeter<T>(T[][] input)
+        {
+            int[] indices = new int[input.Length];
+            T[] current = new T[input.Length];
+
+            while (true)
+            {
+                // Store the values pointed to by the current values in indices
+                for (int i = 0; i < input.Length; i++)
+                    current[i] = input[i][indices[i]];
+
+                yield return current.ToArray();
+
+                // Walk right to left, resetting anything that has reached the end.  Jump out of the loop once an advancable spot is found
+                int j = input.Length - 1;
+                while (j >= 0 && indices[j] == input[j].Length - 1)
+                {
+                    // This spot has reached the end.  Reset to zero in preperation for advancing the one to the left
+                    indices[j] = 0;
+                    j--;
+                }
+
+                if (j < 0)
+                    break;
+
+                // This is the spot that has room to advance
+                indices[j]++;
+            }
+        }
+        /// <summary>
+        /// This overload is a copy of the other, but returns indices instead
+        /// </summary>
+        /// <remarks>
+        /// Example:
+        /// int[] counts = [3, 2, 3];
+        /// 
+        /// Results:
+        /// 0 0 0
+        /// 0 0 1
+        /// 0 0 2
+        /// 0 1 0
+        /// 0 1 1
+        /// 0 1 2
+        /// 1 0 0
+        /// 1 0 1
+        /// 1 0 2
+        /// 1 1 0
+        /// 1 1 1
+        /// 1 1 2
+        /// 2 0 0
+        /// 2 0 1
+        /// 2 0 2
+        /// 2 1 0
+        /// 2 1 1
+        /// 2 1 2
+        /// </remarks>
+        public static IEnumerable<int[]> JaggedOdemeter(int[] counts)
+        {
+            int[] indices = new int[counts.Length];
+
+            while (true)
+            {
+                yield return indices.ToArray();
+
+                // Walk right to left, resetting anything that has reached the end.  Jump out of the loop once an advancable spot is found
+                int j = counts.Length - 1;
+                while (j >= 0 && indices[j] == counts[j] - 1)
+                {
+                    // This spot has reached the end.  Reset to zero in preperation for advancing the one to the left
+                    indices[j] = 0;
+                    j--;
+                }
+
+                if (j < 0)
+                    break;
+
+                // This is the spot that has room to advance
+                indices[j]++;
+            }
+        }
+
+        /// <summary>
         /// This iterates over all combinations of a set of numbers
         /// NOTE: The number of iterations is (2^inputSize) - 1, so be careful with input sizes over 10 to 15
         /// </summary>
