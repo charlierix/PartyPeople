@@ -696,7 +696,7 @@ namespace Game.Core
         }
 
         /// <summary>
-        /// This iterates all possible values, rolling over like an odemeter
+        /// This iterates all possible values, rolling over like an odometer
         /// </summary>
         /// <remarks>
         /// Example:
@@ -722,7 +722,7 @@ namespace Game.Core
         /// C B B
         /// C B C
         /// </remarks>
-        public static IEnumerable<T[]> JaggedOdemeter<T>(T[][] input)
+        public static IEnumerable<T[]> JaggedOdometer<T>(T[][] input)
         {
             int[] indices = new int[input.Length];
             T[] current = new T[input.Length];
@@ -778,7 +778,7 @@ namespace Game.Core
         /// 2 1 1
         /// 2 1 2
         /// </remarks>
-        public static IEnumerable<int[]> JaggedOdemeter(int[] counts)
+        public static IEnumerable<int[]> JaggedOdometer(int[] counts)
         {
             int[] indices = new int[counts.Length];
 
