@@ -258,9 +258,9 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             string[] split_vec = sets[1].Split(",");
             string scalar_angle = sets[2];
 
-            var window = new Game.Math_WPF.WPF.Controls3D.Debug3DWindow();
+            var window = new Game.Math_WPF.WPF.Viewers.Debug3DWindow();
 
-            var sizes = Game.Math_WPF.WPF.Controls3D.Debug3DWindow.GetDrawSizes(2);
+            var sizes = Game.Math_WPF.WPF.Viewers.Debug3DWindow.GetDrawSizes(2);
 
             var retVal = new Quaternion(Convert.ToDouble(split_quat[0].Trim()), Convert.ToDouble(split_quat[1].Trim()), Convert.ToDouble(split_quat[2].Trim()), Convert.ToDouble(split_quat[3].Trim()));
             var axis = new Vector3D(Convert.ToDouble(split_vec[0].Trim()), Convert.ToDouble(split_vec[1].Trim()), Convert.ToDouble(split_vec[2].Trim()));

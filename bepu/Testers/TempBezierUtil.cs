@@ -2,6 +2,7 @@
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
+using Game.Math_WPF.WPF.Viewers;
 using GameItems;
 using System;
 using System.Collections.Generic;
@@ -85,7 +86,7 @@ namespace Game.Bepu.Testers
                 }).
                 ToArray();
 
-            Debug3DWindow window = new Debug3DWindow();
+            var window = new Debug3DWindow();
             var sizes = Debug3DWindow.GetDrawSizes(1);
             double draw_y = 0;
 

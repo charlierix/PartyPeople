@@ -1,5 +1,6 @@
 ﻿using Game.Core;
 using Game.Math_WPF.Mathematics;
+using Game.Math_WPF.WPF.Controls3D;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,7 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using System.Xaml;
 
-namespace Game.Math_WPF.WPF.Controls3D
+namespace Game.Math_WPF.WPF.Viewers
 {
     //TODO: Add a method Show_OtherProcess().  This will let them visualize a function they are debugging without stepping out of the function
 

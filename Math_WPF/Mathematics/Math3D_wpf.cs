@@ -2632,7 +2632,7 @@ namespace Game.Math_WPF.Mathematics
                     }
                     else
                     {
-                        //Debug3DWindow window = new Debug3DWindow();
+                        //var window = new Debug3DWindow();
                         //double size = otherPoints.Max(o => o.ToVector().Length);
                         //var sizes = Debug3DWindow.GetDrawSizes(size);
                         //window.AddAxisLines(size, sizes.line);
@@ -6240,7 +6240,7 @@ namespace Game.Math_WPF.Mathematics
             //double DOT = direction.Length / 100;
             //double LINE = direction.Length / 200;
 
-            //Debug3DWindow window = new Debug3DWindow()
+            //var window = new Debug3DWindow()
             //{
             //    Background = new SolidColorBrush(UtilityWPF.ColorFromHex("666")),
             //};
@@ -7408,7 +7408,7 @@ namespace Game.Math_WPF.Mathematics
 
             //Color color;
 
-            //Debug3DWindow window = new Debug3DWindow()
+            //var window = new Debug3DWindow()
             //{
             //    Title = "GetIntersectedPolygon",
             //    Background = new SolidColorBrush(UtilityWPF.ColorFromHex("BCC")),

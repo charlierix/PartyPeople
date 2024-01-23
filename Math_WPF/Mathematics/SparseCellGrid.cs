@@ -1,7 +1,7 @@
 ﻿using Accord.Math;
 using Game.Core;
 using Game.Math_WPF.WPF;
-using Game.Math_WPF.WPF.Controls3D;
+using Game.Math_WPF.WPF.Viewers;
 using Octree;
 using System;
 using System.Collections.Generic;

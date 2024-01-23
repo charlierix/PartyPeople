@@ -1,6 +1,7 @@
 ﻿using Game.Core;
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF.Controls3D;
+using Game.Math_WPF.WPF.Viewers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -105,7 +106,7 @@ namespace Game.Math_WPF.WPF
 
                 double LINE = _velocityHistory.Max(o => o.delta.Length) * .03;
 
-                Debug3DWindow window = new Debug3DWindow()
+                var window = new Debug3DWindow()
                 {
                     Title = string.Format("{0} - {1} seconds", _velocityHistory.Count.ToString("N0"), (_velocityHistory[_velocityHistory.Count - 1].time - _velocityHistory[0].time).TotalSeconds.ToStringSignificantDigits(2)),
                 };
@@ -218,7 +219,7 @@ namespace Game.Math_WPF.WPF
             {
                 DateTime now = DateTime.UtcNow;
 
-                Debug3DWindow window = new Debug3DWindow()
+                var window = new Debug3DWindow()
                 {
                     Title = string.Format("{0} - {1} seconds", _angularVelocityHistory_Oribit.Count.ToString("N0"), (_angularVelocityHistory_Oribit[_angularVelocityHistory_Oribit.Count - 1].time - _angularVelocityHistory_Oribit[0].time).TotalSeconds.ToStringSignificantDigits(2)),
                 };

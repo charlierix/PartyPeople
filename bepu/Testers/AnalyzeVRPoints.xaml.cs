@@ -4,6 +4,7 @@ using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.Mathematics.GeneticSharp;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
+using Game.Math_WPF.WPF.Viewers;
 using Game.ML;
 using GeneticSharp.Domain;
 using GeneticSharp.Domain.Chromosomes;
@@ -832,7 +833,7 @@ namespace Game.Bepu.Testers
         }
         private void ShowNeckResults(CrossoverMutate_Result<double> result)
         {
-            Debug3DWindow window = new Debug3DWindow();
+            var window = new Debug3DWindow();
 
             var graph = Debug3DWindow.GetGraph(result.History.Select(o => o[0]).ToArray());
             window.AddGraph(graph, new Point3D(), 1);
@@ -847,7 +848,7 @@ namespace Game.Bepu.Testers
         }
         private void ShowNeckResults(List<(double, double[])> log, double worstScore)
         {
-            Debug3DWindow window = new Debug3DWindow();
+            var window = new Debug3DWindow();
 
             var graph = Debug3DWindow.GetGraph(log.Select(o => worstScore - o.Item1).ToArray());
             window.AddGraph(graph, new Point3D(), 1);
@@ -930,7 +931,7 @@ namespace Game.Bepu.Testers
 
             #region draw initial
 
-            Debug3DWindow window = new Debug3DWindow()
+            var window = new Debug3DWindow()
             {
                 Title = countdown.ToString(),
                 Width = 1000,
@@ -1032,7 +1033,7 @@ namespace Game.Bepu.Testers
 
                 double maxDist = pointDistances.Max(o => o.dist);
 
-                Debug3DWindow window = new Debug3DWindow()
+                var window = new Debug3DWindow()
                 {
                     Title = set.score.ToString(),
                 };
@@ -1111,7 +1112,7 @@ namespace Game.Bepu.Testers
 
             var sizes = Debug3DWindow.GetDrawSizes(3);
 
-            Debug3DWindow window = new Debug3DWindow()
+            var window = new Debug3DWindow()
             {
                 Title = title,
             };
@@ -1163,7 +1164,7 @@ namespace Game.Bepu.Testers
 
 
             //var sizes = Debug3DWindow.GetDrawSizes(4);
-            //Debug3DWindow window = new Debug3DWindow();
+            //var window = new Debug3DWindow();
 
             //window.AddDots(centersAbs, sizes.dot, Colors.Black);
             //window.AddDot(centerAbs, sizes.dot, Colors.Blue);
@@ -1208,7 +1209,7 @@ namespace Game.Bepu.Testers
 
             var sizes = Debug3DWindow.GetDrawSizes(2);
 
-            Debug3DWindow window = new Debug3DWindow()
+            var window = new Debug3DWindow()
             {
                 Title = "Mirror",
             };

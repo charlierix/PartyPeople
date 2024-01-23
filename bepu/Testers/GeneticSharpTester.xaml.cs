@@ -2,6 +2,7 @@
 using Game.Math_WPF.Mathematics.GeneticSharp;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
+using Game.Math_WPF.WPF.Viewers;
 using Game.ML;
 using GeneticSharp.Domain;
 using GeneticSharp.Domain.Chromosomes;
@@ -123,7 +124,7 @@ namespace Game.Bepu.Testers
 
                 ga.TerminationReached += (s2, e2) =>
                 {
-                    Debug3DWindow window = new Debug3DWindow();
+                    var window = new Debug3DWindow();
 
                     var sizes = Debug3DWindow.GetDrawSizes(Math.Max(maxWidth, maxHeight) / 2d);
 

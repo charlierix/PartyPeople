@@ -652,7 +652,7 @@ namespace Game.Math_WPF.Mathematics
 
             //double LINE = .01;
 
-            //Debug3DWindow window = new Debug3DWindow();
+            //var window = new Debug3DWindow();
 
             ////TODO: Come up with more distinct colors
             //var getColor = new Func<double, Color>(d =>

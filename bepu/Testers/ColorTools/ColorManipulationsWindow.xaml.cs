@@ -2,6 +2,7 @@
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
+using Game.Math_WPF.WPF.Viewers;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -418,28 +419,28 @@ namespace Game.Bepu.Testers.ColorTools
                 };
 
 
-                Debug3DWindow window_line = new Debug3DWindow()
+                var window_line = new Debug3DWindow()
                 {
                     Background = new SolidColorBrush(gray),
                     Width = windowSize.Width,
                     Height = windowSize.Height,
                 };
 
-                Debug3DWindow window_sheet = new Debug3DWindow()
+                var window_sheet = new Debug3DWindow()
                 {
                     Background = new SolidColorBrush(gray),
                     Width = windowSize.Width,
                     Height = windowSize.Height,
                 };
 
-                Debug3DWindow window_mono_line = new Debug3DWindow()
+                var window_mono_line = new Debug3DWindow()
                 {
                     Background = UtilityWPF.BrushFromHex(MONO_BACK),
                     Width = windowSize.Width,
                     Height = windowSize.Height,
                 };
 
-                Debug3DWindow window_mono_sheet = new Debug3DWindow()
+                var window_mono_sheet = new Debug3DWindow()
                 {
                     Background = UtilityWPF.BrushFromHex(MONO_BACK),
                     Width = windowSize.Width,
@@ -812,7 +813,7 @@ namespace Game.Bepu.Testers.ColorTools
 
                 equivalent = new EquivalentColor(_sourceColor.ToHSV());
 
-                Debug3DWindow window = new Debug3DWindow();
+                var window = new Debug3DWindow();
 
                 var sizes = Debug3DWindow.GetDrawSizes(360);
                 sizes.dot *= .25;
@@ -847,7 +848,7 @@ namespace Game.Bepu.Testers.ColorTools
             {
                 ColorHSV sourceColor = _sourceColor.ToHSV();
 
-                Debug3DWindow window = new Debug3DWindow()
+                var window = new Debug3DWindow()
                 {
                     Background = Brushes.Black,
                 };
@@ -1140,7 +1141,7 @@ namespace Game.Bepu.Testers.ColorTools
 
             #region init window
 
-            Debug3DWindow window = new Debug3DWindow()
+            var window = new Debug3DWindow()
             {
                 Background = new SolidColorBrush(Color.FromRgb(gray, gray, gray)),
             };

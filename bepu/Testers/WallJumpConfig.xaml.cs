@@ -22,6 +22,7 @@ using System.Windows.Media.Media3D;
 using System.Windows.Shapes;
 using System.Text.Json;
 using System.IO;
+using Game.Math_WPF.WPF.Viewers;
 
 namespace Game.Bepu.Testers
 {

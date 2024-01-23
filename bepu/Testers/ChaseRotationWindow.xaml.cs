@@ -2,6 +2,7 @@
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
+using Game.Math_WPF.WPF.Viewers;
 using GameItems;
 using System;
 using System.Collections.Generic;
@@ -216,7 +217,7 @@ namespace Game.Bepu.Testers
             {
                 var sizes = Debug3DWindow.GetDrawSizes(12);
 
-                Debug3DWindow window = new Debug3DWindow();
+                var window = new Debug3DWindow();
 
                 window.AddLine(new Point3D(), _chaseOrientation.Orientation.ToWorld(new Vector3D(4, 0, 0)).ToPoint(), sizes.line, Colors.Red);
                 window.AddLine(new Point3D(), _chaseOrientation.Orientation.ToWorld(new Vector3D(0, 4, 0)).ToPoint(), sizes.line, Colors.Green);
@@ -287,7 +288,7 @@ namespace Game.Bepu.Testers
             {
                 var sizes = Debug3DWindow.GetDrawSizes(12);
 
-                Debug3DWindow window = new Debug3DWindow();
+                var window = new Debug3DWindow();
 
                 window.AddLine(new Point3D(), _chaseOrientation.Orientation.ToWorld(new Vector3D(4, 0, 0)).ToPoint(), sizes.line, Colors.Red);
                 window.AddLine(new Point3D(), _chaseOrientation.Orientation.ToWorld(new Vector3D(0, 4, 0)).ToPoint(), sizes.line, Colors.Green);
