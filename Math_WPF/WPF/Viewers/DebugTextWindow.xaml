@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Game.Math_WPF.WPF.Viewers"
         Title="Debug Text" ResizeMode="CanResizeWithGrip" Width="800" Height="800">
     <Grid>
-        <TextBox Text="{Binding Path=Text}" AcceptsReturn="True" AcceptsTab="True" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" BorderBrush="Transparent" BorderThickness="0" Padding="4" FontFamily="Cascadia Mono" FontSize="14"/>
+        <TextBox Text="{Binding Path=Text}" AcceptsReturn="True" AcceptsTab="True" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="{Binding Path=Background}" Foreground="{Binding Path=Foreground}" BorderBrush="Transparent" BorderThickness="0" Padding="4" FontFamily="Cascadia Mono" FontSize="14"/>
 
         <Button Content="close all" ToolTip="Close all debug text windows" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Top" Click="CloseAll_Click"/>
     </Grid>
