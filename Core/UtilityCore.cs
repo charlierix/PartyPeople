@@ -1489,13 +1489,10 @@ namespace Game.Core
         public static int GetIndexIntoList(double percent, int count)
         {
             if (count <= 0)
-            {
                 throw new ArgumentException("Count must be greater than zero");
-            }
 
             int retVal = Convert.ToInt32(Math.Floor(count * percent));
-            if (retVal < 0) retVal = 0;
-            if (retVal >= count) retVal = count - 1;
+            retVal = Math.Clamp(retVal, 0, count - 1);
 
             return retVal;
         }
@@ -1513,17 +1510,59 @@ namespace Game.Core
         {
             double used = 0;
 
-            for (int cntr = 0; cntr < fractionsOfWhole.Length; cntr++)
+            for (int i = 0; i < fractionsOfWhole.Length; i++)
             {
-                if (percent >= used && percent <= used + fractionsOfWhole[cntr].percent)
-                {
-                    return cntr;
-                }
+                if (percent >= used && percent <= used + fractionsOfWhole[i].percent)
+                    return i;
 
-                used += fractionsOfWhole[cntr].percent;
+                used += fractionsOfWhole[i].percent;
             }
 
             return -1;
+        }
+        /// <summary>
+        /// This is used when accessing random items in a jagged array
+        /// </summary>
+        /// <param name="percent">Percent into the entire set</param>
+        /// <param name="counts">The size of each sub array</param>
+        /// <returns>
+        /// list_index: which sub array to use
+        /// cell_index: which item of that sub array to use
+        /// </returns>
+        public static (int list_index, int cell_index) GetIndexIntoList(double percent, int[] counts)
+        {
+            if (counts == null || counts.Length == 0)
+                throw new ArgumentException("counts array is empty");
+
+            if (percent <= 0)
+                return (0, 0);
+
+            double count = 0;
+            for (int i = 0; i < counts.Length; i++)
+                count += counts[i];
+
+            double sum_percent = 0;
+
+            for (int i = 0; i < count; i++)
+            {
+                double cur_percent = counts[i] / count;
+
+                if (percent <= sum_percent + cur_percent)
+                {
+                    double local_percent = (percent - sum_percent) / cur_percent;       // converting the global percent into local percent
+
+                    return
+                    (
+                        i,
+                        GetIndexIntoList(local_percent, counts[i])
+                    );
+                }
+
+                sum_percent += cur_percent;
+            }
+
+            // It's beyond the list.  Hopefully it's a minor math drift error
+            return (counts.Length - 1, counts[^1] - 1);
         }
 
         /// <summary>
