@@ -10,16 +10,18 @@ using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using System.Xml.Linq;
 
-namespace Game.Bepu.Testers.EdgeDetect3D
+namespace Game.Math_WPF.WPF
 {
-    // TODO: Move this to Math_WPF
-
     /// <summary>
     /// This parses an .obj file
     /// </summary>
-    public static class ObjReader
+    public static class FileReaderWriter_Obj
     {
+        #region Declaration Section
+
         private const string DEFAULT_NAME = "object";
+
+        #endregion
 
         public static Obj_File ReadFile(string filename)
         {
@@ -95,6 +97,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 Objects = objects.ToArray(),
             };
         }
+
+        // TODO: WriteFile(string filename, Obj_File obj)
+
+        #region Private Methods
 
         private static bool IsDirty(string name, bool? smooth_shaded, List<Obj_Vertex> vertices, List<Vector> texture_coords, List<Vector3D> vertex_normals, List<Obj_Face> faces)
         {
@@ -327,7 +333,11 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             return items[actual_index];
         }
+
+        #endregion
     }
+
+    #region classes: Obj_
 
     public record Obj_File
     {
@@ -373,4 +383,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         public Vector3D Vertex { get; init; }
         public Color? Color { get; init; }
     }
+
+    #endregion
 }

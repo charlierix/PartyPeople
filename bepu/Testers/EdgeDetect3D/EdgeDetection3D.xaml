@@ -7,6 +7,16 @@
         mc:Ignorable="d"
         Title="EdgeDetection3D" Width="1000" Height="1000">
     <Window.Resources>
+        <Style x:Key="propBorder" TargetType="Border">
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="BorderBrush" Value="#40000000"/>
+            <Setter Property="Background" Value="#20000000"/>
+            <Setter Property="Padding" Value="4"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+        </Style>
+        
         <Style TargetType="Label">
             <Setter Property="Foreground" Value="#FFFFFF"/>
         </Style>
@@ -21,12 +31,17 @@
     </Window.Resources>
 
     <Grid Background="#999999">
-        <Border BorderThickness="1" CornerRadius="3" BorderBrush="#40000000" Background="#20000000" Margin="8" Padding="4" HorizontalAlignment="Left" VerticalAlignment="Top">
-            <StackPanel>
-                <Label x:Name="lblObjFile" Content=".obj file"/>
-                <TextBox x:Name="txtObjFile" Text="drag/drop file" AllowDrop="True" PreviewDragEnter="txtObjFile_PreviewDragEnter" PreviewDragOver="txtObjFile_PreviewDragEnter" Drop="txtObjFile_Drop" TextChanged="txtObjFile_TextChanged"/>
-            </StackPanel>
-        </Border>
+        <StackPanel Margin="6" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Border Style="{StaticResource propBorder}">
+                <StackPanel>
+                    <Label x:Name="lblObjFile" Content=".obj file"/>
+                    <TextBox x:Name="txtObjFile" Text="drag/drop file" AllowDrop="True" PreviewDragEnter="txtObjFile_PreviewDragEnter" PreviewDragOver="txtObjFile_PreviewDragEnter" Drop="txtObjFile_Drop" TextChanged="txtObjFile_TextChanged"/>
+                </StackPanel>
+            </Border>
 
+            <Border Style="{StaticResource propBorder}">
+                <Button Content="four point face (convex)" Click="FourPointFace_Convex_Click"/>
+            </Border>
+        </StackPanel>
     </Grid>
 </Window>

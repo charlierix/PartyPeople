@@ -9,7 +9,15 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 {
     public partial class EdgeDetection3D : Window
     {
+        #region Declaration Section
+
         private readonly DropShadowEffect _errorEffect;
+
+        private string _filename = null;
+
+        #endregion
+
+        #region Constructor
 
         public EdgeDetection3D()
         {
@@ -26,6 +34,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             txtObjFile.Effect = _errorEffect;       // textchange sets this, but the first time must be happening before window load event
         }
+
+        #endregion
+
+        #region Event Listeners
 
         private void txtObjFile_PreviewDragEnter(object sender, DragEventArgs e)
         {
@@ -64,9 +76,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
-        private string _filename = null;
-
         private void txtObjFile_TextChanged(object sender, TextChangedEventArgs e)
         {
             try
@@ -109,6 +118,40 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             }
         }
 
+        private void FourPointFace_Convex_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                //var points =
+                //[
+                //    new Obj_Face_Point()
+
+                //];
+
+
+                var test = new Obj_Face_Point();
+
+
+
+
+
+
+
+
+
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        #endregion
+
+        #region Private Methods
+
         private void UnloadFile()
         {
 
@@ -119,10 +162,23 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 return false;
 
 
-            var test = ObjReader.ReadFile(filename);
+            var test = FileReaderWriter_Obj.ReadFile(filename);
+
+
+
+            // next test would be to create a visual3D for each object in the file (make a helper class for that)
+
+
+
+
+
+
+
 
 
             return true;
         }
+
+        #endregion
     }
 }
