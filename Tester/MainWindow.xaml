@@ -125,6 +125,7 @@
                     <ListBoxItem Content="Curve Fitting" MouseUp="CurveFitting_MouseUp"/>
                     <ListBoxItem Content="AnimCurve Visualizer" MouseUp="AnimationCurveVisualizer_MouseUp"/>
                     <ListBoxItem Content="Password Generator" MouseUp="PasswordGenerator_MouseUp"/>
+                    <ListBoxItem Content="Edge Detection 3D" MouseUp="EdgeDetection3D_MouseUp"/>
                 </ListBox>
             </StackPanel>
         </WrapPanel>

@@ -110,5 +110,9 @@ namespace Game.Tester
         {
             new Game.Bepu.Testers.PasswordGenerator().Show();
         }
+        private void EdgeDetection3D_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            new Game.Bepu.Testers.EdgeDetect3D.EdgeDetection3D().Show();
+        }
     }
 }

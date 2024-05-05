@@ -2319,6 +2319,15 @@ namespace Game.Math_WPF.WPF
             return Color.FromArgb(a, Convert.ToByte(rNew), Convert.ToByte(gNew), Convert.ToByte(bNew));
         }
 
+        public static Color ColorFromPercents(double r, double g, double b)
+        {
+            return ColorFromPercents(1, r, g, b);
+        }
+        public static Color ColorFromPercents(double a, double r, double g, double b)
+        {
+            return GetColorCapped(a * 255, r * 255, g * 255, b * 255);
+        }
+
         public static bool IsTransparent(Color color)
         {
             return color.A == 0;
@@ -6491,160 +6500,96 @@ namespace Game.Math_WPF.WPF
         private static Color GetColorCapped(double a, double r, double g, double b)
         {
             if (a < 0)
-            {
                 a = 0;
-            }
             else if (a > 255)
-            {
                 a = 255;
-            }
 
             if (r < 0)
-            {
                 r = 0;
-            }
             else if (r > 255)
-            {
                 r = 255;
-            }
 
             if (g < 0)
-            {
                 g = 0;
-            }
             else if (g > 255)
-            {
                 g = 255;
-            }
 
             if (b < 0)
-            {
                 b = 0;
-            }
             else if (b > 255)
-            {
                 b = 255;
-            }
 
             return Color.FromArgb(Convert.ToByte(a), Convert.ToByte(r), Convert.ToByte(g), Convert.ToByte(b));
         }
         private static byte[] GetColorCapped_Bytes(double a, double r, double g, double b)
         {
             if (a < 0)
-            {
                 a = 0;
-            }
             else if (a > 255)
-            {
                 a = 255;
-            }
 
             if (r < 0)
-            {
                 r = 0;
-            }
             else if (r > 255)
-            {
                 r = 255;
-            }
 
             if (g < 0)
-            {
                 g = 0;
-            }
             else if (g > 255)
-            {
                 g = 255;
-            }
 
             if (b < 0)
-            {
                 b = 0;
-            }
             else if (b > 255)
-            {
                 b = 255;
-            }
 
             return new[] { Convert.ToByte(a), Convert.ToByte(r), Convert.ToByte(g), Convert.ToByte(b) };
         }
         private static Color GetColorCapped(int a, int r, int g, int b)
         {
             if (a < 0)
-            {
                 a = 0;
-            }
             else if (a > 255)
-            {
                 a = 255;
-            }
 
             if (r < 0)
-            {
                 r = 0;
-            }
             else if (r > 255)
-            {
                 r = 255;
-            }
 
             if (g < 0)
-            {
                 g = 0;
-            }
             else if (g > 255)
-            {
                 g = 255;
-            }
 
             if (b < 0)
-            {
                 b = 0;
-            }
             else if (b > 255)
-            {
                 b = 255;
-            }
 
             return Color.FromArgb(Convert.ToByte(a), Convert.ToByte(r), Convert.ToByte(g), Convert.ToByte(b));
         }
         private static byte[] GetColorCapped_Bytes(int a, int r, int g, int b)
         {
             if (a < 0)
-            {
                 a = 0;
-            }
             else if (a > 255)
-            {
                 a = 255;
-            }
 
             if (r < 0)
-            {
                 r = 0;
-            }
             else if (r > 255)
-            {
                 r = 255;
-            }
 
             if (g < 0)
-            {
                 g = 0;
-            }
             else if (g > 255)
-            {
                 g = 255;
-            }
 
             if (b < 0)
-            {
                 b = 0;
-            }
             else if (b > 255)
-            {
                 b = 255;
-            }
 
             return new[] { Convert.ToByte(a), Convert.ToByte(r), Convert.ToByte(g), Convert.ToByte(b) };
         }
@@ -6652,17 +6597,13 @@ namespace Game.Math_WPF.WPF
         private static byte GetByteCapped(double value)
         {
             if (value < 0)
-            {
                 return 0;
-            }
+
             else if (value > 255)
-            {
                 return 255;
-            }
+
             else
-            {
                 return Convert.ToByte(value);
-            }
         }
 
         // For speed reasons, the code was duplicated
@@ -6677,9 +6618,7 @@ namespace Game.Math_WPF.WPF
                 Point3D[] positions = meshes[cntr].Positions.ToArray();
 
                 if (transforms != null && transforms[cntr] != null)
-                {
                     transforms[cntr].Transform(positions);
-                }
 
                 allPointsList.AddRange(positions);
             }
@@ -6699,9 +6638,7 @@ namespace Game.Math_WPF.WPF
                 //string report = mesh.ReportGeometry();
 
                 if (mesh.TriangleIndices.Count % 3 != 0)
-                {
                     throw new ArgumentException("The mesh's triangle indicies need to be divisible by 3");
-                }
 
                 int numTriangles = mesh.TriangleIndices.Count / 3;
 
@@ -6715,9 +6652,7 @@ namespace Game.Math_WPF.WPF
 
                     double normalLength = triangle.NormalLength;
                     if (!Math1D.IsNearZero(normalLength) && !Math1D.IsInvalid(normalLength))      // don't include bad triangles (the mesh seems to be ok with bad triangles, so just skip them)
-                    {
                         retVal.Add(triangle);
-                    }
                 }
 
                 posOffset += mesh.Positions.Count;
@@ -6745,9 +6680,7 @@ namespace Game.Math_WPF.WPF
                 Point3D[] positions = meshes[m].Positions.ToArray();
 
                 if (transforms != null && transforms[m] != null)
-                {
                     transforms[m].Transform(positions);
-                }
 
                 for (int p = 0; p < positions.Length; p++)
                 {
@@ -6782,9 +6715,7 @@ namespace Game.Math_WPF.WPF
                 //string report = mesh.ReportGeometry();
 
                 if (mesh.TriangleIndices.Count % 3 != 0)
-                {
                     throw new ArgumentException("The mesh's triangle indicies need to be divisible by 3");
-                }
 
                 int numTriangles = mesh.TriangleIndices.Count / 3;
 
@@ -6798,9 +6729,7 @@ namespace Game.Math_WPF.WPF
 
                     double normalLength = triangle.NormalLength;
                     if (!Math1D.IsNearZero(normalLength) && !Math1D.IsInvalid(normalLength))      // don't include bad triangles (the mesh seems to be ok with bad triangles, so just skip them)
-                    {
                         retVal.Add(triangle);
-                    }
                 }
 
                 posOffset += mesh.Positions.Count;
@@ -6813,13 +6742,9 @@ namespace Game.Math_WPF.WPF
 
         private static int IndexOfDupe(List<Point3D> points, Point3D test)
         {
-            for (int cntr = 0; cntr < points.Count; cntr++)
-            {
-                if (Math3D.IsNearValue(points[cntr], test))
-                {
-                    return cntr;
-                }
-            }
+            for (int i = 0; i < points.Count; i++)
+                if (Math3D.IsNearValue(points[i], test))
+                    return i;
 
             return -1;
         }
@@ -6942,14 +6867,7 @@ namespace Game.Math_WPF.WPF
 
                 DiffuseMaterial materialCast1 = (DiffuseMaterial)material;
 
-                if (materialCast1.Brush == null)
-                {
-                    embeddedBrush = new SolidColorBrush(materialCast1.AmbientColor);
-                }
-                else
-                {
-                    embeddedBrush = materialCast1.Brush;
-                }
+                embeddedBrush = materialCast1.Brush ?? new SolidColorBrush(materialCast1.AmbientColor);
 
                 newBrush = new DrawingBrush(new GeometryDrawing(embeddedBrush, null, textGeometry));
 
@@ -6977,14 +6895,7 @@ namespace Game.Math_WPF.WPF
 
                 EmissiveMaterial materialCast3 = (EmissiveMaterial)material;
 
-                if (materialCast3.Brush == null)
-                {
-                    embeddedBrush = new SolidColorBrush(materialCast3.Color);
-                }
-                else
-                {
-                    embeddedBrush = materialCast3.Brush;
-                }
+                embeddedBrush = materialCast3.Brush ?? new SolidColorBrush(materialCast3.Color);
 
                 newBrush = new DrawingBrush(new GeometryDrawing(embeddedBrush, null, textGeometry));
 
@@ -7044,9 +6955,7 @@ namespace Game.Math_WPF.WPF
             finally
             {
                 if (hFont != IntPtr.Zero)
-                {
                     DeleteObject(hFont);
-                }
             }
         }
 
