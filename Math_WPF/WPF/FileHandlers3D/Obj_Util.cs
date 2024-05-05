@@ -16,7 +16,7 @@ namespace Game.Math_WPF.WPF.FileHandlers3D
             // Material
             var front_material = new MaterialGroup();
             front_material.Children.Add(new DiffuseMaterial(UtilityWPF.BrushFromHex("DDD")));
-            front_material.Children.Add(new SpecularMaterial(UtilityWPF.BrushFromHex("20CDCF57"), 6));
+            front_material.Children.Add(new SpecularMaterial(UtilityWPF.BrushFromHex("18CDCF57"), 3));
 
             var back_material = new MaterialGroup();
             back_material.Children.Add(new DiffuseMaterial(UtilityWPF.BrushFromHex("333")));

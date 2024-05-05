@@ -39,7 +39,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             _trackball.EventSource = grdViewPort;       //NOTE:  If this control doesn't have a background color set, the trackball won't see events (I think transparent is ok, just not null)
             _trackball.AllowZoomOnMouseWheel = true;
             _trackball.Mappings.AddRange(TrackBallMapping.GetPrebuilt(TrackBallMapping.PrebuiltMapping.MouseComplete_NoLeft));
-            _trackball.ShouldHitTestOnOrbit = false;
+            _trackball.ShouldHitTestOnOrbit = true;
 
             _errorEffect = new DropShadowEffect()
             {

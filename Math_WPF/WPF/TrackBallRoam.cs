@@ -2359,7 +2359,7 @@ namespace Game.Math_WPF.WPF
         /// This converts the enums into a bunch of mappings
         /// NOTE:  It's ok to add a prebuilt mouse then a prebuilt keyboard
         /// </summary>
-        public static TrackBallMapping[] GetPrebuilt(PrebuiltMapping mapping)
+        public static TrackBallMapping[] GetPrebuilt(PrebuiltMapping mapping, bool middle_is_autopan = false)
         {
             List<TrackBallMapping> retVal = new List<TrackBallMapping>();
 
@@ -2374,7 +2374,7 @@ namespace Game.Math_WPF.WPF
                     #region Complete
 
                     // Get everything except the left
-                    retVal.AddRange(GetPrebuilt(PrebuiltMapping.MouseComplete_NoLeft));
+                    retVal.AddRange(GetPrebuilt(PrebuiltMapping.MouseComplete_NoLeft, true));
 
                     // Left
                     retVal.Add(new TrackBallMapping(CameraMovement.Pan, MouseButton.Left));
@@ -2400,7 +2400,10 @@ namespace Game.Math_WPF.WPF
                     retVal.Add(complexMapping);
                     retVal.Add(new TrackBallMapping(CameraMovement.Zoom, MouseButton.Middle, new Key[] { Key.LeftShift, Key.RightShift }));
 
-                    retVal.Add(new TrackBallMapping(CameraMovement.Pan_AutoScroll, MouseButton.Middle));
+                    if (middle_is_autopan)
+                        retVal.Add(new TrackBallMapping(CameraMovement.Pan_AutoScroll, MouseButton.Middle));
+                    else
+                        retVal.Add(new TrackBallMapping(CameraMovement.Pan, MouseButton.Middle));
 
                     // Left+Right Buttons (emulate middle)
                     complexMapping = new TrackBallMapping(CameraMovement.RotateAroundLookDirection_AutoScroll);

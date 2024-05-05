@@ -42,7 +42,7 @@
                     <ModelVisual3D.Content>
                         <Model3DGroup>
                             <AmbientLight Color="DimGray" />
-                            <DirectionalLight Color="White" Direction="1,-1,-1" />
+                            <DirectionalLight Color="#E0E0E0" Direction="1,-1,-1" />
                             <DirectionalLight Color="#A0A0A0" Direction="-1,1,1" />
                         </Model3DGroup>
                     </ModelVisual3D.Content>
