@@ -28,6 +28,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             // These are for the current object
             string name = null;
+            bool? smooth_shaded = null;
             var vertices = new List<Obj_Vertex>();
             var texture_coords = new List<Vector>();
             var vertex_normals = new List<Vector3D>();
@@ -40,7 +41,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 {
                     if (line.StartsWith('#'))
                     {
-                        if (objects.Count == 0 && !IsDirty(name, vertices, texture_coords, vertex_normals, faces))
+                        if (objects.Count == 0 && !IsDirty(name, smooth_shaded, vertices, texture_coords, vertex_normals, faces))
                         {
                             Match match = Regex.Match(line, @"^#+\s*(?<remainder>.*)");
                             if (match.Success && match.Groups["remainder"].Length > 0)
@@ -56,7 +57,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     switch (matches[0].Value.ToLower())
                     {
                         case "o":
-                            PossiblyAddExistingObject(objects, ref name, vertices, texture_coords, vertex_normals, faces);
+                            PossiblyAddExistingObject(objects, ref name, ref smooth_shaded, vertices, texture_coords, vertex_normals, faces);
                             name = ParseObject(matches, line);
                             break;
 
@@ -72,6 +73,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                             vertex_normals.Add(ParseVertexNormal(matches, line));
                             break;
 
+                        case "s":
+                            smooth_shaded = ParseSmoothShading(matches, line);
+                            break;
+
                         case "f":
                             faces.Add(ParseFace(matches, line));
                             break;
@@ -82,7 +87,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 }
             }
 
-            PossiblyAddExistingObject(objects, ref name, vertices, texture_coords, vertex_normals, faces);
+            PossiblyAddExistingObject(objects, ref name, ref smooth_shaded, vertices, texture_coords, vertex_normals, faces);
 
             return new Obj_File()
             {
@@ -91,27 +96,28 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             };
         }
 
-        private static bool IsDirty(string name, List<Obj_Vertex> vertices, List<Vector> texture_coords, List<Vector3D> vertex_normals, List<Obj_Face> faces)
+        private static bool IsDirty(string name, bool? smooth_shaded, List<Obj_Vertex> vertices, List<Vector> texture_coords, List<Vector3D> vertex_normals, List<Obj_Face> faces)
         {
-            return name != null || vertices.Count > 0 || texture_coords.Count > 0 || vertex_normals.Count > 0 || faces.Count > 0;
+            return name != null || smooth_shaded != null || vertices.Count > 0 || texture_coords.Count > 0 || vertex_normals.Count > 0 || faces.Count > 0;
         }
-        private static void Clear(ref string name, List<Obj_Vertex> vertices, List<Vector> texture_coords, List<Vector3D> vertex_normals, List<Obj_Face> faces)
+        private static void Clear(ref string name, ref bool? smooth_shaded, List<Obj_Vertex> vertices, List<Vector> texture_coords, List<Vector3D> vertex_normals, List<Obj_Face> faces)
         {
             name = null;
+            smooth_shaded = null;
             vertices.Clear();
             texture_coords.Clear();
             vertex_normals.Clear();
             faces.Clear();
         }
 
-        private static void PossiblyAddExistingObject(List<Obj_Object> objects, ref string name, List<Obj_Vertex> vertices, List<Vector> texture_coords, List<Vector3D> vertex_normals, List<Obj_Face> faces)
+        private static void PossiblyAddExistingObject(List<Obj_Object> objects, ref string name, ref bool? smooth_shaded, List<Obj_Vertex> vertices, List<Vector> texture_coords, List<Vector3D> vertex_normals, List<Obj_Face> faces)
         {
-            if (!IsDirty(name, vertices, texture_coords, vertex_normals, faces))
+            if (!IsDirty(name, smooth_shaded, vertices, texture_coords, vertex_normals, faces))
                 return;
 
-            objects.Add(FinishObject(name, vertices, texture_coords, vertex_normals, faces));
+            objects.Add(FinishObject(name, smooth_shaded, vertices, texture_coords, vertex_normals, faces));
 
-            Clear(ref name, vertices, texture_coords, vertex_normals, faces);
+            Clear(ref name, ref smooth_shaded, vertices, texture_coords, vertex_normals, faces);
         }
 
         private static string ParseObject(MatchCollection matches, string line)
@@ -138,7 +144,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             // v x y z [w] r g b
 
             if (!matches.Count.In(4, 5, 7, 8))
-                throw new ApplicationException($"Invalid vertex line\r\n{line}");
+                throw new ApplicationException($"Invalid vertex\r\n{line}");
 
             if (!double.TryParse(matches[1].Value, out double x))
                 throw new ApplicationException($"Couldn't parse x: {matches[1].Value}\r\n{line}");
@@ -178,7 +184,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             // vt u [v] [w]
 
             if (!matches.Count.In(2, 3, 4))
-                throw new ApplicationException($"Invalid vertex texture line\r\n{line}");
+                throw new ApplicationException($"Invalid vertex texture\r\n{line}");
 
             if (!double.TryParse(matches[1].Value, out double u))
                 throw new ApplicationException($"Couldn't parse u: {matches[1].Value}\r\n{line}");
@@ -198,7 +204,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             // vn x y z
 
             if (matches.Count != 4)
-                throw new ApplicationException($"Invalid vertex normal line\r\n{line}");
+                throw new ApplicationException($"Invalid vertex normal\r\n{line}");
 
             if (!double.TryParse(matches[1].Value, out double x))
                 throw new ApplicationException($"Couldn't parse x: {matches[1].Value}\r\n{line}");
@@ -212,12 +218,30 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             return new Vector3D(x, y, z);
         }
 
+        private static bool ParseSmoothShading(MatchCollection matches, string line)
+        {
+            // s 1
+            // s off
+
+            if (matches.Count != 2)
+                throw new ApplicationException($"Invalid smooth shading\r\n{line}");
+
+            if (matches[1].Value.ToLower().In("1", "on", "true", "yes"))
+                return true;
+
+            else if(matches[1].Value.ToLower().In("0", "off", "false", "no"))
+                return false;
+
+            else
+                throw new ApplicationException($"Unknown smooth shading value: {matches[1].Value}\r\n{line}");
+        }
+
         private static Obj_Face ParseFace(MatchCollection matches, string line)
         {
             // f v1 v2 v3 ....
 
             if (matches.Count < 4)
-                throw new ApplicationException($"Invalid face line\r\n{line}");
+                throw new ApplicationException($"Invalid face\r\n{line}");
 
             var points = new List<Obj_Face_Point>();
 
@@ -263,11 +287,12 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             };
         }
 
-        private static Obj_Object FinishObject(string name, List<Obj_Vertex> vertices, List<Vector> texture_coords, List<Vector3D> vertex_normals, List<Obj_Face> faces)
+        private static Obj_Object FinishObject(string name, bool? smooth_shaded, List<Obj_Vertex> vertices, List<Vector> texture_coords, List<Vector3D> vertex_normals, List<Obj_Face> faces)
         {
             return new Obj_Object()
             {
                 Name = name ?? DEFAULT_NAME,
+                SmoothShaded = smooth_shaded,
                 Vertices = vertices.ToArray(),
                 TextureCoordinates = texture_coords.ToArray(),
                 VertexNormals = vertex_normals.ToArray(),
@@ -315,6 +340,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
     public record Obj_Object
     {
         public string Name { get; init; }
+        public bool? SmoothShaded { get; init; }
         public Obj_Vertex[] Vertices { get; init; }
         public Vector[] TextureCoordinates { get; init; }
         public Vector3D[] VertexNormals { get; init; }

@@ -119,6 +119,9 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 return false;
 
 
+            var test = ObjReader.ReadFile(filename);
+
+
             return true;
         }
     }
