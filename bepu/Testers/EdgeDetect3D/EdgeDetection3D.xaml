@@ -16,7 +16,7 @@
             <Setter Property="Margin" Value="4"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
         </Style>
-        
+
         <Style TargetType="Label">
             <Setter Property="Foreground" Value="#FFFFFF"/>
         </Style>
@@ -30,21 +30,43 @@
         </Style>
     </Window.Resources>
 
-    <Grid Background="#999999">
-        <StackPanel Margin="6" HorizontalAlignment="Left" VerticalAlignment="Top">
-            <Border Style="{StaticResource propBorder}">
-                <StackPanel>
-                    <Label x:Name="lblObjFile" Content=".obj file"/>
-                    <TextBox x:Name="txtObjFile" Text="drag/drop file" AllowDrop="True" PreviewDragEnter="txtObjFile_PreviewDragEnter" PreviewDragOver="txtObjFile_PreviewDragEnter" Drop="txtObjFile_Drop" TextChanged="txtObjFile_TextChanged"/>
-                </StackPanel>
-            </Border>
+    <Grid>
+        <Border Name="grdViewPort" Background="#999999">
+            <Viewport3D Name="_viewport" IsHitTestVisible="False">
+                <!-- Camera -->
+                <Viewport3D.Camera>
+                    <PerspectiveCamera x:Name="_camera" Position="0,-36,-12" LookDirection="0,1,0" UpDirection="0,0,1" FieldOfView="45" NearPlaneDistance="0.01"/>
+                </Viewport3D.Camera>
+                <!-- Lights -->
+                <ModelVisual3D>
+                    <ModelVisual3D.Content>
+                        <Model3DGroup>
+                            <AmbientLight Color="DimGray" />
+                            <DirectionalLight Color="White" Direction="1,-1,-1" />
+                            <DirectionalLight Color="#A0A0A0" Direction="-1,1,1" />
+                        </Model3DGroup>
+                    </ModelVisual3D.Content>
+                </ModelVisual3D>
+            </Viewport3D>
+        </Border>
 
-            <Border Style="{StaticResource propBorder}">
+        <Grid HorizontalAlignment="Left" VerticalAlignment="Top">
+            <StackPanel Margin="6" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Border Style="{StaticResource propBorder}">
+                    <StackPanel>
+                        <Label x:Name="lblObjFile" Content=".obj file"/>
+                        <TextBox x:Name="txtObjFile" Text="drag/drop file" AllowDrop="True" PreviewDragEnter="txtObjFile_PreviewDragEnter" PreviewDragOver="txtObjFile_PreviewDragEnter" Drop="txtObjFile_Drop" TextChanged="txtObjFile_TextChanged"/>
+                    </StackPanel>
+                </Border>
+
+                <!--<Border Style="{StaticResource propBorder}">
                 <StackPanel>
                     <Button Content="four point face (convex)" Click="FourPointFace_Convex_Click"/>
                     <Button Content="four point face (concave)" Click="FourPointFace_Concave_Click"/>
                 </StackPanel>
-            </Border>
-        </StackPanel>
+            </Border>-->
+            </StackPanel>
+        </Grid>
+
     </Grid>
 </Window>

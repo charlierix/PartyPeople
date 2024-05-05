@@ -1173,9 +1173,7 @@ namespace Game.Math_WPF.WPF.Viewers
 
                 //TODO: May want a public bool property telling whether to auto set this.  Also do this during Visuals3D change event
                 if (!_wasSetCameraCalled && this.Visuals3D.Count > 0)
-                {
                     AutoSetCamera();
-                }
             }
             catch (Exception ex)
             {
@@ -1413,9 +1411,7 @@ namespace Game.Math_WPF.WPF.Viewers
 
             Tuple<Point3D, Vector3D, Vector3D> cameraPos = GetCameraPosition(points);      // this could return null
             if (cameraPos == null)
-            {
                 cameraPos = Tuple.Create(new Point3D(0, 0, 7), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
-            }
 
             _camera.Position = cameraPos.Item1;
             _camera.LookDirection = cameraPos.Item2;
@@ -1460,13 +1456,10 @@ namespace Game.Math_WPF.WPF.Viewers
         private static Tuple<Point3D, Vector3D, Vector3D> GetCameraPosition(Point3D[] points)
         {
             if (points == null || points.Length == 0)
-            {
                 return null;
-            }
+
             else if (points.Length == 1)
-            {
                 return Tuple.Create(new Point3D(points[0].X, points[0].Y, points[0].Z + 7), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
-            }
 
             Point3D center = Math3D.GetCenter(points);
 
@@ -1509,9 +1502,7 @@ namespace Game.Math_WPF.WPF.Viewers
                 }
 
                 if (points != null)
-                {
                     retVal = retVal.Concat(points);
-                }
             }
 
             return retVal.ToArray();

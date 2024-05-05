@@ -1,9 +1,12 @@
-﻿using Game.Math_WPF.Mathematics;
+﻿using Game.Core;
+using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.FileHandlers3D;
 using Game.Math_WPF.WPF.Viewers;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -16,9 +19,13 @@ namespace Game.Bepu.Testers.EdgeDetect3D
     {
         #region Declaration Section
 
+        private TrackBallRoam _trackball = null;
+
         private readonly DropShadowEffect _errorEffect;
 
         private string _filename = null;
+
+        private List<Visual3D> _visuals = new List<Visual3D>();
 
         #endregion
 
@@ -27,6 +34,12 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         public EdgeDetection3D()
         {
             InitializeComponent();
+
+            _trackball = new TrackBallRoam(_camera);
+            _trackball.EventSource = grdViewPort;       //NOTE:  If this control doesn't have a background color set, the trackball won't see events (I think transparent is ok, just not null)
+            _trackball.AllowZoomOnMouseWheel = true;
+            _trackball.Mappings.AddRange(TrackBallMapping.GetPrebuilt(TrackBallMapping.PrebuiltMapping.MouseComplete_NoLeft));
+            _trackball.ShouldHitTestOnOrbit = false;
 
             _errorEffect = new DropShadowEffect()
             {
@@ -123,127 +136,113 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             }
         }
 
-        private void FourPointFace_Convex_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                Obj_Face_Point[] points =
-                [
-                    new Obj_Face_Point() { Vertex_Index = 0, Vertex = new Obj_Vertex() { Vertex = new Vector3D(0,0,0) }},
-                    new Obj_Face_Point() { Vertex_Index = 1, Vertex = new Obj_Vertex() { Vertex = new Vector3D(1,0,0) }},
-                    new Obj_Face_Point() { Vertex_Index = 2, Vertex = new Obj_Vertex() { Vertex = new Vector3D(1,1,0) }},
-                    new Obj_Face_Point() { Vertex_Index = 3, Vertex = new Obj_Vertex() { Vertex = new Vector3D(0,1,0) }},
-                ];
-
-                var window = new Debug3DWindow()
-                {
-                    Title = "convex 4 point poly",
-                };
-
-                var sizes = Debug3DWindow.GetDrawSizes(2);
-
-                for (int i = 0; i < points.Length; i++)
-                {
-                    window.AddText3D(i.ToString(), new Point3D(points[i].Vertex.Vertex.X, points[i].Vertex.Vertex.Y, -0.2), new Vector3D(0, 0, 1), 0.2, Colors.Black, false);
-                    window.AddDot(points[i].Vertex.Vertex.ToPoint(), sizes.dot, Colors.Black);
-                }
-
-                window.AddLine(points[0].Vertex.Vertex.ToPoint(), points[1].Vertex.Vertex.ToPoint(), sizes.line, Colors.White);
-                window.AddLine(points[1].Vertex.Vertex.ToPoint(), points[2].Vertex.Vertex.ToPoint(), sizes.line, Colors.White);
-                window.AddLine(points[2].Vertex.Vertex.ToPoint(), points[3].Vertex.Vertex.ToPoint(), sizes.line, Colors.White);
-                window.AddLine(points[3].Vertex.Vertex.ToPoint(), points[0].Vertex.Vertex.ToPoint(), sizes.line, Colors.White);
-
-                window.AddLine(points[1].Vertex.Vertex.ToPoint(), points[3].Vertex.Vertex.ToPoint(), sizes.line, Colors.Yellow);
-
-                var triangle1 = new Triangle_wpf(points[0].Vertex.Vertex.ToPoint(), points[1].Vertex.Vertex.ToPoint(), points[3].Vertex.Vertex.ToPoint());
-                var triangle2 = new Triangle_wpf(points[1].Vertex.Vertex.ToPoint(), points[2].Vertex.Vertex.ToPoint(), points[3].Vertex.Vertex.ToPoint());
-
-                window.AddLine(triangle1.GetCenterPoint(), triangle1.GetCenterPoint() + triangle1.NormalUnit, sizes.line, Colors.DarkOliveGreen);
-                window.AddLine(triangle2.GetCenterPoint(), triangle2.GetCenterPoint() + triangle2.NormalUnit, sizes.line, Colors.DarkOliveGreen);
-
-                window.Show();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-        private void FourPointFace_Concave_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                Obj_Face_Point[] points =
-                [
-                    new Obj_Face_Point() { Vertex_Index = 0, Vertex = new Obj_Vertex() { Vertex = new Vector3D(0,0,0) }},
-                    new Obj_Face_Point() { Vertex_Index = 1, Vertex = new Obj_Vertex() { Vertex = new Vector3D(0.2,0.8,0) }},
-                    new Obj_Face_Point() { Vertex_Index = 2, Vertex = new Obj_Vertex() { Vertex = new Vector3D(1,1,0) }},
-                    new Obj_Face_Point() { Vertex_Index = 3, Vertex = new Obj_Vertex() { Vertex = new Vector3D(0,1,0) }},
-                ];
-
-                var window = new Debug3DWindow()
-                {
-                    Title = "concave 4 point poly",
-                };
-
-                var sizes = Debug3DWindow.GetDrawSizes(2);
-
-                for (int i = 0; i < points.Length; i++)
-                {
-                    window.AddText3D(i.ToString(), new Point3D(points[i].Vertex.Vertex.X, points[i].Vertex.Vertex.Y, -0.2), new Vector3D(0, 0, 1), 0.2, Colors.Black, false);
-                    window.AddDot(points[i].Vertex.Vertex.ToPoint(), sizes.dot, Colors.Black);
-                }
-
-                window.AddLine(points[0].Vertex.Vertex.ToPoint(), points[1].Vertex.Vertex.ToPoint(), sizes.line, Colors.White);
-                window.AddLine(points[1].Vertex.Vertex.ToPoint(), points[2].Vertex.Vertex.ToPoint(), sizes.line, Colors.White);
-                window.AddLine(points[2].Vertex.Vertex.ToPoint(), points[3].Vertex.Vertex.ToPoint(), sizes.line, Colors.White);
-                window.AddLine(points[3].Vertex.Vertex.ToPoint(), points[0].Vertex.Vertex.ToPoint(), sizes.line, Colors.White);
-
-                window.AddLine(points[1].Vertex.Vertex.ToPoint(), points[3].Vertex.Vertex.ToPoint(), sizes.line, Colors.Yellow);
-
-                var triangle1 = new Triangle_wpf(points[0].Vertex.Vertex.ToPoint(), points[1].Vertex.Vertex.ToPoint(), points[3].Vertex.Vertex.ToPoint());
-                var triangle2 = new Triangle_wpf(points[1].Vertex.Vertex.ToPoint(), points[2].Vertex.Vertex.ToPoint(), points[3].Vertex.Vertex.ToPoint());
-
-                window.AddLine(triangle1.GetCenterPoint(), triangle1.GetCenterPoint() + triangle1.NormalUnit, sizes.line, Colors.DarkOliveGreen);
-                window.AddLine(triangle2.GetCenterPoint(), triangle2.GetCenterPoint() + triangle2.NormalUnit, sizes.line, Colors.DarkOliveGreen);
-
-                window.Show();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
         #endregion
 
         #region Private Methods
 
         private void UnloadFile()
         {
-
+            _viewport.Children.RemoveAll(_visuals);
+            _visuals.Clear();
         }
         private bool LoadFile(string filename)
         {
             if (!File.Exists(filename))
                 return false;
 
+            UnloadFile();
 
-            var test = Obj_FileReaderWriter.ReadFile(filename);
+            var objects = Obj_FileReaderWriter.ReadFile(filename);
 
+            foreach (var obj in objects.Objects)
+            {
+                _visuals.Add(new ModelVisual3D()
+                {
+                    Content = Obj_Util.ToModel3D(obj),
+                });
 
+                _viewport.Children.Add(_visuals[^1]);
+            }
 
-            // next test would be to create a visual3D for each object in the file (make a helper class for that)
-
-
-
-
-
-
-
-
+            AimCamera();
 
             return true;
         }
+
+        // Copied from Debug3DWindow
+        private void AimCamera()
+        {
+            Point3D[] points = TryGetVisualPoints(_visuals);
+
+            Tuple<Point3D, Vector3D, Vector3D> cameraPos = GetCameraPosition(points);      // this could return null
+            if (cameraPos == null)
+                cameraPos = Tuple.Create(new Point3D(0, 0, 7), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
+
+            _camera.Position = cameraPos.Item1;
+            _camera.LookDirection = cameraPos.Item2;
+            _camera.UpDirection = cameraPos.Item3;
+
+            double distance = _camera.Position.ToVector().Length;
+            double scale = distance * .0214;
+
+            _trackball.PanScale = scale / 10;
+            _trackball.ZoomScale = scale;
+            _trackball.MouseWheelScale = distance * .0007;
+        }
+        private static Tuple<Point3D, Vector3D, Vector3D> GetCameraPosition(Point3D[] points)
+        {
+            if (points == null || points.Length == 0)
+                return null;
+
+            else if (points.Length == 1)
+                return Tuple.Create(new Point3D(points[0].X, points[0].Y, points[0].Z + 7), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
+
+            Point3D center = Math3D.GetCenter(points);
+
+            double[] distances = points.
+                Select(o => (o - center).Length).
+                ToArray();
+
+            //TODO: Use this instead
+            //Math1D.Get_Average_StandardDeviation(distances);
+
+            double avgDist = distances.Average();
+            double maxDist = distances.Max();
+
+            double threeQuarters = UtilityMath.GetScaledValue(avgDist, maxDist, 0, 1, .75);
+
+            double cameraDist = threeQuarters * 2.5;
+
+            // Set camera to look at center, at a distance of X times average
+            return Tuple.Create(new Point3D(center.X, center.Y, center.Z + cameraDist), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
+        }
+        private static Point3D[] TryGetVisualPoints(IEnumerable<Visual3D> visuals)
+        {
+            IEnumerable<Point3D> retVal = new Point3D[0];
+
+            foreach (Visual3D visual in visuals)
+            {
+                Point3D[] points = null;
+                try
+                {
+                    if (visual is ModelVisual3D)
+                    {
+                        ModelVisual3D visualCast = (ModelVisual3D)visual;
+                        points = UtilityWPF.GetPointsFromMesh(visualCast.Content);        // this throws an exception if it doesn't know what kind of model it is
+                    }
+                }
+                catch (Exception)
+                {
+                    points = null;
+                }
+
+                if (points != null)
+                    retVal = retVal.Concat(points);
+            }
+
+            return retVal.ToArray();
+        }
+
 
         #endregion
     }
