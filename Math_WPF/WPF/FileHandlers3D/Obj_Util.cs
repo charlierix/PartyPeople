@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Media.Media3D;
 
-namespace Game.Math_WPF.WPF
+namespace Game.Math_WPF.WPF.FileHandlers3D
 {
     /// <summary>
     /// Class that convert to/from obj_ classes

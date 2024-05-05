@@ -40,7 +40,10 @@
             </Border>
 
             <Border Style="{StaticResource propBorder}">
-                <Button Content="four point face (convex)" Click="FourPointFace_Convex_Click"/>
+                <StackPanel>
+                    <Button Content="four point face (convex)" Click="FourPointFace_Convex_Click"/>
+                    <Button Content="four point face (concave)" Click="FourPointFace_Concave_Click"/>
+                </StackPanel>
             </Border>
         </StackPanel>
     </Grid>
