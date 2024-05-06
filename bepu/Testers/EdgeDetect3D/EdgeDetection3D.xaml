@@ -62,10 +62,10 @@
                 <Border Style="{StaticResource propBorder}">
                 <StackPanel>
                     <Button Content="indexed triangles" Click="IndexedTriangles_Click"/>
-                </StackPanel>
+                        <Button Content="linked triangles" Click="LinkedTriangles_Click"/>
+                    </StackPanel>
             </Border>
             </StackPanel>
         </Grid>
-
     </Grid>
 </Window>

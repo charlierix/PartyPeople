@@ -191,6 +191,42 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private void LinkedTriangles_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_parsed_file == null)
+                {
+                    MessageBox.Show("Need to load a .obj file first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                foreach (var obj in _parsed_file.Objects)
+                {
+                    var triangles = Obj_Util.ToTrianglesIndexed(obj);
+
+                    if (triangles.Length == 0)
+                        continue;
+
+                    var triangles_linked = TriangleIndexedLinked_wpf.ConvertToLinked(triangles, true, false);
+
+
+                    
+
+
+
+
+
+
+
+
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
         #endregion
 

@@ -33,9 +33,9 @@ namespace Game.Math_WPF.Mathematics
         public Triangle_wpf(Point3D point0, Point3D point1, Point3D point2)
         {
             //TODO:  If the property sets have more added to them in the future, do that in this constructor as well
-            //this.Point0 = point0;
-            //this.Point1 = point1;
-            //this.Point2 = point2;
+            //Point0 = point0;
+            //Point1 = point1;
+            //Point2 = point2;
 
             _point0 = point0;
             _point1 = point1;
@@ -105,7 +105,7 @@ namespace Game.Math_WPF.Mathematics
         {
             get
             {
-                return new[] { _point0.Value, _point1.Value, _point2.Value };
+                return [_point0.Value, _point1.Value, _point2.Value];
             }
         }
 
@@ -116,13 +116,13 @@ namespace Game.Math_WPF.Mathematics
                 switch (index)
                 {
                     case 0:
-                        return this.Point0;
+                        return Point0;
 
                     case 1:
-                        return this.Point1;
+                        return Point1;
 
                     case 2:
-                        return this.Point2;
+                        return Point2;
 
                     default:
                         throw new ArgumentOutOfRangeException("index", $"index can only be 0, 1, 2: {index}");
@@ -133,15 +133,15 @@ namespace Game.Math_WPF.Mathematics
                 switch (index)
                 {
                     case 0:
-                        this.Point0 = value;
+                        Point0 = value;
                         break;
 
                     case 1:
-                        this.Point1 = value;
+                        Point1 = value;
                         break;
 
                     case 2:
-                        this.Point2 = value;
+                        Point2 = value;
                         break;
 
                     default:
@@ -160,7 +160,7 @@ namespace Game.Math_WPF.Mathematics
             {
                 if (_normal == null)
                 {
-                    CalculateNormal(out Vector3D normal, out double length, out Vector3D normalUnit, this.Point0, this.Point1, this.Point2);
+                    CalculateNormal(out Vector3D normal, out double length, out Vector3D normalUnit, Point0, Point1, Point2);
 
                     _normal = normal;
                     _normalLength = length;
@@ -180,8 +180,7 @@ namespace Game.Math_WPF.Mathematics
             {
                 if (_normalUnit == null)
                 {
-                    double length;
-                    CalculateNormal(out Vector3D normal, out length, out Vector3D normalUnit, this.Point0, this.Point1, this.Point2);
+                    CalculateNormal(out Vector3D normal, out double length, out Vector3D normalUnit, Point0, Point1, Point2);
 
                     _normal = normal;
                     _normalLength = length;
@@ -194,7 +193,7 @@ namespace Game.Math_WPF.Mathematics
         private double? _normalLength = null;
         /// <summary>
         /// This returns the length of the normal (the area of the triangle)
-        /// NOTE:  Call this if you just want to know the length of the normal, it's cheaper than calling this.Normal.Length, since it's already been calculated
+        /// NOTE:  Call this if you just want to know the length of the normal, it's cheaper than calling Normal.Length, since it's already been calculated
         /// </summary>
         public double NormalLength
         {
@@ -202,7 +201,7 @@ namespace Game.Math_WPF.Mathematics
             {
                 if (_normalLength == null)
                 {
-                    CalculateNormal(out Vector3D normal, out double length, out Vector3D normalUnit, this.Point0, this.Point1, this.Point2);
+                    CalculateNormal(out Vector3D normal, out double length, out Vector3D normalUnit, Point0, Point1, Point2);
 
                     _normal = normal;
                     _normalLength = length;
@@ -219,9 +218,7 @@ namespace Game.Math_WPF.Mathematics
             get
             {
                 if (_planeDistance == null)
-                {
-                    _planeDistance = Math3D.GetPlaneOriginDistance(this.NormalUnit, this.Point0);
-                }
+                    _planeDistance = Math3D.GetPlaneOriginDistance(NormalUnit, Point0);
 
                 return _planeDistance.Value;
             }
@@ -233,9 +230,7 @@ namespace Game.Math_WPF.Mathematics
             get
             {
                 if (_token == null)
-                {
                     _token = TokenGenerator.NextToken();
-                }
 
                 return _token.Value;
             }
@@ -243,7 +238,7 @@ namespace Game.Math_WPF.Mathematics
 
         public Point3D GetCenterPoint()
         {
-            return GetCenterPoint(this.Point0, this.Point1, this.Point2);
+            return GetCenterPoint(Point0, Point1, Point2);
         }
         public Point3D GetPoint(TriangleEdge edge, bool isFrom)
         {
@@ -279,23 +274,17 @@ namespace Game.Math_WPF.Mathematics
         public int CompareTo(ITriangle_wpf other)
         {
             if (other == null)
-            {
                 // this is greater than null
                 return 1;
-            }
 
-            if (this.Token < other.Token)
-            {
+            if (Token < other.Token)
                 return -1;
-            }
-            else if (this.Token > other.Token)
-            {
+
+            else if (Token > other.Token)
                 return 1;
-            }
+
             else
-            {
                 return 0;
-            }
         }
 
         #endregion
@@ -353,100 +342,55 @@ namespace Game.Math_WPF.Mathematics
             switch (edge)
             {
                 case TriangleEdge.Edge_01:
-                    if (isFrom)
-                    {
-                        return triangle.Point0;
-                    }
-                    else
-                    {
-                        return triangle.Point1;
-                    }
+                    return isFrom ? triangle.Point0 : triangle.Point1;
 
                 case TriangleEdge.Edge_12:
-                    if (isFrom)
-                    {
-                        return triangle.Point1;
-                    }
-                    else
-                    {
-                        return triangle.Point2;
-                    }
+                    return isFrom ? triangle.Point1 : triangle.Point2;
 
                 case TriangleEdge.Edge_20:
-                    if (isFrom)
-                    {
-                        return triangle.Point2;
-                    }
-                    else
-                    {
-                        return triangle.Point0;
-                    }
+                    return isFrom ? triangle.Point2 : triangle.Point0;
 
                 default:
-                    throw new ApplicationException("Unknown TriangleEdge: " + edge.ToString());
+                    throw new ApplicationException($"Unknown TriangleEdge: {edge}");
             }
         }
 
         internal static Point3D GetCommonPoint(ITriangle_wpf triangle, TriangleEdge edge0, TriangleEdge edge1)
         {
-            Point3D[] points0 = new Point3D[] { triangle.GetPoint(edge0, true), triangle.GetPoint(edge0, false) };
-            Point3D[] points1 = new Point3D[] { triangle.GetPoint(edge1, true), triangle.GetPoint(edge1, false) };
+            Point3D[] points0 = [triangle.GetPoint(edge0, true), triangle.GetPoint(edge0, false)];
+            Point3D[] points1 = [triangle.GetPoint(edge1, true), triangle.GetPoint(edge1, false)];
 
             // Find exact
-            for (int cntr0 = 0; cntr0 < points0.Length; cntr0++)
-            {
-                for (int cntr1 = 0; cntr1 < points1.Length; cntr1++)
-                {
-                    if (points0[cntr0] == points1[cntr1])
-                    {
-                        return points0[cntr0];
-                    }
-                }
-            }
+            for (int i = 0; i < points0.Length; i++)
+                for (int j = 0; j < points1.Length; j++)
+                    if (points0[i] == points1[j])
+                        return points0[i];
 
             // Find close - execution should never get here, just being safe
-            for (int cntr0 = 0; cntr0 < points0.Length; cntr0++)
-            {
-                for (int cntr1 = 0; cntr1 < points1.Length; cntr1++)
-                {
-                    if (Math3D.IsNearValue(points0[cntr0], points1[cntr1]))
-                    {
-                        return points0[cntr0];
-                    }
-                }
-            }
+            for (int i = 0; i < points0.Length; i++)
+                for (int j = 0; j < points1.Length; j++)
+                    if (Math3D.IsNearValue(points0[i], points1[j]))
+                        return points0[i];
 
             throw new ApplicationException("Didn't find a common point");
         }
 
         internal static Point3D GetUncommonPoint(ITriangle_wpf triangle, TriangleEdge edge0, TriangleEdge edge1)
         {
-            Point3D[] points0 = new Point3D[] { triangle.GetPoint(edge0, true), triangle.GetPoint(edge0, false) };
-            Point3D[] points1 = new Point3D[] { triangle.GetPoint(edge1, true), triangle.GetPoint(edge1, false) };
+            Point3D[] points0 = [triangle.GetPoint(edge0, true), triangle.GetPoint(edge0, false)];
+            Point3D[] points1 = [triangle.GetPoint(edge1, true), triangle.GetPoint(edge1, false)];
 
             // Find exact
-            for (int cntr0 = 0; cntr0 < points0.Length; cntr0++)
-            {
-                for (int cntr1 = 0; cntr1 < points1.Length; cntr1++)
-                {
-                    if (points0[cntr0] == points1[cntr1])
-                    {
-                        return points0[cntr0 == 0 ? 1 : 0];     // return the one that isn't common
-                    }
-                }
-            }
+            for (int i = 0; i < points0.Length; i++)
+                for (int j = 0; j < points1.Length; j++)
+                    if (points0[i] == points1[j])
+                        return points0[i == 0 ? 1 : 0];     // return the one that isn't common
 
             // Find close - execution should never get here, just being safe
-            for (int cntr0 = 0; cntr0 < points0.Length; cntr0++)
-            {
-                for (int cntr1 = 0; cntr1 < points1.Length; cntr1++)
-                {
-                    if (Math3D.IsNearValue(points0[cntr0], points1[cntr1]))
-                    {
-                        return points0[cntr0 == 0 ? 1 : 0];     // return the one that isn't common
-                    }
-                }
-            }
+            for (int i = 0; i < points0.Length; i++)
+                for (int j = 0; j < points1.Length; j++)
+                    if (Math3D.IsNearValue(points0[i], points1[j]))
+                        return points0[i == 0 ? 1 : 0];     // return the one that isn't common
 
             throw new ApplicationException("Didn't find a common point");
         }
@@ -520,9 +464,7 @@ namespace Game.Math_WPF.Mathematics
 
             if (calculateNormalUpFront)
             {
-                Vector3D normal, normalUnit;
-                double length;
-                Triangle_wpf.CalculateNormal(out normal, out length, out normalUnit, point0, point1, point2);
+                Triangle_wpf.CalculateNormal(out Vector3D normal, out double length, out Vector3D normalUnit, point0, point1, point2);
 
                 _normal = normal;
                 _normalLength = length;
@@ -546,39 +488,15 @@ namespace Game.Math_WPF.Mathematics
         #region ITriangle Members
 
         private readonly Point3D _point0;
-        public Point3D Point0
-        {
-            get
-            {
-                return _point0;
-            }
-        }
+        public Point3D Point0 => _point0;
 
         private readonly Point3D _point1;
-        public Point3D Point1
-        {
-            get
-            {
-                return _point1;
-            }
-        }
+        public Point3D Point1 => _point1;
 
         private readonly Point3D _point2;
-        public Point3D Point2
-        {
-            get
-            {
-                return _point2;
-            }
-        }
+        public Point3D Point2 => _point2;
 
-        public Point3D[] PointArray
-        {
-            get
-            {
-                return new[] { _point0, _point1, _point2 };
-            }
-        }
+        public Point3D[] PointArray => [_point0, _point1, _point2];
 
         public Point3D this[int index]
         {
@@ -587,16 +505,16 @@ namespace Game.Math_WPF.Mathematics
                 switch (index)
                 {
                     case 0:
-                        return this.Point0;
+                        return Point0;
 
                     case 1:
-                        return this.Point1;
+                        return Point1;
 
                     case 2:
-                        return this.Point2;
+                        return Point2;
 
                     default:
-                        throw new ArgumentOutOfRangeException("index", "index can only be 0, 1, 2: " + index.ToString());
+                        throw new ArgumentOutOfRangeException("index", $"index can only be 0, 1, 2: {index}");
                 }
             }
         }
@@ -609,14 +527,9 @@ namespace Game.Math_WPF.Mathematics
         {
             get
             {
-                if (_normal == null)
-                {
-                    return Vector3D.CrossProduct(_point2 - _point1, _point0 - _point1);
-                }
-                else
-                {
-                    return _normal.Value;
-                }
+                return _normal == null ?
+                    Vector3D.CrossProduct(_point2 - _point1, _point0 - _point1) :
+                    _normal.Value;
             }
         }
         private readonly Vector3D? _normalUnit;
@@ -629,10 +542,7 @@ namespace Game.Math_WPF.Mathematics
             {
                 if (_normalUnit == null)
                 {
-                    Vector3D normal, normalUnit;
-                    double length;
-                    Triangle_wpf.CalculateNormal(out normal, out length, out normalUnit, _point0, _point1, _point2);
-
+                    Triangle_wpf.CalculateNormal(out _, out _, out Vector3D normalUnit, _point0, _point1, _point2);
                     return normalUnit;
                 }
                 else
@@ -644,7 +554,7 @@ namespace Game.Math_WPF.Mathematics
         private readonly double? _normalLength;
         /// <summary>
         /// This returns the length of the normal (the area of the triangle)
-        /// NOTE:  Call this if you just want to know the length of the normal, it's cheaper than calling this.Normal.Length, since it's already been calculated
+        /// NOTE:  Call this if you just want to know the length of the normal, it's cheaper than calling Normal.Length, since it's already been calculated
         /// </summary>
         public double NormalLength
         {
@@ -652,10 +562,7 @@ namespace Game.Math_WPF.Mathematics
             {
                 if (_normalLength == null)
                 {
-                    Vector3D normal, normalUnit;
-                    double length;
-                    Triangle_wpf.CalculateNormal(out normal, out length, out normalUnit, _point0, _point1, _point2);
-
+                    Triangle_wpf.CalculateNormal(out _, out double length, out _, _point0, _point1, _point2);
                     return length;
                 }
                 else
@@ -670,25 +577,14 @@ namespace Game.Math_WPF.Mathematics
         {
             get
             {
-                if (_planeDistance == null)
-                {
-                    return Math3D.GetPlaneOriginDistance(this.NormalUnit, _point0);
-                }
-                else
-                {
-                    return _planeDistance.Value;
-                }
+                return _planeDistance == null ?
+                    Math3D.GetPlaneOriginDistance(NormalUnit, _point0) :
+                    _planeDistance.Value;
             }
         }
 
         private readonly long _token;
-        public long Token
-        {
-            get
-            {
-                return _token;
-            }
-        }
+        public long Token => _token;
 
         public Point3D GetCenterPoint()
         {
@@ -728,23 +624,17 @@ namespace Game.Math_WPF.Mathematics
         public int CompareTo(ITriangle_wpf other)
         {
             if (other == null)
-            {
                 // I'm greater than null
                 return 1;
-            }
 
-            if (this.Token < other.Token)
-            {
+            if (Token < other.Token)
                 return -1;
-            }
-            else if (this.Token > other.Token)
-            {
+
+            else if (Token > other.Token)
                 return 1;
-            }
+
             else
-            {
                 return 0;
-            }
         }
 
         #endregion
@@ -756,7 +646,7 @@ namespace Game.Math_WPF.Mathematics
         /// </summary>
         public override string ToString()
         {
-            return string.Format("({0}) ({1}) ({2})", _point0.ToString(2), _point1.ToString(2), _point2.ToString(2));
+            return $"({_point0}) ({_point1}) ({_point2})";
         }
 
         #endregion
@@ -798,27 +688,9 @@ namespace Game.Math_WPF.Mathematics
 
         #region ITriangle Members
 
-        public Point3D Point0
-        {
-            get
-            {
-                return _allPoints[_index0];
-            }
-        }
-        public Point3D Point1
-        {
-            get
-            {
-                return _allPoints[_index1];
-            }
-        }
-        public Point3D Point2
-        {
-            get
-            {
-                return _allPoints[_index2];
-            }
-        }
+        public Point3D Point0 => _allPoints[_index0];
+        public Point3D Point1 => _allPoints[_index1];
+        public Point3D Point2 => _allPoints[_index2];
 
         private Point3D[] _pointArray;
         public Point3D[] PointArray
@@ -828,9 +700,7 @@ namespace Game.Math_WPF.Mathematics
                 lock (_lock)
                 {
                     if (_pointArray == null)
-                    {
-                        _pointArray = new[] { this.Point0, this.Point1, this.Point2 };
-                    }
+                        _pointArray = [Point0, Point1, Point2];
 
                     return _pointArray;
                 }
@@ -853,7 +723,7 @@ namespace Game.Math_WPF.Mathematics
                         return _allPoints[_index2];
 
                     default:
-                        throw new ArgumentOutOfRangeException("index", "index can only be 0, 1, 2: " + index.ToString());
+                        throw new ArgumentOutOfRangeException("index", $"index can only be 0, 1, 2: {index}");
                 }
             }
         }
@@ -870,9 +740,7 @@ namespace Game.Math_WPF.Mathematics
                 {
                     if (_normal == null)
                     {
-                        Vector3D normal, normalUnit;
-                        double length;
-                        Triangle_wpf.CalculateNormal(out normal, out length, out normalUnit, this.Point0, this.Point1, this.Point2);
+                        Triangle_wpf.CalculateNormal(out Vector3D normal, out double length, out Vector3D normalUnit, Point0, Point1, Point2);
 
                         _normal = normal;
                         _normalLength = length;
@@ -895,9 +763,7 @@ namespace Game.Math_WPF.Mathematics
                 {
                     if (_normalUnit == null)
                     {
-                        Vector3D normal, normalUnit;
-                        double length;
-                        Triangle_wpf.CalculateNormal(out normal, out length, out normalUnit, this.Point0, this.Point1, this.Point2);
+                        Triangle_wpf.CalculateNormal(out Vector3D normal, out double length, out Vector3D normalUnit, Point0, Point1, Point2);
 
                         _normal = normal;
                         _normalLength = length;
@@ -911,7 +777,7 @@ namespace Game.Math_WPF.Mathematics
         private double? _normalLength = null;
         /// <summary>
         /// This returns the length of the normal (the area of the triangle)
-        /// NOTE:  Call this if you just want to know the length of the normal, it's cheaper than calling this.Normal.Length, since it's already been calculated
+        /// NOTE:  Call this if you just want to know the length of the normal, it's cheaper than calling Normal.Length, since it's already been calculated
         /// </summary>
         public double NormalLength
         {
@@ -921,9 +787,7 @@ namespace Game.Math_WPF.Mathematics
                 {
                     if (_normalLength == null)
                     {
-                        Vector3D normal, normalUnit;
-                        double length;
-                        Triangle_wpf.CalculateNormal(out normal, out length, out normalUnit, this.Point0, this.Point1, this.Point2);
+                        Triangle_wpf.CalculateNormal(out Vector3D normal, out double length, out Vector3D normalUnit, Point0, Point1, Point2);
 
                         _normal = normal;
                         _normalLength = length;
@@ -946,16 +810,14 @@ namespace Game.Math_WPF.Mathematics
                     {
                         if (_normalUnit == null)
                         {
-                            Vector3D normal, normalUnit;
-                            double length;
-                            Triangle_wpf.CalculateNormal(out normal, out length, out normalUnit, this.Point0, this.Point1, this.Point2);
+                            Triangle_wpf.CalculateNormal(out Vector3D normal, out double length, out Vector3D normalUnit, Point0, Point1, Point2);
 
                             _normal = normal;
                             _normalLength = length;
                             _normalUnit = normalUnit;
                         }
 
-                        _planeDistance = Math3D.GetPlaneOriginDistance(_normalUnit.Value, this.Point0);
+                        _planeDistance = Math3D.GetPlaneOriginDistance(_normalUnit.Value, Point0);
                     }
 
                     return _planeDistance.Value;
@@ -971,9 +833,7 @@ namespace Game.Math_WPF.Mathematics
                 lock (_lock)
                 {
                     if (_token == null)
-                    {
                         _token = TokenGenerator.NextToken();
-                    }
 
                     return _token.Value;
                 }
@@ -982,7 +842,7 @@ namespace Game.Math_WPF.Mathematics
 
         public Point3D GetCenterPoint()
         {
-            return Triangle_wpf.GetCenterPoint(this.Point0, this.Point1, this.Point2);
+            return Triangle_wpf.GetCenterPoint(Point0, Point1, Point2);
         }
         public Point3D GetPoint(TriangleEdge edge, bool isFrom)
         {
@@ -1013,44 +873,20 @@ namespace Game.Math_WPF.Mathematics
         #region ITriangleIndexed Members
 
         private readonly int _index0;
-        public int Index0
-        {
-            get
-            {
-                return _index0;
-            }
-        }
+        public int Index0 => _index0;
 
         private readonly int _index1;
-        public int Index1
-        {
-            get
-            {
-                return _index1;
-            }
-        }
+        public int Index1 => _index1;
 
         private readonly int _index2;
-        public int Index2
-        {
-            get
-            {
-                return _index2;
-            }
-        }
+        public int Index2 => _index2;
 
         private readonly Point3D[] _allPoints;
-        public Point3D[] AllPoints
-        {
-            get
-            {
-                return _allPoints;
-            }
-        }
+        public Point3D[] AllPoints => _allPoints;
 
         private int[] _indexArray = null;
         /// <summary>
-        /// This returns an array (element 0 is this.Index0, etc)
+        /// This returns an array (element 0 is Index0, etc)
         /// NOTE:  This is readonly - any changes to this array won't be reflected by this class
         /// </summary>
         public int[] IndexArray
@@ -1060,9 +896,7 @@ namespace Game.Math_WPF.Mathematics
                 lock (_lock)
                 {
                     if (_indexArray == null)
-                    {
-                        _indexArray = new int[] { this.Index0, this.Index1, this.Index2 };
-                    }
+                        _indexArray = [Index0, Index1, Index2];
 
                     return _indexArray;
                 }
@@ -1074,16 +908,16 @@ namespace Game.Math_WPF.Mathematics
             switch (whichIndex)
             {
                 case 0:
-                    return this.Index0;
+                    return Index0;
 
                 case 1:
-                    return this.Index1;
+                    return Index1;
 
                 case 2:
-                    return this.Index2;
+                    return Index2;
 
                 default:
-                    throw new ArgumentOutOfRangeException("whichIndex", "whichIndex can only be 0, 1, 2: " + whichIndex.ToString());
+                    throw new ArgumentOutOfRangeException("whichIndex", $"whichIndex can only be 0, 1, 2: {whichIndex}");
             }
         }
         public int GetIndex(TriangleEdge edge, bool isFrom)
@@ -1091,72 +925,39 @@ namespace Game.Math_WPF.Mathematics
             switch (edge)
             {
                 case TriangleEdge.Edge_01:
-                    if (isFrom)
-                    {
-                        return this.Index0;
-                    }
-                    else
-                    {
-                        return this.Index1;
-                    }
+                    return isFrom ? Index0 : Index1;
 
                 case TriangleEdge.Edge_12:
-                    if (isFrom)
-                    {
-                        return this.Index1;
-                    }
-                    else
-                    {
-                        return this.Index2;
-                    }
+                    return isFrom ? Index1 : Index2;
 
                 case TriangleEdge.Edge_20:
-                    if (isFrom)
-                    {
-                        return this.Index2;
-                    }
-                    else
-                    {
-                        return this.Index0;
-                    }
+                    return isFrom ? Index2 : Index0;
 
                 default:
-                    throw new ApplicationException("Unknown TriangleEdge: " + edge.ToString());
+                    throw new ApplicationException($"Unknown TriangleEdge: {edge}");
             }
         }
         public int GetCommonIndex(TriangleEdge edge0, TriangleEdge edge1)
         {
-            int[] indices0 = new int[] { this.GetIndex(edge0, true), this.GetIndex(edge0, false) };
-            int[] indices1 = new int[] { this.GetIndex(edge1, true), this.GetIndex(edge1, false) };
+            int[] indices0 = [GetIndex(edge0, true), GetIndex(edge0, false)];
+            int[] indices1 = [GetIndex(edge1, true), GetIndex(edge1, false)];
 
             for (int cntr0 = 0; cntr0 < indices0.Length; cntr0++)
-            {
                 for (int cntr1 = 0; cntr1 < indices1.Length; cntr1++)
-                {
                     if (indices0[cntr0] == indices1[cntr1])
-                    {
                         return indices0[cntr0];
-                    }
-                }
-            }
 
             throw new ApplicationException("Didn't find a common index");
         }
         public int GetUncommonIndex(TriangleEdge edge0, TriangleEdge edge1)
         {
-            int[] indices0 = new int[] { this.GetIndex(edge0, true), this.GetIndex(edge0, false) };
-            int[] indices1 = new int[] { this.GetIndex(edge1, true), this.GetIndex(edge1, false) };
+            int[] indices0 = [GetIndex(edge0, true), GetIndex(edge0, false)];
+            int[] indices1 = [GetIndex(edge1, true), GetIndex(edge1, false)];
 
             for (int cntr0 = 0; cntr0 < indices0.Length; cntr0++)
-            {
                 for (int cntr1 = 0; cntr1 < indices1.Length; cntr1++)
-                {
                     if (indices0[cntr0] == indices1[cntr1])
-                    {
                         return indices0[cntr0 == 0 ? 1 : 0];        // return the one that isn't common
-                    }
-                }
-            }
 
             throw new ApplicationException("Didn't find a common index");
         }
@@ -1165,16 +966,16 @@ namespace Game.Math_WPF.Mathematics
             switch (edge)
             {
                 case TriangleEdge.Edge_01:
-                    return this.Index2;
+                    return Index2;
 
                 case TriangleEdge.Edge_12:
-                    return this.Index0;
+                    return Index0;
 
                 case TriangleEdge.Edge_20:
-                    return this.Index1;
+                    return Index1;
 
                 default:
-                    throw new ApplicationException("Unknown TriangleEdge: " + edge.ToString());
+                    throw new ApplicationException($"Unknown TriangleEdge: {edge}");
             }
         }
 
@@ -1187,23 +988,16 @@ namespace Game.Math_WPF.Mathematics
         public int CompareTo(ITriangle_wpf other)
         {
             if (other == null)
-            {
-                // I'm greater than null
-                return 1;
-            }
+                return 1;       // greater than null
 
-            if (this.Token < other.Token)
-            {
+            if (Token < other.Token)
                 return -1;
-            }
-            else if (this.Token > other.Token)
-            {
+
+            else if (Token > other.Token)
                 return 1;
-            }
+
             else
-            {
                 return 0;
-            }
         }
 
         #endregion
@@ -1212,7 +1006,7 @@ namespace Game.Math_WPF.Mathematics
 
         public Triangle_wpf ToTriangle()
         {
-            return new Triangle_wpf(this.Point0, this.Point1, this.Point2);
+            return new Triangle_wpf(Point0, Point1, Point2);
         }
 
         /// <summary>
@@ -1225,9 +1019,9 @@ namespace Game.Math_WPF.Mathematics
                 _index1.ToString(),
                 _index2.ToString(),
 
-                this.Point0.ToString(2),
-                this.Point1.ToString(2),
-                this.Point2.ToString(2));
+                Point0.ToString(2),
+                Point1.ToString(2),
+                Point2.ToString(2));
         }
 
         /// <summary>
@@ -1236,19 +1030,14 @@ namespace Game.Math_WPF.Mathematics
         public static ITriangleIndexed_wpf[] Clone_CondensePoints(ITriangleIndexed_wpf[] triangles)
         {
             // Analize the points
-            Point3D[] allUsedPoints;
-            SortedList<int, int> oldToNewIndex;
-            GetCondensedPointMap(out allUsedPoints, out oldToNewIndex, triangles);
+            GetCondensedPointMap(out Point3D[] allUsedPoints, out SortedList<int, int> oldToNewIndex, triangles);
 
             // Make new triangles that only have the used points
             TriangleIndexed_wpf[] retVal = new TriangleIndexed_wpf[triangles.Length];
 
             for (int cntr = 0; cntr < triangles.Length; cntr++)
-            {
                 retVal[cntr] = new TriangleIndexed_wpf(oldToNewIndex[triangles[cntr].Index0], oldToNewIndex[triangles[cntr].Index1], oldToNewIndex[triangles[cntr].Index2], allUsedPoints);
-            }
 
-            // Exit Function
             return retVal;
         }
 
@@ -1258,9 +1047,7 @@ namespace Game.Math_WPF.Mathematics
         public static ITriangleIndexed_wpf[] Clone_Transformed(ITriangleIndexed_wpf[] triangles, Transform3D transform)
         {
             if (triangles == null)
-            {
                 return new TriangleIndexed_wpf[0];
-            }
 
             Point3D[] transformedPoints = triangles[0].AllPoints.
                 Select(o => transform.Transform(o)).
@@ -1276,7 +1063,7 @@ namespace Game.Math_WPF.Mathematics
         /// </summary>
         public static Tuple<int, int>[] GetUniqueLines(IEnumerable<ITriangleIndexed_wpf> triangles)
         {
-            List<Tuple<int, int>> retVal = new List<Tuple<int, int>>();
+            var retVal = new List<Tuple<int, int>>();
 
             foreach (ITriangleIndexed_wpf triangle in triangles)
             {
@@ -1295,15 +1082,11 @@ namespace Game.Math_WPF.Mathematics
         public static Point3D[] GetUsedPoints(IEnumerable<ITriangleIndexed_wpf> triangles, bool forcePointCompare = false)
         {
             if (forcePointCompare)
-            {
                 return Triangle_wpf.GetUniquePoints(triangles);
-            }
 
             ITriangleIndexed_wpf first = triangles.FirstOrDefault();
             if (first == null)
-            {
-                return new Point3D[0];
-            }
+                return [];
 
             Point3D[] allPoints = first.AllPoints;
 
@@ -1320,14 +1103,12 @@ namespace Game.Math_WPF.Mathematics
         /// </summary>
         public static Point3D[] GetUsedPoints(IEnumerable<IEnumerable<ITriangleIndexed_wpf>> triangleSets, bool forcePointCompare = false)
         {
-            List<Point3D> retVal = new List<Point3D>();
+            var retVal = new List<Point3D>();
 
             var pointCompare = new Func<Point3D, Point3D, bool>((p1, p2) => Math3D.IsNearValue(p1, p2));
 
             foreach (var set in triangleSets)
-            {
                 retVal.AddRangeUnique(TriangleIndexed_wpf.GetUsedPoints(set, forcePointCompare), pointCompare);
-            }
 
             return retVal.ToArray();
         }
@@ -1335,17 +1116,13 @@ namespace Game.Math_WPF.Mathematics
         public static TriangleIndexed_wpf[] ConvertToIndexed(ITriangle_wpf[] triangles)
         {
             // Find the unique points
-            Point3D[] points;
-            Tuple<int, int, int>[] map;
-            GetPointsAndIndices(out points, out map, triangles);
+            GetPointsAndIndices(out Point3D[] points, out Tuple<int, int, int>[] map, triangles);
 
-            TriangleIndexed_wpf[] retVal = new TriangleIndexed_wpf[triangles.Length];
+            var retVal = new TriangleIndexed_wpf[triangles.Length];
 
             // Turn the map into triangles
             for (int cntr = 0; cntr < triangles.Length; cntr++)
-            {
                 retVal[cntr] = new TriangleIndexed_wpf(map[cntr].Item1, map[cntr].Item2, map[cntr].Item3, points);
-            }
 
             return retVal;
         }
@@ -1356,9 +1133,7 @@ namespace Game.Math_WPF.Mathematics
         public void PointsChanged()
         {
             lock (_lock)
-            {
                 OnPointChanged();
-            }
         }
 
         #endregion
@@ -1387,21 +1162,13 @@ namespace Game.Math_WPF.Mathematics
         {
             // Try exact
             for (int cntr = 0; cntr < points.Count; cntr++)
-            {
                 if (points[cntr] == newPoint)
-                {
                     return cntr;
-                }
-            }
 
             // Try close
             for (int cntr = 0; cntr < points.Count; cntr++)
-            {
                 if (Math3D.IsNearValue(points[cntr], newPoint))
-                {
                     return cntr;
-                }
-            }
 
             // It's unique, add it
             points.Add(newPoint);
@@ -1454,9 +1221,7 @@ namespace Game.Math_WPF.Mathematics
             // Build the map
             oldToNewIndex = new SortedList<int, int>();
             for (int cntr = 0; cntr < allUsedIndices.Length; cntr++)
-            {
                 oldToNewIndex.Add(allUsedIndices[cntr], cntr);
-            }
         }
 
         #endregion
@@ -1506,69 +1271,57 @@ namespace Game.Math_WPF.Mathematics
         #region Public Properties
 
         // These neighbors share one vertex
-        private Tuple<TriangleIndexedLinked_wpf, int, TriangleCorner>[] _neighbor_0 = null;
+        private TriangleIndexedLinked_CornerNeighbor[] _neighbor_0 = null;
         /// <summary>
-        /// These are the other triangles that share the same point with this.Index0
+        /// These are the other triangles that share the same point with Index0
         /// </summary>
-        public Tuple<TriangleIndexedLinked_wpf, int, TriangleCorner>[] Neighbor_0
+        public TriangleIndexedLinked_CornerNeighbor[] Neighbor_0
         {
             get
             {
                 lock (_lock)
-                {
                     return _neighbor_0;
-                }
             }
             set
             {
                 lock (_lock)
-                {
                     _neighbor_0 = value;
-                }
             }
         }
 
-        private Tuple<TriangleIndexedLinked_wpf, int, TriangleCorner>[] _neighbor_1 = null;
+        private TriangleIndexedLinked_CornerNeighbor[] _neighbor_1 = null;
         /// <summary>
-        /// These are the other triangles that share the same point with this.Index1
+        /// These are the other triangles that share the same point with Index1
         /// </summary>
-        public Tuple<TriangleIndexedLinked_wpf, int, TriangleCorner>[] Neighbor_1
+        public TriangleIndexedLinked_CornerNeighbor[] Neighbor_1
         {
             get
             {
                 lock (_lock)
-                {
                     return _neighbor_1;
-                }
             }
             set
             {
                 lock (_lock)
-                {
                     _neighbor_1 = value;
-                }
             }
         }
 
-        private Tuple<TriangleIndexedLinked_wpf, int, TriangleCorner>[] _neighbor_2 = null;
+        private TriangleIndexedLinked_CornerNeighbor[] _neighbor_2 = null;
         /// <summary>
-        /// These are the other triangles that share the same point with this.Index2
+        /// These are the other triangles that share the same point with Index2
         /// </summary>
-        public Tuple<TriangleIndexedLinked_wpf, int, TriangleCorner>[] Neighbor_2
+        public TriangleIndexedLinked_CornerNeighbor[] Neighbor_2
         {
             get
             {
                 lock (_lock)
-                {
                     return _neighbor_2;
-                }
             }
             set
             {
                 lock (_lock)
-                {
                     _neighbor_2 = value;
-                }
             }
         }
 
@@ -1580,16 +1333,12 @@ namespace Game.Math_WPF.Mathematics
             get
             {
                 lock (_lock)
-                {
                     return _neighbor_01;
-                }
             }
             set
             {
                 lock (_lock)
-                {
                     _neighbor_01 = value;
-                }
             }
         }
 
@@ -1599,16 +1348,12 @@ namespace Game.Math_WPF.Mathematics
             get
             {
                 lock (_lock)
-                {
                     return _neighbor_12;
-                }
             }
             set
             {
                 lock (_lock)
-                {
                     _neighbor_12 = value;
-                }
             }
         }
 
@@ -1618,23 +1363,19 @@ namespace Game.Math_WPF.Mathematics
             get
             {
                 lock (_lock)
-                {
                     return _neighbor_20;
-                }
             }
             set
             {
                 lock (_lock)
-                {
                     _neighbor_20 = value;
-                }
             }
         }
 
         private int[] _indexArraySorted = null;
         /// <summary>
         /// This returns a sorted array (useful for comparing triangles)
-        /// NOTE:  This is readonly - any changes to this array won't be reflected by this class
+        /// NOTE: This is readonly - any changes to this array won't be reflected by this class
         /// </summary>
         public int[] IndexArraySorted
         {
@@ -1644,7 +1385,7 @@ namespace Game.Math_WPF.Mathematics
                 {
                     if (_indexArraySorted == null)
                     {
-                        _indexArraySorted = new int[] { this.Index0, this.Index1, this.Index2 }.
+                        _indexArraySorted = new int[] { Index0, Index1, Index2 }.
                             OrderBy(o => o).
                             ToArray();
                     }
@@ -1664,13 +1405,13 @@ namespace Game.Math_WPF.Mathematics
             switch (edge)
             {
                 case TriangleEdge.Edge_01:
-                    return this.Neighbor_01;
+                    return Neighbor_01;
 
                 case TriangleEdge.Edge_12:
-                    return this.Neighbor_12;
+                    return Neighbor_12;
 
                 case TriangleEdge.Edge_20:
-                    return this.Neighbor_20;
+                    return Neighbor_20;
 
                 default:
                     throw new ApplicationException("Unknown TriangleEdge: " + edge.ToString());
@@ -1681,56 +1422,51 @@ namespace Game.Math_WPF.Mathematics
             switch (edge)
             {
                 case TriangleEdge.Edge_01:
-                    this.Neighbor_01 = neighbor;
+                    Neighbor_01 = neighbor;
                     break;
 
                 case TriangleEdge.Edge_12:
-                    this.Neighbor_12 = neighbor;
+                    Neighbor_12 = neighbor;
                     break;
 
                 case TriangleEdge.Edge_20:
-                    this.Neighbor_20 = neighbor;
+                    Neighbor_20 = neighbor;
                     break;
 
                 default:
                     throw new ApplicationException("Unknown TriangleEdge: " + edge.ToString());
             }
         }
-        public Tuple<TriangleIndexedLinked_wpf, int, TriangleCorner>[] GetNeighbors(TriangleCorner corner)
+        public TriangleIndexedLinked_CornerNeighbor[] GetNeighbors(TriangleCorner corner)
         {
             switch (corner)
             {
                 case TriangleCorner.Corner_0:
-                    return this.Neighbor_0;
+                    return Neighbor_0;
 
                 case TriangleCorner.Corner_1:
-                    return this.Neighbor_1;
+                    return Neighbor_1;
 
                 case TriangleCorner.Corner_2:
-                    return this.Neighbor_2;
+                    return Neighbor_2;
 
                 default:
                     throw new ApplicationException("Unknown TriangleCorner: " + corner.ToString());
             }
         }
-        public Tuple<TriangleIndexedLinked_wpf, int, TriangleCorner>[] GetNeighbors(int cornerIndex)
+        public TriangleIndexedLinked_CornerNeighbor[] GetNeighbors(int cornerIndex)
         {
-            if (cornerIndex == this.Index0)
-            {
-                return this.Neighbor_0;
-            }
-            else if (cornerIndex == this.Index1)
-            {
-                return this.Neighbor_1;
-            }
-            else if (cornerIndex == this.Index2)
-            {
-                return this.Neighbor_2;
-            }
+            if (cornerIndex == Index0)
+                return Neighbor_0;
+
+            else if (cornerIndex == Index1)
+                return Neighbor_1;
+
+            else if (cornerIndex == Index2)
+                return Neighbor_2;
+
             else
-            {
-                throw new ApplicationException(string.Format("Didn't find index: {0} in {1},{2},{3}", cornerIndex.ToString(), this.Index0.ToString(), this.Index1.ToString(), this.Index2.ToString()));
-            }
+                throw new ApplicationException($"Didn't find index: {cornerIndex} in {Index0},{Index1},{Index2}");
         }
 
         //NOTE: These return how the neighbor is related when walking from this to the neighbor
@@ -1738,74 +1474,60 @@ namespace Game.Math_WPF.Mathematics
         {
             long neighborToken = neighbor.Token;
 
-            if (this.Neighbor_01 != null && this.Neighbor_01.Token == neighborToken)
-            {
+            if (Neighbor_01 != null && Neighbor_01.Token == neighborToken)
                 return TriangleEdge.Edge_01;
-            }
-            else if (this.Neighbor_12 != null && this.Neighbor_12.Token == neighborToken)
-            {
+
+            else if (Neighbor_12 != null && Neighbor_12.Token == neighborToken)
                 return TriangleEdge.Edge_12;
-            }
-            else if (this.Neighbor_20 != null && this.Neighbor_20.Token == neighborToken)
-            {
+
+            else if (Neighbor_20 != null && Neighbor_20.Token == neighborToken)
                 return TriangleEdge.Edge_20;
-            }
+
             else
-            {
-                throw new ApplicationException(string.Format("Not a neighbor\r\n{0}\r\n{1}", this.ToString(), neighbor.ToString()));
-            }
+                throw new ApplicationException($"Not a neighbor\r\n{this}\r\n{neighbor}");
         }
         public TriangleCorner WhichCorner(TriangleIndexedLinked_wpf neighbor)
         {
             long neighborToken = neighbor.Token;
 
-            if (this.Neighbor_0 != null && this.Neighbor_0.Any(o => o.Item1.Token == neighborToken))
-            {
+            if (Neighbor_0 != null && Neighbor_0.Any(o => o.Triangle.Token == neighborToken))
                 return TriangleCorner.Corner_0;
-            }
-            else if (this.Neighbor_1 != null && this.Neighbor_1.Any(o => o.Item1.Token == neighborToken))
-            {
+
+            else if (Neighbor_1 != null && Neighbor_1.Any(o => o.Triangle.Token == neighborToken))
                 return TriangleCorner.Corner_1;
-            }
-            else if (this.Neighbor_2 != null && this.Neighbor_2.Any(o => o.Item1.Token == neighborToken))
-            {
+
+            else if (Neighbor_2 != null && Neighbor_2.Any(o => o.Triangle.Token == neighborToken))
                 return TriangleCorner.Corner_2;
-            }
+
             else
-            {
-                throw new ApplicationException(string.Format("Not a neighbor\r\n{0}\r\n{1}", this.ToString(), neighbor.ToString()));
-            }
+                throw new ApplicationException($"Not a neighbor\r\n{this}\r\n{neighbor}");
         }
 
         public static List<TriangleIndexedLinked_wpf> ConvertToLinked(List<ITriangleIndexed_wpf> triangles, bool linkEdges, bool linkCorners)
         {
-            List<TriangleIndexedLinked_wpf> retVal = triangles.Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).ToList();
+            var retVal = triangles.
+                Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).
+                ToList();
 
             if (linkEdges)
-            {
                 LinkTriangles_Edges(retVal, true);
-            }
 
             if (linkCorners)
-            {
                 LinkTriangles_Corners(retVal, true);
-            }
 
             return retVal;
         }
         public static TriangleIndexedLinked_wpf[] ConvertToLinked(ITriangleIndexed_wpf[] triangles, bool linkEdges, bool linkCorners)
         {
-            List<TriangleIndexedLinked_wpf> retVal = triangles.Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).ToList();
+            var retVal = triangles.
+                Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).
+                ToList();
 
             if (linkEdges)
-            {
                 LinkTriangles_Edges(retVal, true);
-            }
 
             if (linkCorners)
-            {
                 LinkTriangles_Corners(retVal, true);
-            }
 
             return retVal.ToArray();
         }
@@ -1819,25 +1541,19 @@ namespace Game.Math_WPF.Mathematics
         /// </param>
         public static void LinkTriangles_Edges(List<TriangleIndexedLinked_wpf> triangles, bool setNullIfNoLink)
         {
-            for (int cntr = 0; cntr < triangles.Count; cntr++)
+            for (int i = 0; i < triangles.Count; i++)
             {
-                TriangleIndexedLinked_wpf neighbor = FindLinkEdge(triangles, cntr, triangles[cntr].Index0, triangles[cntr].Index1);
+                TriangleIndexedLinked_wpf neighbor = FindLinkEdge(triangles, i, triangles[i].Index0, triangles[i].Index1);
                 if (neighbor != null || setNullIfNoLink)
-                {
-                    triangles[cntr].Neighbor_01 = neighbor;
-                }
+                    triangles[i].Neighbor_01 = neighbor;
 
-                neighbor = FindLinkEdge(triangles, cntr, triangles[cntr].Index1, triangles[cntr].Index2);
+                neighbor = FindLinkEdge(triangles, i, triangles[i].Index1, triangles[i].Index2);
                 if (neighbor != null || setNullIfNoLink)
-                {
-                    triangles[cntr].Neighbor_12 = neighbor;
-                }
+                    triangles[i].Neighbor_12 = neighbor;
 
-                neighbor = FindLinkEdge(triangles, cntr, triangles[cntr].Index2, triangles[cntr].Index0);
+                neighbor = FindLinkEdge(triangles, i, triangles[i].Index2, triangles[i].Index0);
                 if (neighbor != null || setNullIfNoLink)
-                {
-                    triangles[cntr].Neighbor_20 = neighbor;
-                }
+                    triangles[i].Neighbor_20 = neighbor;
             }
         }
         /// <summary>
@@ -1860,58 +1576,67 @@ namespace Game.Math_WPF.Mathematics
             }
 
             if (triangles.Count <= 1)
-            {
                 return;
-            }
 
             //NOTE: This method only works if all triangles use the same points list
             foreach (int index in Enumerable.Range(0, triangles[0].AllPoints.Length))
             {
-                List<Tuple<TriangleIndexedLinked_wpf, int, TriangleCorner>> used = new List<Tuple<TriangleIndexedLinked_wpf, int, TriangleCorner>>();
+                List<TriangleIndexedLinked_CornerNeighbor> used = new List<TriangleIndexedLinked_CornerNeighbor>();
 
                 // Find the triangles with this index
                 foreach (TriangleIndexedLinked_wpf triangle in triangles)
                 {
                     if (triangle.Index0 == index)
-                    {
-                        used.Add(Tuple.Create(triangle, 0, TriangleCorner.Corner_0));
-                    }
+                        used.Add(new TriangleIndexedLinked_CornerNeighbor()
+                        {
+                            Triangle = triangle,
+                            CornerIndex = 0,
+                            WhichCorner = TriangleCorner.Corner_0,
+                        });
+
                     else if (triangle.Index1 == index)
-                    {
-                        used.Add(Tuple.Create(triangle, 1, TriangleCorner.Corner_1));
-                    }
+                        used.Add(new TriangleIndexedLinked_CornerNeighbor()
+                        {
+                            Triangle = triangle,
+                            CornerIndex = 1,
+                            WhichCorner = TriangleCorner.Corner_1,
+                        });
+
                     else if (triangle.Index2 == index)
-                    {
-                        used.Add(Tuple.Create(triangle, 2, TriangleCorner.Corner_2));
-                    }
+                        used.Add(new TriangleIndexedLinked_CornerNeighbor()
+                        {
+                            Triangle = triangle,
+                            CornerIndex = 2,
+                            WhichCorner = TriangleCorner.Corner_2,
+                        });
                 }
 
                 if (used.Count <= 1)
-                {
                     continue;
-                }
 
                 // Distribute them
                 for (int cntr = 0; cntr < used.Count; cntr++)
                 {
-                    var neighbors = used.Where((o, i) => i != cntr).ToArray();
+                    var neighbors = used.
+                        Where((o, i) => i != cntr).
+                        ToArray();
 
-                    switch (used[cntr].Item3)
+                    switch (used[cntr].WhichCorner)
                     {
                         case TriangleCorner.Corner_0:
-                            used[cntr].Item1.Neighbor_0 = neighbors;
+                            used[cntr].Triangle.Neighbor_0 = neighbors;
                             break;
 
                         case TriangleCorner.Corner_1:
-                            used[cntr].Item1.Neighbor_1 = neighbors;
+                            used[cntr].Triangle.Neighbor_1 = neighbors;
                             break;
 
                         case TriangleCorner.Corner_2:
-                            used[cntr].Item1.Neighbor_2 = neighbors;
+                            used[cntr].Triangle.Neighbor_2 = neighbors;
                             break;
 
                         default:
-                            throw new ApplicationException("Unknown TriangleCorner: " + used[cntr].Item3.ToString());
+                            throw new ApplicationException("Unknown TriangleCorner: " + used[cntr].WhichCorner.ToString());
                     }
                 }
             }
@@ -1963,16 +1688,16 @@ namespace Game.Math_WPF.Mathematics
             switch (corner)
             {
                 case TriangleCorner.Corner_0:
-                    return this.Index0;
+                    return Index0;
 
                 case TriangleCorner.Corner_1:
-                    return this.Index1;
+                    return Index1;
 
                 case TriangleCorner.Corner_2:
-                    return this.Index2;
+                    return Index2;
 
                 default:
-                    throw new ApplicationException("Unknown TriangleCorner: " + corner.ToString());
+                    throw new ApplicationException($"Unknown TriangleCorner: {corner}");
             }
         }
         public void GetIndices(out int index1, out int index2, TriangleEdge edge)
@@ -1980,22 +1705,22 @@ namespace Game.Math_WPF.Mathematics
             switch (edge)
             {
                 case TriangleEdge.Edge_01:
-                    index1 = this.Index0;
-                    index2 = this.Index1;
+                    index1 = Index0;
+                    index2 = Index1;
                     break;
 
                 case TriangleEdge.Edge_12:
-                    index1 = this.Index1;
-                    index2 = this.Index2;
+                    index1 = Index1;
+                    index2 = Index2;
                     break;
 
                 case TriangleEdge.Edge_20:
-                    index1 = this.Index2;
-                    index2 = this.Index0;
+                    index1 = Index2;
+                    index2 = Index0;
                     break;
 
                 default:
-                    throw new ApplicationException("Unknown TriangleEdge: " + edge.ToString());
+                    throw new ApplicationException($"Unknown TriangleEdge: {edge}");
             }
         }
 
@@ -2004,16 +1729,16 @@ namespace Game.Math_WPF.Mathematics
             switch (corner)
             {
                 case TriangleCorner.Corner_0:
-                    return this.Point0;
+                    return Point0;
 
                 case TriangleCorner.Corner_1:
-                    return this.Point1;
+                    return Point1;
 
                 case TriangleCorner.Corner_2:
-                    return this.Point2;
+                    return Point2;
 
                 default:
-                    throw new ApplicationException("Unknown TriangleCorner: " + corner.ToString());
+                    throw new ApplicationException($"Unknown TriangleCorner: {corner}");
             }
         }
         public void GetPoints(out Point3D point1, out Point3D point2, TriangleEdge edge)
@@ -2021,22 +1746,22 @@ namespace Game.Math_WPF.Mathematics
             switch (edge)
             {
                 case TriangleEdge.Edge_01:
-                    point1 = this.Point0;
-                    point2 = this.Point1;
+                    point1 = Point0;
+                    point2 = Point1;
                     break;
 
                 case TriangleEdge.Edge_12:
-                    point1 = this.Point1;
-                    point2 = this.Point2;
+                    point1 = Point1;
+                    point2 = Point2;
                     break;
 
                 case TriangleEdge.Edge_20:
-                    point1 = this.Point2;
-                    point2 = this.Point0;
+                    point1 = Point2;
+                    point2 = Point0;
                     break;
 
                 default:
-                    throw new ApplicationException("Unknown TriangleEdge: " + edge.ToString());
+                    throw new ApplicationException($"Unknown TriangleEdge: {edge}");
             }
         }
 
@@ -2093,7 +1818,7 @@ namespace Game.Math_WPF.Mathematics
 
         public bool IsMatch(int[] indeciesSorted)
         {
-            int[] mySorted = this.IndexArraySorted;
+            int[] mySorted = IndexArraySorted;
 
             // Speed is important, so I'm skipping range checking, and looping
 
@@ -2164,6 +1889,16 @@ namespace Game.Math_WPF.Mathematics
     }
 
     #endregion
+    #region record: TriangleIndexedLinked_CornerNeighbor
+
+    public record TriangleIndexedLinked_CornerNeighbor
+    {
+        public TriangleIndexedLinked_wpf Triangle { get; init; }
+        public int CornerIndex { get; init; }
+        public TriangleCorner WhichCorner { get; init; }
+    }
+
+    #endregion
 
     #region interface: ITriangle_wpf
 
@@ -2185,7 +1920,7 @@ namespace Game.Math_WPF.Mathematics
         Vector3D NormalUnit { get; }
         /// <summary>
         /// This returns the length of the normal (the area of the triangle)
-        /// NOTE:  Call this if you just want to know the length of the normal, it's cheaper than calling this.Normal.Length, since it's already been calculated
+        /// NOTE:  Call this if you just want to know the length of the normal, it's cheaper than calling Normal.Length, since it's already been calculated
         /// </summary>
         double NormalLength { get; }
 
