@@ -1,12 +1,15 @@
-﻿using Game.Core;
+﻿using BepuPhysics.Trees;
+using Game.Core;
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.FileHandlers3D;
 using Game.Math_WPF.WPF.Viewers;
+using NetOctree.Octree;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -25,6 +28,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
         private string _filename = null;
         private Obj_File _parsed_file = null;
+        //TODO: populate an octree, linked triangles, triangles by edge - on a background thread
 
         private List<Visual3D> _visuals = new List<Visual3D>();
 
@@ -222,6 +226,112 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
 
 
+
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void Octree_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_parsed_file == null)
+                {
+                    MessageBox.Show("Need to load a .obj file first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                foreach (var obj in _parsed_file.Objects)
+                {
+                    var triangles = Obj_Util.ToTrianglesIndexed(obj);
+
+                    if (triangles.Length == 0)
+                        continue;
+
+                    var triangles_linked = triangles.
+                        Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).
+                        ToArray();
+
+                    Point3D center = Math3D.GetCenter(triangles[0].AllPoints);
+                    var aabb = Math3D.GetAABB(triangles[0].AllPoints);
+
+                    //TODO: may want max of width,height,depth
+                    double diag_len = (aabb.max - aabb.min).Length;
+
+                    double min_size = diag_len / 24;
+
+                    var tree = new BoundsOctree<TriangleIndexedLinked_wpf>((float)diag_len, center.ToVector3(), (float)min_size, 1.25f);
+
+                    foreach (var triangle in triangles_linked)
+                    {
+                        var tri_aabb = Math3D.GetAABB(triangle);
+                        Vector3 size = new Vector3((float)(tri_aabb.max.X - tri_aabb.min.X), (float)(tri_aabb.max.Y - tri_aabb.min.Y), (float)(tri_aabb.max.Z - tri_aabb.min.Z));
+
+                        tree.Add(triangle, new BoundingBox(triangle.GetCenterPoint().ToVector3(), size));
+                    }
+
+
+
+                    // Need to add new functionality (see the custom function added to PointOctree)
+                    //tree.GetAllUsedNodes();
+
+
+                    //node.GetTouchingNodes();
+
+
+
+
+                    //foreach (var cell in tree.GetAllUsedNodes())
+                    //{
+                    //    var window = new Debug3DWindow()
+                    //    {
+                    //        Title = "octree - single cell",
+                    //    };
+
+                    //    var sizes = Debug3DWindow.GetDrawSizes(cell.Bounds.Size.Length());
+
+                    //    var cell_triangles = cell.GetItems_ThisNodeOnly();
+
+                    //    if (cell_triangles.Length > 0)
+                    //        window.AddHull(cell_triangles, UtilityWPF.ColorFromHex("CCC"));
+
+                    //    var boundary_lines = Polytopes.GetCubeLines(cell.Bounds.Min.ToPoint_wpf(), cell.Bounds.Max.ToPoint_wpf());
+
+                    //    window.AddLines(boundary_lines, sizes.line, Colors.White);
+
+                    //    window.Show();
+                    //}
+
+
+
+                    var window2 = new Debug3DWindow()
+                    {
+                        Title = "octree - all cells",
+                        //Background = UtilityWPF.BrushFromHex("669"),
+                    };
+
+                    var sizes2 = Debug3DWindow.GetDrawSizes(diag_len);
+
+                    var cells = tree.GetAllUsedNodes();
+
+                    Color[] cell_colors = UtilityWPF.GetRandomColors(cells.Length, 128, 210);
+
+                    for(int i = 0; i < cells.Length; i++)
+                    {
+                        var cell_triangles = cells[i].GetItems_ThisNodeOnly();
+
+                        if (cell_triangles.Length > 0)
+                            window2.AddHull(cell_triangles, cell_colors[i]);
+
+                        var boundary_lines = Polytopes.GetCubeLines(cells[i].Bounds.Min.ToPoint_wpf(), cells[i].Bounds.Max.ToPoint_wpf());
+
+                        window2.AddLines(boundary_lines, sizes2.line * 0.1, cell_colors[i]);
+                    }
+
+                    window2.Show();
 
                 }
             }

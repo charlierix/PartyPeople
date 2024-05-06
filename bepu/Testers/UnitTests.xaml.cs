@@ -3,7 +3,7 @@ using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Controls3D;
 using Game.Math_WPF.WPF.Viewers;
-using Octree;
+using NetOctree.Octree;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -800,9 +800,7 @@ namespace Game.Bepu.Testers
                     ToArray();
 
                 foreach (Rect3D cell in cells)
-                {
                     tree.Add(cell, new BoundingBox(cell.Center().ToVector3(), cell.Size.ToVector3()));
-                }
 
 
                 var window = new Debug3DWindow();

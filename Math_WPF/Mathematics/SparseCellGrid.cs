@@ -2,7 +2,7 @@
 using Game.Core;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Viewers;
-using Octree;
+using NetOctree.Octree;
 using System;
 using System.Collections.Generic;
 using System.Linq;

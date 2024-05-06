@@ -12,10 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="NetOctree" Version="2.1.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\..\Math_WPF\Math_WPF.csproj" />
     <ProjectReference Include="..\..\ML\ML.csproj" />
     <ProjectReference Include="..\GameItems\GameItems.csproj" />
