@@ -745,9 +745,7 @@ namespace Game.Core
         public static void AddRange<T>(this IList<T> list, IEnumerable<T> items)
         {
             foreach (T item in items)
-            {
                 list.Add(item);
-            }
         }
 
         /// <summary>

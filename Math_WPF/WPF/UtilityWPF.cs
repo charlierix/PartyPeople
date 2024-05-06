@@ -3278,15 +3278,11 @@ namespace Game.Math_WPF.WPF
 
             Camera camera = (visual != null) ? visual.Camera : null;
             if (camera == null)
-            {
                 return _zeroMatrix;
-            }
 
             Rect viewport = visual.Viewport;
             if (viewport == Rect.Empty)
-            {
                 return _zeroMatrix;
-            }
 
             Matrix3D result = Matrix3D.Identity;
 
@@ -3296,9 +3292,7 @@ namespace Game.Math_WPF.WPF
                 Matrix3D m = cameraTransform.Value;
 
                 if (!m.HasInverse)
-                {
                     return _zeroMatrix;
-                }
 
                 m.Invert();
                 result.Append(m);

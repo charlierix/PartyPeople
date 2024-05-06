@@ -24,6 +24,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         private readonly DropShadowEffect _errorEffect;
 
         private string _filename = null;
+        private Obj_File _parsed_file = null;
 
         private List<Visual3D> _visuals = new List<Visual3D>();
 
@@ -136,6 +137,52 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             }
         }
 
+        private void IndexedTriangles_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_parsed_file == null)
+                {
+                    MessageBox.Show("Need to load a .obj file first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                foreach (var obj in _parsed_file.Objects)
+                {
+                    var triangles = Obj_Util.ToTrianglesIndexed(obj);
+
+                    if (triangles.Length == 0)
+                        continue;
+
+                    var sizes = Debug3DWindow.GetDrawSizes(triangles[0].AllPoints);
+
+                    // Faces
+                    var window = new Debug3DWindow()
+                    {
+                        Title = "triangle faces",
+                    };
+
+                    window.AddHull(triangles, UtilityWPF.ColorFromHex("CCC"));
+
+                    window.Show();
+
+                    // Edges
+                    window = new Debug3DWindow()
+                    {
+                        Title = "triangle edges",
+                    };
+
+                    window.AddHull(triangles, null, UtilityWPF.ColorFromHex("888"), sizes.line * 0.2);
+
+                    window.Show();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
 
         #region Private Methods
@@ -144,6 +191,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         {
             _viewport.Children.RemoveAll(_visuals);
             _visuals.Clear();
+
+            _parsed_file = null;
         }
         private bool LoadFile(string filename)
         {
@@ -152,9 +201,9 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             UnloadFile();
 
-            var objects = Obj_FileReaderWriter.ReadFile(filename);
+            _parsed_file = Obj_FileReaderWriter.ReadFile(filename);
 
-            foreach (var obj in objects.Objects)
+            foreach (var obj in _parsed_file.Objects)
             {
                 _visuals.Add(new ModelVisual3D()
                 {
@@ -242,7 +291,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             return retVal.ToArray();
         }
-
 
         #endregion
     }

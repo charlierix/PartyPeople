@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Game.Bepu.Testers.EdgeDetect3D"
         mc:Ignorable="d"
-        Title="EdgeDetection3D" Width="1000" Height="1000">
+        Title="Edge Detection 3D" ResizeMode="CanResizeWithGrip" Width="1000" Height="1000">
     <Window.Resources>
         <Style x:Key="propBorder" TargetType="Border">
             <Setter Property="BorderThickness" Value="1"/>
@@ -59,12 +59,11 @@
                     </StackPanel>
                 </Border>
 
-                <!--<Border Style="{StaticResource propBorder}">
+                <Border Style="{StaticResource propBorder}">
                 <StackPanel>
-                    <Button Content="four point face (convex)" Click="FourPointFace_Convex_Click"/>
-                    <Button Content="four point face (concave)" Click="FourPointFace_Concave_Click"/>
+                    <Button Content="indexed triangles" Click="IndexedTriangles_Click"/>
                 </StackPanel>
-            </Border>-->
+            </Border>
             </StackPanel>
         </Grid>
 

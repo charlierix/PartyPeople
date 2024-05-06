@@ -1,6 +1,8 @@
 ﻿using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF.Viewers;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
@@ -44,6 +46,29 @@ namespace Game.Math_WPF.WPF.FileHandlers3D
                 BackMaterial = back_material,
                 Geometry = geometry,
             };
+        }
+
+        public static TriangleIndexed_wpf[] ToTrianglesIndexed(Obj_Object obj)
+        {
+            Point3D[] all_points = obj.Vertices.
+                Select(o => o.Vertex.ToPoint()).
+                ToArray();
+
+            var retVal = new List<TriangleIndexed_wpf>();
+
+            foreach (var face in obj.Faces)
+            {
+                foreach (var triangle in FaceToTriangles(face.Points))
+                {
+                    retVal.Add(new TriangleIndexed_wpf(
+                        GetZeroBasedIndex(triangle[0].Vertex_Index, obj.Vertices.Length),
+                        GetZeroBasedIndex(triangle[1].Vertex_Index, obj.Vertices.Length),
+                        GetZeroBasedIndex(triangle[2].Vertex_Index, obj.Vertices.Length),
+                        all_points));
+                }
+            }
+
+            return retVal.ToArray();
         }
 
         #region Private Methods

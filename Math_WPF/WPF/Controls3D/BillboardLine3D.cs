@@ -919,17 +919,15 @@ namespace Game.Math_WPF.WPF.Controls3D
         public void AddLine(Point3D start, Point3D stop, double thickness)
         {
             if (_lineCount == null)
-            {
                 throw new InvalidOperationException("Must call BeginAddingLines before calling AddLine");
-            }
+
             else if (_lineCount.Value > _lines.Count)
-            {
                 throw new ApplicationException("_lineCount fell out of sync");
-            }
+
             else if (_lineCount.Value == _lines.Count)
             {
                 // Create a new line
-                BillboardLine3D line = new BillboardLine3D(_shouldUseSpinTimer);
+                var line = new BillboardLine3D(_shouldUseSpinTimer);
                 line.Material = _material;
 
                 _lines.Add(line);

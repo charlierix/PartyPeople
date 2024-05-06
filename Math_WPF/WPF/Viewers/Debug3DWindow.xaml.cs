@@ -68,6 +68,8 @@ namespace Game.Math_WPF.WPF.Viewers
 
         private readonly List<GraphMouseTracker> _graphMouseTrackers = new List<GraphMouseTracker>();
 
+        private readonly List<ScreenSpaceLines3D> _screenspaceLines = new List<ScreenSpaceLines3D>();
+
         #endregion
 
         #region Constructor
@@ -455,11 +457,23 @@ namespace Game.Math_WPF.WPF.Viewers
             visual.BeginAddingLines();
 
             foreach (var line in lines)
-            {
                 visual.AddLine(line.point1, line.point2, thickness);
-            }
 
             visual.EndAddingLines();
+
+            return visual;
+        }
+
+        public static Visual3D GetLines_Flat(IEnumerable<(Point3D point1, Point3D point2)> lines, double thickness_mult, Color color, bool autoUpdate = false)
+        {
+            var visual = new ScreenSpaceLines3D(autoUpdate)
+            {
+                Thickness = thickness_mult,
+                Color = color,
+            };
+
+            foreach (var line in lines)
+                visual.AddLine(line.point1, line.point2);
 
             return visual;
         }
@@ -610,6 +624,7 @@ namespace Game.Math_WPF.WPF.Viewers
                     Select(o => (hull[0].AllPoints[o.Item1], hull[0].AllPoints[o.Item2]));
 
                 retVal.Add(GetLines(hullLinePoints, edgeThickness.Value, edgeColor.Value));
+                //retVal.Add(GetLines_Flat(hullLinePoints, 1, edgeColor.Value));
             }
 
             // Hull
@@ -621,14 +636,9 @@ namespace Game.Math_WPF.WPF.Viewers
                 geometry.Material = material;
                 geometry.BackMaterial = material;
 
-                if (isIndependentFaces)
-                {
-                    geometry.Geometry = UtilityWPF.GetMeshFromTriangles_IndependentFaces(hull);
-                }
-                else
-                {
-                    geometry.Geometry = UtilityWPF.GetMeshFromTriangles(hull);
-                }
+                geometry.Geometry = isIndependentFaces ?
+                    UtilityWPF.GetMeshFromTriangles_IndependentFaces(hull) :
+                    UtilityWPF.GetMeshFromTriangles(hull);
 
                 retVal.Add(new ModelVisual3D
                 {
@@ -1174,6 +1184,8 @@ namespace Game.Math_WPF.WPF.Viewers
                 //TODO: May want a public bool property telling whether to auto set this.  Also do this during Visuals3D change event
                 if (!_wasSetCameraCalled && this.Visuals3D.Count > 0)
                     AutoSetCamera();
+
+                RecalculateLineGeometries();
             }
             catch (Exception ex)
             {
@@ -1240,10 +1252,10 @@ namespace Game.Math_WPF.WPF.Viewers
                         #region Reset
 
                         // They did a clear.  Remove everything except the camera and lights
+                        _screenspaceLines.Clear();
+
                         while (_viewport.Children.Count - 1 >= _viewportOffset)
-                        {
                             _viewport.Children.RemoveAt(_viewport.Children.Count - 1);
-                        }
 
                         #endregion
                         break;
@@ -1258,6 +1270,7 @@ namespace Game.Math_WPF.WPF.Viewers
                         // as though the items had already been removed.
 
                         RemoveVisuals(e.OldStartingIndex, e.OldItems);
+
                         AddVisuals(e.NewStartingIndex, e.NewItems);
 
                         #endregion
@@ -1271,19 +1284,16 @@ namespace Game.Math_WPF.WPF.Viewers
                         // contain the index where the items were replaced.
 
                         if (e.OldStartingIndex != e.NewStartingIndex)
-                        {
                             throw new ArgumentException(string.Format("e.OldStartingIndex and e.NewStartingIndex should be equal for replace: old={0}, new={1}", e.OldStartingIndex, e.NewStartingIndex));
-                        }
+
                         else if (e.OldItems == null)
-                        {
                             throw new ArgumentException("e.OldItems should never be null for replace");
-                        }
+
                         else if (e.NewItems == null)
-                        {
                             throw new ArgumentException("e.NewItems should never be null for replace");
-                        }
 
                         RemoveVisuals(e.OldStartingIndex, e.OldItems);
+
                         AddVisuals(e.NewStartingIndex, e.NewItems);
 
                         #endregion
@@ -1353,6 +1363,29 @@ namespace Game.Math_WPF.WPF.Viewers
             }
         }
 
+        private void grdViewPort_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            try
+            {
+                RecalculateLineGeometries();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void Camera_Changed(object sender, EventArgs e)
+        {
+            try
+            {
+                RecalculateLineGeometries();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         #endregion
 
         #region Private Methods
@@ -1360,9 +1393,7 @@ namespace Game.Math_WPF.WPF.Viewers
         private void AddVisuals(int newStartingIndex, IList newItems)
         {
             if (newItems == null)
-            {
                 throw new ArgumentException("e.NewItems should never be null for add");
-            }
 
             // if NewStartingIndex is not -1, then it contains the index where the new items were added
             int index = newStartingIndex < 0 ?
@@ -1374,34 +1405,30 @@ namespace Game.Math_WPF.WPF.Viewers
                 _viewport.Children.Insert(index, item);
                 index++;
             }
+
+            RememberAnyScreenSpaceLines(newItems);
         }
         private void RemoveVisuals(int oldStartingIndex, IList oldItems)
         {
             if (oldItems == null)
-            {
                 throw new ArgumentException("e.OldItems should never be null for remove");
-            }
+
+            ForgetAnyScreenSpaceLines(oldItems);
 
             // If Action is NotifyCollectionChangedAction.Remove, then OldItems contains the items that were removed. In addition, if OldStartingIndex is
             // not -1, then it contains the index where the old items were removed
             if (oldStartingIndex >= 0)
             {
                 if (_viewport.Children.Count <= _viewportOffset + oldItems.Count)
-                {
                     throw new ApplicationException("Trying to remove more item than exists in the viewport (observable collection and viewport fell out of sync)");
-                }
 
                 for (int cntr = 0; cntr < oldItems.Count; cntr++)
-                {
                     _viewport.Children.RemoveAt(_viewportOffset + oldStartingIndex);
-                }
             }
             else
             {
                 foreach (Visual3D item in oldItems)
-                {
                     _viewport.Children.Remove(item);
-                }
             }
         }
 
@@ -1423,6 +1450,8 @@ namespace Game.Math_WPF.WPF.Viewers
             _trackball.PanScale = scale / 10;
             _trackball.ZoomScale = scale;
             _trackball.MouseWheelScale = distance * .0007;
+
+            RecalculateLineGeometries();
         }
 
         /// <summary>
@@ -1451,6 +1480,25 @@ namespace Game.Math_WPF.WPF.Viewers
             });
 
             Visuals3D.Add(visual);
+        }
+
+        private void RememberAnyScreenSpaceLines(IList items)
+        {
+            foreach (var item in items)
+                if (item is ScreenSpaceLines3D ssline)
+                    _screenspaceLines.Add(ssline);
+        }
+        private void ForgetAnyScreenSpaceLines(IList items)
+        {
+            foreach (var item in items)
+                if (item is ScreenSpaceLines3D ssline)
+                    _screenspaceLines.Remove(ssline);
+        }
+
+        private void RecalculateLineGeometries()
+        {
+            foreach (ScreenSpaceLines3D line in _screenspaceLines)
+                line.CalculateGeometry();
         }
 
         private static Tuple<Point3D, Vector3D, Vector3D> GetCameraPosition(Point3D[] points)
@@ -1524,10 +1572,10 @@ namespace Game.Math_WPF.WPF.Viewers
 
             return new ArrowProps()
             {
-                Point1_Adjusted= p1,
+                Point1_Adjusted = p1,
                 Point2_Adjusted = p2,
 
-                Direction_Unit= dir_unit,
+                Direction_Unit = dir_unit,
 
                 Radius = thickness * 1.5,
                 Height = height,
