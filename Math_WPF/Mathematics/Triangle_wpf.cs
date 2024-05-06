@@ -1061,9 +1061,9 @@ namespace Game.Math_WPF.Mathematics
         /// <summary>
         /// This looks at all the lines in the triangles passed in, and returns the unique indices
         /// </summary>
-        public static Tuple<int, int>[] GetUniqueLines(IEnumerable<ITriangleIndexed_wpf> triangles)
+        public static (int, int)[] GetUniqueLines(IEnumerable<ITriangleIndexed_wpf> triangles)
         {
-            var retVal = new List<Tuple<int, int>>();
+            var retVal = new List<(int, int)>();
 
             foreach (ITriangleIndexed_wpf triangle in triangles)
             {
@@ -1072,7 +1072,9 @@ namespace Game.Math_WPF.Mathematics
                 retVal.Add(GetLine(triangle.Index2, triangle.Index0));
             }
 
-            return retVal.Distinct().ToArray();		//distinct works, because the tuple always has the smaller index as item1
+            return retVal.
+                Distinct().
+                ToArray();		//distinct works, because the tuple always has the smaller index as item1
         }
 
         /// <summary>
@@ -1228,9 +1230,9 @@ namespace Game.Math_WPF.Mathematics
 
         #region Private Methods
 
-        private static Tuple<int, int> GetLine(int index1, int index2)
+        private static (int, int) GetLine(int index1, int index2)
         {
-            return Tuple.Create(Math.Min(index1, index2), Math.Max(index1, index2));
+            return (Math.Min(index1, index2), Math.Max(index1, index2));
         }
 
         #endregion
@@ -1541,21 +1543,24 @@ namespace Game.Math_WPF.Mathematics
         /// </param>
         public static void LinkTriangles_Edges(List<TriangleIndexedLinked_wpf> triangles, bool setNullIfNoLink)
         {
-            for (int i = 0; i < triangles.Count; i++)
-            {
-                TriangleIndexedLinked_wpf neighbor = FindLinkEdge(triangles, i, triangles[i].Index0, triangles[i].Index1);
-                if (neighbor != null || setNullIfNoLink)
-                    triangles[i].Neighbor_01 = neighbor;
+            triangles.
+                AsParallel().
+                ForAll(o =>
+                {
+                    TriangleIndexedLinked_wpf neighbor = FindLinkEdge(triangles, o.Token, o.Index0, o.Index1);
+                    if (neighbor != null || setNullIfNoLink)
+                        o.Neighbor_01 = neighbor;
 
-                neighbor = FindLinkEdge(triangles, i, triangles[i].Index1, triangles[i].Index2);
-                if (neighbor != null || setNullIfNoLink)
-                    triangles[i].Neighbor_12 = neighbor;
+                    neighbor = FindLinkEdge(triangles, o.Token, o.Index1, o.Index2);
+                    if (neighbor != null || setNullIfNoLink)
+                        o.Neighbor_12 = neighbor;
 
-                neighbor = FindLinkEdge(triangles, i, triangles[i].Index2, triangles[i].Index0);
-                if (neighbor != null || setNullIfNoLink)
-                    triangles[i].Neighbor_20 = neighbor;
-            }
+                    neighbor = FindLinkEdge(triangles, o.Token, o.Index2, o.Index0);
+                    if (neighbor != null || setNullIfNoLink)
+                        o.Neighbor_20 = neighbor;
+                });
         }
+
         /// <summary>
         /// This does a brute force scan of the triangles, and finds the adjacent triangles (doesn't look at shared edges, only corners)
         /// </summary>
@@ -1565,6 +1570,10 @@ namespace Game.Math_WPF.Mathematics
         /// </param>
         public static void LinkTriangles_Corners(List<TriangleIndexedLinked_wpf> triangles, bool setNullIfNoLink)
         {
+
+            // TODO: this function looks like it could be optimized - at least add some parallel processing.  If corners are actually needed, then optimize it
+
+
             if (setNullIfNoLink)
             {
                 foreach (TriangleIndexedLinked_wpf triangle in triangles)
@@ -1581,7 +1590,7 @@ namespace Game.Math_WPF.Mathematics
             //NOTE: This method only works if all triangles use the same points list
             foreach (int index in Enumerable.Range(0, triangles[0].AllPoints.Length))
             {
-                List<TriangleIndexedLinked_CornerNeighbor> used = new List<TriangleIndexedLinked_CornerNeighbor>();
+                var used = new List<TriangleIndexedLinked_CornerNeighbor>();
 
                 // Find the triangles with this index
                 foreach (TriangleIndexedLinked_wpf triangle in triangles)
@@ -1831,53 +1840,49 @@ namespace Game.Math_WPF.Mathematics
 
         #region Private Methods
 
-        private static TriangleIndexedLinked_wpf FindLinkEdge(List<TriangleIndexedLinked_wpf> triangles, int index, int vertex1, int vertex2)
+        private static TriangleIndexedLinked_wpf FindLinkEdge(List<TriangleIndexedLinked_wpf> triangles, long calling_token, int vertex1, int vertex2)
         {
             // Find the triangle that has vertex1 and 2
-            for (int cntr = 0; cntr < triangles.Count; cntr++)
+            for (int i = 0; i < triangles.Count; i++)
             {
-                if (cntr == index)
-                {
+                if (triangles[i].Token == calling_token)
                     // This is the currently requested triangle, so ignore it
                     continue;
-                }
 
-                if ((triangles[cntr].Index0 == vertex1 && triangles[cntr].Index1 == vertex2) ||
-                    (triangles[cntr].Index0 == vertex1 && triangles[cntr].Index2 == vertex2) ||
-                    (triangles[cntr].Index1 == vertex1 && triangles[cntr].Index0 == vertex2) ||
-                    (triangles[cntr].Index1 == vertex1 && triangles[cntr].Index2 == vertex2) ||
-                    (triangles[cntr].Index2 == vertex1 && triangles[cntr].Index0 == vertex2) ||
-                    (triangles[cntr].Index2 == vertex1 && triangles[cntr].Index1 == vertex2))
+                if ((triangles[i].Index0 == vertex1 && triangles[i].Index1 == vertex2) ||
+                    (triangles[i].Index0 == vertex1 && triangles[i].Index2 == vertex2) ||
+                    (triangles[i].Index1 == vertex1 && triangles[i].Index0 == vertex2) ||
+                    (triangles[i].Index1 == vertex1 && triangles[i].Index2 == vertex2) ||
+                    (triangles[i].Index2 == vertex1 && triangles[i].Index0 == vertex2) ||
+                    (triangles[i].Index2 == vertex1 && triangles[i].Index1 == vertex2))
                 {
                     // Found it
                     //NOTE:  Just returning the first match.  Assuming that the list of triangles is a valid hull
                     //NOTE:  Not validating that the triangle has 3 unique points, and the 2 points passed in are unique
-                    return triangles[cntr];
+                    return triangles[i];
                 }
             }
 
             // No neighbor found
             return null;
         }
-        private static TriangleIndexedLinked_wpf FindLinkCorner(List<TriangleIndexedLinked_wpf> triangles, int index, int cornerVertex, int otherVertex1, int otherVertex2)
+        private static TriangleIndexedLinked_wpf FindLinkCorner(List<TriangleIndexedLinked_wpf> triangles, long calling_token, int cornerVertex, int otherVertex1, int otherVertex2)
         {
             // Find the triangle that has cornerVertex, but not otherVertex1 or 2
-            for (int cntr = 0; cntr < triangles.Count; cntr++)
+            for (int i = 0; i < triangles.Count; i++)
             {
-                if (cntr == index)
-                {
+                if (triangles[i].Token == calling_token)
                     // This is the currently requested triangle, so ignore it
                     continue;
-                }
 
-                if ((triangles[cntr].Index0 == cornerVertex && triangles[cntr].Index1 != otherVertex1 && triangles[cntr].Index2 != otherVertex1 && triangles[cntr].Index1 != otherVertex2 && triangles[cntr].Index2 != otherVertex2) ||
-                    (triangles[cntr].Index1 == cornerVertex && triangles[cntr].Index0 != otherVertex1 && triangles[cntr].Index2 != otherVertex1 && triangles[cntr].Index0 != otherVertex2 && triangles[cntr].Index2 != otherVertex2) ||
-                    (triangles[cntr].Index2 == cornerVertex && triangles[cntr].Index0 != otherVertex1 && triangles[cntr].Index1 != otherVertex1 && triangles[cntr].Index0 != otherVertex2 && triangles[cntr].Index1 != otherVertex2))
+                if ((triangles[i].Index0 == cornerVertex && triangles[i].Index1 != otherVertex1 && triangles[i].Index2 != otherVertex1 && triangles[i].Index1 != otherVertex2 && triangles[i].Index2 != otherVertex2) ||
+                    (triangles[i].Index1 == cornerVertex && triangles[i].Index0 != otherVertex1 && triangles[i].Index2 != otherVertex1 && triangles[i].Index0 != otherVertex2 && triangles[i].Index2 != otherVertex2) ||
+                    (triangles[i].Index2 == cornerVertex && triangles[i].Index0 != otherVertex1 && triangles[i].Index1 != otherVertex1 && triangles[i].Index0 != otherVertex2 && triangles[i].Index1 != otherVertex2))
                 {
                     // Found it
                     //NOTE:  Just returning the first match.  Assuming that the list of triangles is a valid hull
                     //NOTE:  Not validating that the triangle has 3 unique points, and the 3 points passed in are unique
-                    return triangles[cntr];
+                    return triangles[i];
                 }
             }
 

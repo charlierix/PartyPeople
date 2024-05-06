@@ -211,10 +211,13 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     var triangles_linked = TriangleIndexedLinked_wpf.ConvertToLinked(triangles, true, false);
 
 
-                    
+                    // get distinct list of edges, along with the triangles that they are tied to
+                    // sort of the inverse of triangles_linked
 
 
-
+                    // make an alternate of this function - maybe use a dictionary
+                    // dict<(int,int), list<triangle>>
+                    var distinct_edges = TriangleIndexed_wpf.GetUniqueLines(triangles_linked);
 
 
 

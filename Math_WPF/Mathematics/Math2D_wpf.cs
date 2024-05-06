@@ -2210,13 +2210,13 @@ namespace Game.Math_WPF.Mathematics
                 return retVal;
             }
 
-            public static Tuple<int, int>[] ThrowOutThinTriangles(TriangleIndexed_wpf[] triangles, double skipThinRatio)
+            public static (int, int)[] ThrowOutThinTriangles(TriangleIndexed_wpf[] triangles, double skipThinRatio)
             {
                 // Figure out which edges to throw out
-                Tuple<int, int>[] removes = TriangleIndexedLinked_wpf.ConvertToLinked(triangles, true, false).      // need to convert to linked so that shouldRemove knows if the edges are interior or exterior
+                (int, int)[] removes = TriangleIndexedLinked_wpf.ConvertToLinked(triangles, true, false).      // need to convert to linked so that shouldRemove knows if the edges are interior or exterior
                     Select(o => ShouldRemoveThinOuter(o, skipThinRatio)).
                     Where(o => o != null).
-                    Select(o => o.Item1 < o.Item2 ? o : Tuple.Create(o.Item2, o.Item1)).        // make sure that item1 is less than item2 so that the tuples will match later
+                    Select(o => o.Item1 < o.Item2 ? (o.Item1, o.Item2) : (o.Item2, o.Item1)).        // make sure that item1 is less than item2 so that the tuples will match later
                     ToArray();
 
                 if (removes.Length == 0)
@@ -2226,8 +2226,8 @@ namespace Game.Math_WPF.Mathematics
                 }
 
                 // Build the initial list of links
-                List<Tuple<int, int>> retVal = TriangleIndexed_wpf.GetUniqueLines(triangles).
-                    Select(o => o.Item1 < o.Item2 ? o : Tuple.Create(o.Item2, o.Item1)).        // GetUniqueLines already makes Item1 less than Item2, but that code could change in the future
+                List<(int, int)> retVal = TriangleIndexed_wpf.GetUniqueLines(triangles).
+                    Select(o => o.Item1 < o.Item2 ? o : (o.Item2, o.Item1)).        // GetUniqueLines already makes Item1 less than Item2, but that code could change in the future
                     ToList();
 
                 // Remove the undesirable edges
@@ -3448,18 +3448,13 @@ namespace Game.Math_WPF.Mathematics
         /// </summary>
         /// <param name="throwOutThinOuterTriangles">This method generates long thin triangles along the outside that seem to only be there to make the polygon convex</param>
         /// <param name="skipThinRatio">If throwOutThinOuterTriangles is true, then this is the ratio that the edges need to divide to for the triangle to be considered thin (the ratio approaches 1.  The closer to 1, the more strict)</param>
-        public static Tuple<int, int>[] GetDelaunayTriangulation(Point[] points, bool throwOutThinOuterTriangles = false, double skipThinRatio = .9)
+        public static (int, int)[] GetDelaunayTriangulation(Point[] points, bool throwOutThinOuterTriangles = false, double skipThinRatio = .9)
         {
             TriangleIndexed_wpf[] triangles = Delaunay_wpf.GetDelaunayTriangulation(points, points.Select(o => o.ToPoint3D()).ToArray());
 
-            if (throwOutThinOuterTriangles)
-            {
-                return Delaunay_wpf.ThrowOutThinTriangles(triangles, skipThinRatio);
-            }
-            else
-            {
-                return TriangleIndexed_wpf.GetUniqueLines(triangles);
-            }
+            return throwOutThinOuterTriangles ?
+                Delaunay_wpf.ThrowOutThinTriangles(triangles, skipThinRatio) :
+                TriangleIndexed_wpf.GetUniqueLines(triangles);
         }
 
         /// <summary>
