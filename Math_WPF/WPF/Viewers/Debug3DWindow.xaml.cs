@@ -319,7 +319,6 @@ namespace Game.Math_WPF.WPF.Viewers
             AddLine(point1.ToPoint(), point2.ToPoint(), thickness, colorFrom, colorTo, arrow_left, arrow_right);
         }
 
-
         //TODO: left and right arrows are switched
 
         public static Visual3D GetLine(Point3D point1, Point3D point2, double thickness, Color color, bool arrow_left = false, bool arrow_right = false)
@@ -441,9 +440,7 @@ namespace Game.Math_WPF.WPF.Viewers
             foreach (Point3D point in points)
             {
                 if (prev != null)
-                {
                     segments.Add((prev.Value, point));
-                }
 
                 prev = point;
             }
@@ -464,6 +461,62 @@ namespace Game.Math_WPF.WPF.Viewers
             return visual;
         }
 
+        // These use ScreenSpaceLines3D instead of BillboardLine3D, which are constant size.  These are faster when you have lots of lines
+
+        public void AddLines_Flat(Point3D cubeMin, Point3D cubeMax, double thickness_mult, Color color, bool autoUpdate = false)
+        {
+            var segments = new List<(Point3D, Point3D)>();
+
+            // Top
+            segments.Add((new Point3D(cubeMin.X, cubeMin.Y, cubeMin.Z), new Point3D(cubeMax.X, cubeMin.Y, cubeMin.Z)));
+            segments.Add((new Point3D(cubeMax.X, cubeMin.Y, cubeMin.Z), new Point3D(cubeMax.X, cubeMax.Y, cubeMin.Z)));
+            segments.Add((new Point3D(cubeMax.X, cubeMax.Y, cubeMin.Z), new Point3D(cubeMin.X, cubeMax.Y, cubeMin.Z)));
+            segments.Add((new Point3D(cubeMin.X, cubeMax.Y, cubeMin.Z), new Point3D(cubeMin.X, cubeMin.Y, cubeMin.Z)));
+
+            // Bottom
+            segments.Add((new Point3D(cubeMin.X, cubeMin.Y, cubeMax.Z), new Point3D(cubeMax.X, cubeMin.Y, cubeMax.Z)));
+            segments.Add((new Point3D(cubeMax.X, cubeMin.Y, cubeMax.Z), new Point3D(cubeMax.X, cubeMax.Y, cubeMax.Z)));
+            segments.Add((new Point3D(cubeMax.X, cubeMax.Y, cubeMax.Z), new Point3D(cubeMin.X, cubeMax.Y, cubeMax.Z)));
+            segments.Add((new Point3D(cubeMin.X, cubeMax.Y, cubeMax.Z), new Point3D(cubeMin.X, cubeMin.Y, cubeMax.Z)));
+
+            // Sides
+            segments.Add((new Point3D(cubeMin.X, cubeMin.Y, cubeMin.Z), new Point3D(cubeMin.X, cubeMin.Y, cubeMax.Z)));
+            segments.Add((new Point3D(cubeMax.X, cubeMin.Y, cubeMin.Z), new Point3D(cubeMax.X, cubeMin.Y, cubeMax.Z)));
+            segments.Add((new Point3D(cubeMax.X, cubeMax.Y, cubeMin.Z), new Point3D(cubeMax.X, cubeMax.Y, cubeMax.Z)));
+            segments.Add((new Point3D(cubeMin.X, cubeMax.Y, cubeMin.Z), new Point3D(cubeMin.X, cubeMax.Y, cubeMax.Z)));
+
+            AddLines_Flat(segments, thickness_mult, color, autoUpdate);
+        }
+        public void AddLines_Flat(IEnumerable<Point3D> points, double thickness_mult, Color color, bool autoUpdate = false)
+        {
+            Visuals3D.Add(
+                GetLines_Flat(points, thickness_mult, color, autoUpdate));
+        }
+        public void AddLines_Flat(IEnumerable<(Point3D point1, Point3D point2)> lines, double thickness_mult, Color color, bool autoUpdate = false)
+        {
+            Visuals3D.Add(
+                GetLines_Flat(lines, thickness_mult, color, autoUpdate));
+        }
+        public void AddLines_Flat((int i1, int i2)[] index_pairs, Point3D[] all_points, double thickness_mult, Color color, bool autoUpdate = false)
+        {
+            AddLines_Flat(index_pairs.Select(o => (all_points[o.i1], all_points[o.i2])), thickness_mult, color, autoUpdate);
+        }
+
+        public static Visual3D GetLines_Flat(IEnumerable<Point3D> points, double thickness_mult, Color color, bool autoUpdate = false)
+        {
+            var segments = new List<(Point3D, Point3D)>();
+
+            Point3D? prev = null;
+            foreach (Point3D point in points)
+            {
+                if (prev != null)
+                    segments.Add((prev.Value, point));
+
+                prev = point;
+            }
+
+            return GetLines_Flat(segments, thickness_mult, color, autoUpdate);
+        }
         public static Visual3D GetLines_Flat(IEnumerable<(Point3D point1, Point3D point2)> lines, double thickness_mult, Color color, bool autoUpdate = false)
         {
             var visual = new ScreenSpaceLines3D(autoUpdate)
@@ -612,9 +665,9 @@ namespace Game.Math_WPF.WPF.Viewers
             Visuals3D.AddRange(
                 GetHull(hull, faceColor, edgeColor, edgeThickness, isShinyFaces, isIndependentFaces));
         }
-        public static Visual3D[] GetHull(ITriangleIndexed_wpf[] hull, Color? faceColor = null, Color? edgeColor = null, double? edgeThickness = null, bool isShinyFaces = true, bool isIndependentFaces = true)
+        public static Visual3D[] GetHull(ITriangleIndexed_wpf[] hull, Color? faceColor = null, Color? edgeColor = null, double? edgeThickness = null, bool isShinyFaces = true, bool isIndependentFaces = true, bool use_flat_lines = true)
         {
-            List<Visual3D> retVal = new List<Visual3D>();
+            var retVal = new List<Visual3D>();
 
             // Lines
             if (edgeColor != null && edgeThickness != null)
@@ -623,8 +676,10 @@ namespace Game.Math_WPF.WPF.Viewers
                 var hullLinePoints = hullLines.
                     Select(o => (hull[0].AllPoints[o.Item1], hull[0].AllPoints[o.Item2]));
 
-                retVal.Add(GetLines(hullLinePoints, edgeThickness.Value, edgeColor.Value));
-                //retVal.Add(GetLines_Flat(hullLinePoints, 1, edgeColor.Value));
+                if (use_flat_lines)
+                    retVal.Add(GetLines_Flat(hullLinePoints, 1, edgeColor.Value));
+                else
+                    retVal.Add(GetLines(hullLinePoints, edgeThickness.Value, edgeColor.Value));
             }
 
             // Hull

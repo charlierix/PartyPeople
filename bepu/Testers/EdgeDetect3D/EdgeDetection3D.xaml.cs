@@ -164,6 +164,15 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
                     window.AddHull(triangles, UtilityWPF.ColorFromHex("CCC"));
 
+                    var normals = triangles.
+                        Select(o =>
+                        {
+                            var center = o.GetCenterPoint();
+                            return (center, center + (o.Normal * 100));
+                        });
+
+                    window.AddLines_Flat(normals, 1, Colors.DarkOliveGreen);
+
                     window.Show();
 
                     // Edges
