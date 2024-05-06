@@ -79,7 +79,6 @@ namespace NetOctree.Octree
         /// <summary>
         /// Gets All the bounding box that represents the whole octree
         /// </summary>
-        /// <returns></returns>
         public BoundingBox[] GetChildBounds()
         {
             var bounds = new List<BoundingBox>();
@@ -260,6 +259,39 @@ namespace NetOctree.Octree
             return _rootNode.GetSelfAndAllDescendantNodes().
                 Where(o => o.HasObjects_SelfOnly).
                 ToArray();
+        }
+
+        /// <summary>
+        /// Returns any node that is touching the node passed in
+        /// </summary>
+        /// <remarks>
+        /// This is intended for logic that needs to iterate every item in node, then get any possible
+        /// item that is touching it
+        /// </remarks>
+        public Node[] GetTouchingUsedNodes(BoundsOctree<T>.Node node)
+        {
+            const float EXPAND_PERCENT = 0.05f;
+
+            var retVal = new List<Node>();
+
+            var bounds_expanded = new BoundingBox(node.Bounds.Center, node.Bounds.Size);
+            bounds_expanded.Expand(bounds_expanded.Size * EXPAND_PERCENT);
+
+            foreach (Node candidate in _rootNode.GetSelfAndAllDescendantNodes())
+            {
+                if (!candidate.HasObjects_SelfOnly)
+                    continue;
+
+                if (candidate == node)
+                    continue;
+
+                if (!candidate.Bounds.Intersects(bounds_expanded))
+                    continue;
+
+                retVal.Add(candidate);
+            }
+
+            return retVal.ToArray();
         }
 
         // #### PRIVATE METHODS ####

@@ -76,15 +76,15 @@ namespace Game.Math_WPF.WPF.Viewers
 
         public Debug3DWindow()
         {
-            this.Messages_Top = new ObservableCollection<UIElement>();       // these appear to need to be created before initializecomponent
-            this.Messages_Bottom = new ObservableCollection<UIElement>();
+            Messages_Top = new ObservableCollection<UIElement>();       // these appear to need to be created before initializecomponent
+            Messages_Bottom = new ObservableCollection<UIElement>();
 
-            this.Visuals3D = new ObservableCollection<Visual3D>();
-            this.Visuals3D.CollectionChanged += Visuals3D_CollectionChanged;        // can't bind viewport directly to this, because the camera and lights need to be left alone
+            Visuals3D = new ObservableCollection<Visual3D>();
+            Visuals3D.CollectionChanged += Visuals3D_CollectionChanged;        // can't bind viewport directly to this, because the camera and lights need to be left alone
 
             InitializeComponent();
 
-            this.DataContext = this;
+            DataContext = this;
 
             _viewportOffset = _viewport.Children.Count;
         }
@@ -134,9 +134,7 @@ namespace Game.Math_WPF.WPF.Viewers
                 _trackball_InertiaPercentRetainPerSecond_Linear = value;
 
                 if (_trackball != null)
-                {
                     _trackball.InertiaPercentRetainPerSecond_Linear = value;
-                }
             }
         }
         private double? _trackball_InertiaPercentRetainPerSecond_Angular = .03;
@@ -151,9 +149,23 @@ namespace Game.Math_WPF.WPF.Viewers
                 _trackball_InertiaPercentRetainPerSecond_Angular = value;
 
                 if (_trackball != null)
-                {
                     _trackball.InertiaPercentRetainPerSecond_Angular = value;
-                }
+            }
+        }
+
+        private bool _trackball_ShouldHitTestOnOrbit = false;
+        public bool Trackball_ShouldHitTestOnOrbit
+        {
+            get
+            {
+                return _trackball_ShouldHitTestOnOrbit;
+            }
+            set
+            {
+                _trackball_ShouldHitTestOnOrbit = value;
+
+                if (_trackball != null)
+                    _trackball.ShouldHitTestOnOrbit = value;
             }
         }
 
@@ -1232,7 +1244,7 @@ namespace Game.Math_WPF.WPF.Viewers
                 _trackball.AllowZoomOnMouseWheel = true;
                 _trackball.Mappings.AddRange(TrackBallMapping.GetPrebuilt(TrackBallMapping.PrebuiltMapping.MouseComplete));
                 //_trackball.GetOrbitRadius += new GetOrbitRadiusHandler(Trackball_GetOrbitRadius);
-                _trackball.ShouldHitTestOnOrbit = false;
+                _trackball.ShouldHitTestOnOrbit = _trackball_ShouldHitTestOnOrbit;
                 _trackball.InertiaPercentRetainPerSecond_Linear = _trackball_InertiaPercentRetainPerSecond_Linear;
                 _trackball.InertiaPercentRetainPerSecond_Angular = _trackball_InertiaPercentRetainPerSecond_Angular;
 
