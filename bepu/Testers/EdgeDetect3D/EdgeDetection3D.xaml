@@ -67,6 +67,7 @@
                         <Button Content="octree" Click="Octree_Click"/>
                         <Button Content="octree node + touching" Click="OctreeNodeTouching_Click"/>
                         <Button Content="triangles by edge" Click="TrianglesByEdge_Click"/>
+                        <Button Content="triangles by edge 2" Click="TrianglesByEdge2_Click"/>
                     </StackPanel>
                 </Border>
             </StackPanel>

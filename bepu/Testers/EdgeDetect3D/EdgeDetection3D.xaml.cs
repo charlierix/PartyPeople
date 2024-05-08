@@ -533,6 +533,41 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private void TrianglesByEdge2_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_parsed_file == null)
+                {
+                    MessageBox.Show("Need to load a .obj file first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                foreach (var obj in _parsed_file.Objects)
+                {
+                    var triangles = Obj_Util.ToTrianglesIndexed(obj);
+
+                    if (triangles.Length == 0)
+                        continue;
+
+                    var triangles_linked = triangles.
+                        Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).
+                        ToArray();
+
+                    var triangles_by_edge = TriangleIndexedLinked_wpf.LinkTriangles_Edges(triangles_linked, false);
+
+
+
+
+
+
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
         /// <summary>
         /// This sets one of t0's edges to t1
