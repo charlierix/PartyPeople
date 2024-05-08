@@ -1079,6 +1079,27 @@ namespace Game.Core
             return compare.Any(o => value.Equals(o));
         }
 
+        /// <summary>
+        /// Standard LINQ's Concat needs to start with a list, but this lets you start with an item and concat with a list
+        /// </summary>
+        public static IEnumerable<T> Concat<T>(this T first, IEnumerable<T> second)
+        {
+            yield return first;
+
+            foreach(T sec in second)
+                yield return sec;
+        }
+        /// <summary>
+        /// Standard LINQ's Concat only works with two lists, but this lets you add a single item to the end of the list
+        /// </summary>
+        public static IEnumerable<T> Concat<T>(this IEnumerable<T> first, T second)
+        {
+            foreach (T fir in first)
+                yield return fir;
+
+            yield return second;
+        }
+
         #endregion
     }
 

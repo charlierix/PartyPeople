@@ -63,6 +63,7 @@
                     <StackPanel>
                         <Button Content="indexed triangles" Click="IndexedTriangles_Click"/>
                         <Button Visibility="Collapsed" Content="linked triangles" Click="LinkedTriangles_Click"/>
+                        <Button Content="linked triangles 2" Click="LinkedTriangles2_Click"/>
                         <Button Content="octree" Click="Octree_Click"/>
                         <Button Content="octree node + touching" Click="OctreeNodeTouching_Click"/>
                         <Button Content="triangles by edge" Click="TrianglesByEdge_Click"/>
@@ -70,5 +71,10 @@
                 </Border>
             </StackPanel>
         </Grid>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+            <Label x:Name="lblStats_Mesh" VerticalAlignment="Bottom"/>
+            <Label x:Name="lblStats_TestButton" VerticalAlignment="Bottom"/>
+        </StackPanel>
     </Grid>
 </Window>
