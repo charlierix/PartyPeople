@@ -196,94 +196,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        private void LinkedTriangles_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (_parsed_file == null)
-                {
-                    MessageBox.Show("Need to load a .obj file first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                foreach (var obj in _parsed_file.Objects)
-                {
-                    var triangles = Obj_Util.ToTrianglesIndexed(obj);
-
-                    if (triangles.Length == 0)
-                        continue;
-
-                    var triangles_linked = TriangleIndexedLinked_wpf.ConvertToLinked(triangles, true, false);
-
-
-                    // get distinct list of edges, along with the triangles that they are tied to
-                    // sort of the inverse of triangles_linked
-
-
-                    // make an alternate of this function - maybe use a dictionary
-                    // dict<(int,int), list<triangle>>
-                    var distinct_edges = TriangleIndexed_wpf.GetUniqueLines(triangles_linked);
-
-
-
-
-
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-        private void LinkedTriangles2_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (_parsed_file == null)
-                {
-                    MessageBox.Show("Need to load a .obj file first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                foreach (var obj in _parsed_file.Objects)
-                {
-                    var triangles = Obj_Util.ToTrianglesIndexed(obj);
-
-                    if (triangles.Length == 0)
-                        continue;
-
-                    //var triangles_linked = TriangleIndexedLinked_wpf.ConvertToLinked(triangles, true, false);
-
-                    var triangles_linked = triangles.
-                        Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).
-                        ToArray();
-
-                    var tree = CreateOctreeWithTriangles(triangles_linked, 400);
-
-
-                    //LinkTriangles_Edges(tree, true);
-
-
-
-                    // get distinct list of edges, along with the triangles that they are tied to
-                    // sort of the inverse of triangles_linked
-
-
-                    // make an alternate of this function - maybe use a dictionary
-                    // dict<(int,int), list<triangle>>
-                    //var distinct_edges = TriangleIndexed_wpf.GetUniqueLines(triangles_linked);
-
-
-
-
-
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
         private void Octree_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -309,39 +221,11 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     var aabb = Math3D.GetAABB(triangles[0].AllPoints);
                     double diag_len = (aabb.max - aabb.min).Length;
 
-                    var tree = CreateOctreeWithTriangles(triangles_linked, 200);
+                    var tree = CreateOctreeWithTriangles(triangles_linked);
 
-
-
-
-
-                    //foreach (var cell in tree.GetAllUsedNodes())
-                    //{
-                    //    var window = new Debug3DWindow()
-                    //    {
-                    //        Title = "octree - single cell",
-                    //    };
-
-                    //    var sizes = Debug3DWindow.GetDrawSizes(cell.Bounds.Size.Length());
-
-                    //    var cell_triangles = cell.GetItems_ThisNodeOnly();
-
-                    //    if (cell_triangles.Length > 0)
-                    //        window.AddHull(cell_triangles, UtilityWPF.ColorFromHex("CCC"));
-
-                    //    var boundary_lines = Polytopes.GetCubeLines(cell.Bounds.Min.ToPoint_wpf(), cell.Bounds.Max.ToPoint_wpf());
-
-                    //    window.AddLines(boundary_lines, sizes.line, Colors.White);
-
-                    //    window.Show();
-                    //}
-
-
-
-                    var window2 = new Debug3DWindow()
+                    var window = new Debug3DWindow()
                     {
                         Title = "octree - all cells",
-                        //Background = UtilityWPF.BrushFromHex("669"),
                     };
 
                     var sizes2 = Debug3DWindow.GetDrawSizes(diag_len);
@@ -351,22 +235,41 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     // with 5000 cells, this was taking way too long (it would probably have taken many minutes or longer)
                     //Color[] cell_colors = UtilityWPF.GetRandomColors(cells.Length, 128, 210);
 
+                    var triangle_counts = new List<int>();
+
                     for (int i = 0; i < cells.Length; i++)
                     {
                         var cell_triangles = cells[i].GetItems_ThisNodeOnly();
+                        triangle_counts.Add(cell_triangles.Length);
 
                         Color cell_color = UtilityWPF.GetRandomColor(128, 210);
 
                         if (cell_triangles.Length > 0)
-                            window2.AddHull(cell_triangles, cell_color);
+                            window.AddHull(cell_triangles, cell_color);
 
-                        var boundary_lines = Polytopes.GetCubeLines(cells[i].Bounds.Min.ToPoint_wpf(), cells[i].Bounds.Max.ToPoint_wpf());
+                        if(chkOctreeLines.IsChecked.Value)
+                        {
+                            var boundary_lines = Polytopes.GetCubeLines(cells[i].Bounds.Min.ToPoint_wpf(), cells[i].Bounds.Max.ToPoint_wpf());
 
-                        //window2.AddLines(boundary_lines, sizes2.line * 0.1, cell_color);
-                        window2.AddLines_Flat(boundary_lines, 1, cell_color);
+                            //window.AddLines(boundary_lines, sizes2.line * 0.1, cell_color);
+                            window.AddLines_Flat(boundary_lines, 1, cell_color);
+                        }
                     }
 
-                    window2.Show();
+                    var avg_stddev = Math1D.Get_Average_StandardDeviation(triangle_counts);
+
+                    window.AddText($"Number of nodes: {cells.Length:N0}");
+                    window.AddText("");
+                    window.AddText($"Min # triangles: {triangle_counts.Min():N0}");
+                    window.AddText($"Max # triangles: {triangle_counts.Max():N0}");
+                    window.AddText("");
+                    window.AddText($"Avg # triangles: {avg_stddev.avg:N0}");
+                    window.AddText($"Std Dev: {avg_stddev.stdDev:N0}");
+
+                    // TODO: give depth stats
+                    // There doesn't appear to be any functions, so a custom function would be needed to recurse from tree.root
+
+                    window.Show();
 
                 }
             }
@@ -396,7 +299,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                         Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).
                         ToArray();
 
-                    var tree = CreateOctreeWithTriangles(triangles_linked, 100);
+                    var tree = CreateOctreeWithTriangles(triangles_linked);
 
                     var cells = tree.GetAllUsedNodes();
 
@@ -470,92 +373,9 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                         Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).
                         ToArray();
 
-                    // Get unique line segments (index_min, index_max)[]
-
-                    // ----------- thought 1 -----------
-                    // Iterate those in parallel
-                    //  calculate bounding box of that segment
-                    //  ask tree for triangles touching that box
-                    //  find the two triangles      --- make sure tree can handle queries from multi threads
-                    //      if one, ignore
-                    //      if two, bind them and return the set ((int,int), (triangle,triangle))
-                    //      if > two, throw exception
-
-                    //var tree = CreateOctreeWithTriangles(triangles_linked, 250);
-
-
-
-                    // ----------- thought 2 -----------
-                    // While getting line segments, remember the triangle that it came from
-                    //  ((int,int), triangle)
-                    //
-                    // Then do a tolookup on the line segments
-
-                    var getLine = new Func<int, int, (int, int)>((i1, i2) => (Math.Min(i1, i2), Math.Max(i1, i2)));
-
-                    var links_query = triangles_linked.
-                        SelectMany(o => new[]
-                        {
-                            new { edge = getLine(o.Index0, o.Index1), o },
-                            new { edge = getLine(o.Index1, o.Index2), o },
-                            new { edge = getLine(o.Index2, o.Index0), o },
-                        }).
-                        ToLookup(o => o.edge);
-
-                    var links = new List<((int index0, int index1), (TriangleIndexedLinked_wpf tri0, TriangleIndexedLinked_wpf tri1))>();
-
-                    foreach (var link in links_query)
-                    {
-                        var tris = link.ToArray();
-
-                        if (tris.Length < 2)
-                            continue;
-
-                        else if (tris.Length > 2)
-                            throw new ApplicationException("Found multiple triangles tied together");
-
-                        // Populate each triangle's Neighbor_XX prop
-                        if (!Link_Set_T0(tris[0].o, tris[1].o, link.Key.Item1, link.Key.Item2))
-                            throw new ApplicationException("links query found mismatching triangle and edge");
-
-                        if (!Link_Set_T0(tris[1].o, tris[0].o, link.Key.Item1, link.Key.Item2))
-                            throw new ApplicationException("links query found mismatching triangle and edge");
-
-                        links.Add((link.Key, (tris[0].o, tris[1].o)));
-                    }
-
-
-
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-        private void TrianglesByEdge2_Click(object sender, RoutedEventArgs e)
-        {
-            try
-            {
-                if (_parsed_file == null)
-                {
-                    MessageBox.Show("Need to load a .obj file first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-
-                foreach (var obj in _parsed_file.Objects)
-                {
-                    var triangles = Obj_Util.ToTrianglesIndexed(obj);
-
-                    if (triangles.Length == 0)
-                        continue;
-
-                    var triangles_linked = triangles.
-                        Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).
-                        ToArray();
-
                     var triangles_by_edge = TriangleIndexedLinked_wpf.LinkTriangles_Edges(triangles_linked, false);
 
+                    var triangles_by_corner = TriangleIndexedLinked_wpf.LinkTriangles_Corners(triangles_linked, false);
 
 
 
@@ -568,36 +388,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
-        /// <summary>
-        /// This sets one of t0's edges to t1
-        /// </summary>
-        private bool Link_Set_T0(TriangleIndexedLinked_wpf t0, TriangleIndexedLinked_wpf t1, int i0, int i1)
-        {
-            if ((t0.Index0 == i0 && t0.Index1 == i1) ||
-                (t0.Index0 == i1 && t0.Index1 == i0))
-            {
-                t0.Neighbor_01 = t1;
-                return true;
-            }
-
-            if ((t0.Index1 == i0 && t0.Index2 == i1) ||
-                (t0.Index1 == i1 && t0.Index2 == i0))
-            {
-                t0.Neighbor_12 = t1;
-                return true;
-            }
-
-            if ((t0.Index2 == i0 && t0.Index0 == i1) ||
-                (t0.Index2 == i1 && t0.Index0 == i0))
-            {
-                t0.Neighbor_20 = t1;
-                return true;
-            }
-
-            return false;
-        }
-
 
         #endregion
 
@@ -729,7 +519,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         // TODO: don't ask for divider size.  Calculate based on triangle count
 
         // Populates an octree with triangles.  The larger the divider, the smaller the node sizes can be
-        private static BoundsOctree<T> CreateOctreeWithTriangles<T>(T[] triangles, int size_divider) where T : ITriangleIndexed_wpf
+        private static BoundsOctree<T> CreateOctreeWithTriangles<T>(T[] triangles, int size_divider = 150) where T : ITriangleIndexed_wpf
         {
             var aabb = Math3D.GetAABB(triangles[0].AllPoints);
 
@@ -758,152 +548,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             return tree;
         }
-
-
-        // TODO: move this to TriangleIndexedLinked_wpf
-
-        // I don't think it's worth trying to improve this function
-        // Do triangles by edge, which will link them as a byproduct.  That should be fewer overall lookups
-
-        public static void LinkTriangles_Edges_SingleThread(BoundsOctree<TriangleIndexedLinked_wpf> triangles, bool setNullIfNoLink)
-        {
-            var all_nodes = triangles.GetAllUsedNodes();
-
-            var stats = new List<(int tris, int neigs, int cand)>();
-
-            foreach (var node in all_nodes)
-            {
-                var touching_nodes = triangles.GetTouchingUsedNodes(node);
-
-                var candidate_triangles = node.
-                    Concat(touching_nodes).
-                    SelectMany(o => o.GetItems_ThisNodeOnly()).
-                    ToArray();
-
-                var node_triangles = node.GetItems_ThisNodeOnly();
-
-                stats.Add((node_triangles.Length, touching_nodes.Length, candidate_triangles.Length));
-
-                foreach (var triangle in node_triangles)
-                {
-                    TriangleIndexedLinked_wpf neighbor = FindLinkEdge(candidate_triangles, triangle.Token, triangle.Index0, triangle.Index1);
-                    if (neighbor != null || setNullIfNoLink)
-                        triangle.Neighbor_01 = neighbor;
-
-                    neighbor = FindLinkEdge(candidate_triangles, triangle.Token, triangle.Index1, triangle.Index2);
-                    if (neighbor != null || setNullIfNoLink)
-                        triangle.Neighbor_12 = neighbor;
-
-                    neighbor = FindLinkEdge(candidate_triangles, triangle.Token, triangle.Index2, triangle.Index0);
-                    if (neighbor != null || setNullIfNoLink)
-                        triangle.Neighbor_20 = neighbor;
-                }
-            }
-
-
-            // div 200: a few nodes with a couple thousand.  a lot in the hundreds, a lot single digit
-            // div 400: one node with a thousand. remainder is hundreds down to single digit
-
-
-            var stats2 = stats.
-                OrderByDescending(o => o.tris).
-                ThenByDescending(o => o.cand).
-                ThenByDescending(o => o.neigs).
-                ToArray();
-
-
-        }
-        public static void LinkTriangles_Edges_MultiThread(BoundsOctree<TriangleIndexedLinked_wpf> triangles, bool setNullIfNoLink)
-        {
-            var all_nodes = triangles.GetAllUsedNodes();
-
-            var stats = new List<(int tris, int neigs, int cand)>();
-
-
-            //TODO: multi thread this
-
-            foreach (var node in all_nodes)
-            {
-                var touching_nodes = triangles.GetTouchingUsedNodes(node);
-
-                var candidate_triangles = node.
-                    Concat(touching_nodes).
-                    SelectMany(o => o.GetItems_ThisNodeOnly()).
-                    ToArray();
-
-                var node_triangles = node.GetItems_ThisNodeOnly();
-
-                stats.Add((node_triangles.Length, touching_nodes.Length, candidate_triangles.Length));
-
-
-
-
-                // this is the part that should really be multi threaded
-                foreach (var triangle in node_triangles)
-                {
-                    TriangleIndexedLinked_wpf neighbor = FindLinkEdge(candidate_triangles, triangle.Token, triangle.Index0, triangle.Index1);
-                    if (neighbor != null || setNullIfNoLink)
-                        triangle.Neighbor_01 = neighbor;
-
-                    neighbor = FindLinkEdge(candidate_triangles, triangle.Token, triangle.Index1, triangle.Index2);
-                    if (neighbor != null || setNullIfNoLink)
-                        triangle.Neighbor_12 = neighbor;
-
-                    neighbor = FindLinkEdge(candidate_triangles, triangle.Token, triangle.Index2, triangle.Index0);
-                    if (neighbor != null || setNullIfNoLink)
-                        triangle.Neighbor_20 = neighbor;
-                }
-
-
-
-            }
-
-
-
-
-            // div 200: a few nodes with a couple thousand.  a lot in the hundreds, a lot single digit
-            // div 400: one node with a thousand. remainder is hundreds down to single digit
-
-
-            var stats2 = stats.
-                OrderByDescending(o => o.tris).
-                ThenByDescending(o => o.cand).
-                ThenByDescending(o => o.neigs).
-                ToArray();
-
-
-        }
-
-
-
-
-        private static TriangleIndexedLinked_wpf FindLinkEdge(IEnumerable<TriangleIndexedLinked_wpf> triangles, long calling_token, int vertex1, int vertex2)
-        {
-            // Find the triangle that has vertex1 and 2
-            foreach (var triangle in triangles)
-            {
-                if (triangle.Token == calling_token)
-                    // This is the currently requested triangle, so ignore it
-                    continue;
-
-                if ((triangle.Index0 == vertex1 && triangle.Index1 == vertex2) ||
-                    (triangle.Index0 == vertex1 && triangle.Index2 == vertex2) ||
-                    (triangle.Index1 == vertex1 && triangle.Index0 == vertex2) ||
-                    (triangle.Index1 == vertex1 && triangle.Index2 == vertex2) ||
-                    (triangle.Index2 == vertex1 && triangle.Index0 == vertex2) ||
-                    (triangle.Index2 == vertex1 && triangle.Index1 == vertex2))
-                {
-                    // Found it
-                    //NOTE:  Just returning the first match.  Assuming that the list of triangles is a valid hull
-                    //NOTE:  Not validating that the triangle has 3 unique points, and the 2 points passed in are unique
-                    return triangle;
-                }
-            }
-
-            // No neighbor found
-            return null;
-        }
-
 
 
         #endregion

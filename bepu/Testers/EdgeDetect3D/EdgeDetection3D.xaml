@@ -62,12 +62,12 @@
                 <Border Style="{StaticResource propBorder}">
                     <StackPanel>
                         <Button Content="indexed triangles" Click="IndexedTriangles_Click"/>
-                        <Button Visibility="Collapsed" Content="linked triangles" Click="LinkedTriangles_Click"/>
-                        <Button Content="linked triangles 2" Click="LinkedTriangles2_Click"/>
-                        <Button Content="octree" Click="Octree_Click"/>
+                        <DockPanel>
+                            <CheckBox x:Name="chkOctreeLines" IsChecked="True" ToolTip="Show node lines (causes slower drawing)" VerticalAlignment="Center"/>
+                            <Button Content="octree" VerticalAlignment="Center" Click="Octree_Click"/>
+                        </DockPanel>
                         <Button Content="octree node + touching" Click="OctreeNodeTouching_Click"/>
                         <Button Content="triangles by edge" Click="TrianglesByEdge_Click"/>
-                        <Button Content="triangles by edge 2" Click="TrianglesByEdge2_Click"/>
                     </StackPanel>
                 </Border>
             </StackPanel>
