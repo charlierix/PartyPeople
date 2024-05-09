@@ -1540,23 +1540,35 @@ namespace Game.Math_WPF.Mathematics
                 throw new ApplicationException($"Not a neighbor\r\n{this}\r\n{neighbor}");
         }
 
-        public static TriangleIndexedLinked_wpf[] ConvertToLinked(ITriangleIndexed_wpf[] triangles, bool linkEdges, bool linkCorners)
+        public static (TriangleIndexedLinked_wpf[] triangles, NeighborResults by_edge_vertex) ConvertToLinked(ITriangleIndexed_wpf[] triangles, bool linkEdges, bool linkCorners)
         {
             var retVal = triangles.
                 Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).
                 ToList();
 
+            NeighborEdgeSingle[] singles = null;
+            NeighborEdgePair[] pairs = null;
             if (linkEdges)
-                LinkTriangles_Edges(retVal, true);
+                (singles, pairs) = LinkTriangles_Edges(retVal, true);
 
+            NeighborVertex[] vertices = null;
             if (linkCorners)
-                LinkTriangles_Corners(retVal, true);
+                vertices = LinkTriangles_Corners(retVal, true);
 
-            return retVal.ToArray();
+            return
+            (
+                retVal.ToArray(),
+                new NeighborResults()
+                {
+                    EdgeSingles = singles,
+                    EdgePairs = pairs,
+                    Corners = vertices,
+                }
+            );
         }
 
         /// <summary>
-        /// This scans the triangle edges, and finds the adjacent triangles (doesn't look at shared corners, only edges)
+        /// Scans the triangle edges, and finds the adjacent triangles (doesn't look at shared corners, only edges)
         /// </summary>
         /// <param name="setNullIfNoLink">
         /// True:  If no link is found for an edge, that edge is set to null
@@ -1599,134 +1611,55 @@ namespace Game.Math_WPF.Mathematics
             {
                 var tris = link.ToArray();
 
-                if (tris.Length == 0)
-                    throw new ApplicationException("Found edge with no triangle");      // this will never happen unless tolookup is broken
-
-                else if (tris.Length == 1)
+                switch (tris.Length)
                 {
-                    singles.Add(new NeighborEdgeSingle()
-                    {
-                        EdgeIndex0 = link.Key.Item1,
-                        EdgeIndex1 = link.Key.Item2,
-                        Triangle0 = tris[0].o,
-                    });
-                    continue;
+                    case 0:
+                        throw new ApplicationException("Found edge with no triangle");      // this will never happen unless tolookup is broken
+
+                    case 1:
+                        singles.Add(new NeighborEdgeSingle()
+                        {
+                            EdgeIndex0 = link.Key.Item1,
+                            EdgeIndex1 = link.Key.Item2,
+                            Triangle0 = tris[0].o,
+                        });
+                        break;
+
+                    case 2:
+                        // Populate each triangle's Neighbor_XX prop
+                        if (!LinkEdge_set_T0(tris[0].o, tris[1].o, link.Key.Item1, link.Key.Item2))
+                            throw new ApplicationException($"links query found mismatching triangle and edge:\r\n{tris[0].o}\r\n{tris[1].o}\r\n{link.Key.Item1}\r\n{link.Key.Item2}");
+
+                        if (!LinkEdge_set_T0(tris[1].o, tris[0].o, link.Key.Item1, link.Key.Item2))
+                            throw new ApplicationException($"links query found mismatching triangle and edge:\r\n{tris[1].o}\r\n{tris[0].o}\r\n{link.Key.Item1}\r\n{link.Key.Item2}");
+
+                        pairs.Add(new NeighborEdgePair()
+                        {
+                            EdgeIndex0 = link.Key.Item1,
+                            EdgeIndex1 = link.Key.Item2,
+                            Triangle0 = tris[0].o,
+                            Triangle1 = tris[1].o,
+                        });
+                        break;
+
+                    default:
+                        throw new ApplicationException("Found multiple triangles tied to one edge:\r\n" + tris.Select(o => o.ToString()).ToJoin("\r\n"));
                 }
-
-                else if (tris.Length > 2)
-                    throw new ApplicationException("Found multiple triangles tied to one edge:\r\n" + tris.Select(o => o.ToString()).ToJoin("\r\n"));
-
-                // Populate each triangle's Neighbor_XX prop
-                if (!LinkEdge_set_T0(tris[0].o, tris[1].o, link.Key.Item1, link.Key.Item2))
-                    throw new ApplicationException($"links query found mismatching triangle and edge:\r\n{tris[0].o}\r\n{tris[1].o}\r\n{link.Key.Item1}\r\n{link.Key.Item2}");
-
-                if (!LinkEdge_set_T0(tris[1].o, tris[0].o, link.Key.Item1, link.Key.Item2))
-                    throw new ApplicationException($"links query found mismatching triangle and edge:\r\n{tris[1].o}\r\n{tris[0].o}\r\n{link.Key.Item1}\r\n{link.Key.Item2}");
-
-                pairs.Add(new NeighborEdgePair()
-                {
-                    EdgeIndex0 = link.Key.Item1,
-                    EdgeIndex1 = link.Key.Item2,
-                    Triangle0 = tris[0].o,
-                    Triangle1 = tris[1].o,
-                });
             }
 
             return (singles.ToArray(), pairs.ToArray());
         }
 
-
-
         /// <summary>
-        /// This does a brute force scan of the triangles, and finds the adjacent triangles (doesn't look at shared edges, only corners)
+        /// Scans the triangle corners (vertices) and finds adjacent triangles (doesn't look at shared edges, only corners)
         /// </summary>
         /// <param name="setNullIfNoLink">
         /// True:  If no link is found for an edge, that edge is set to null
         /// False:  If no link is found for an edge, that edge is left alone
         /// </param>
-        public static void LinkTriangles_Corners_ORIG(List<TriangleIndexedLinked_wpf> triangles, bool setNullIfNoLink)
-        {
-
-            // TODO: this function looks like it could be optimized - at least add some parallel processing.  If corners are actually needed, then optimize it
-
-
-            if (setNullIfNoLink)
-            {
-                foreach (TriangleIndexedLinked_wpf triangle in triangles)
-                {
-                    triangle.Neighbor_0 = null;
-                    triangle.Neighbor_1 = null;
-                    triangle.Neighbor_2 = null;
-                }
-            }
-
-            if (triangles.Count <= 1)
-                return;
-
-            //NOTE: This method only works if all triangles use the same points list
-            foreach (int index in Enumerable.Range(0, triangles[0].AllPoints.Length))
-            {
-                var used = new List<TriangleIndexedLinked_CornerNeighbor>();
-
-                // Find the triangles with this index
-                foreach (TriangleIndexedLinked_wpf triangle in triangles)
-                {
-                    if (triangle.Index0 == index)
-                        used.Add(new TriangleIndexedLinked_CornerNeighbor()
-                        {
-                            Triangle = triangle,
-                            CornerIndex = 0,
-                            WhichCorner = TriangleCorner.Corner_0,
-                        });
-
-                    else if (triangle.Index1 == index)
-                        used.Add(new TriangleIndexedLinked_CornerNeighbor()
-                        {
-                            Triangle = triangle,
-                            CornerIndex = 1,
-                            WhichCorner = TriangleCorner.Corner_1,
-                        });
-
-                    else if (triangle.Index2 == index)
-                        used.Add(new TriangleIndexedLinked_CornerNeighbor()
-                        {
-                            Triangle = triangle,
-                            CornerIndex = 2,
-                            WhichCorner = TriangleCorner.Corner_2,
-                        });
-                }
-
-                if (used.Count <= 1)
-                    continue;
-
-                // Distribute them
-                for (int cntr = 0; cntr < used.Count; cntr++)
-                {
-                    var neighbors = used.
-                        Where((o, i) => i != cntr).
-                        ToArray();
-
-                    switch (used[cntr].WhichCorner)
-                    {
-                        case TriangleCorner.Corner_0:
-                            used[cntr].Triangle.Neighbor_0 = neighbors;
-                            break;
-
-                        case TriangleCorner.Corner_1:
-                            used[cntr].Triangle.Neighbor_1 = neighbors;
-                            break;
-
-                        case TriangleCorner.Corner_2:
-                            used[cntr].Triangle.Neighbor_2 = neighbors;
-                            break;
-
-                        default:
-                            throw new ApplicationException("Unknown TriangleCorner: " + used[cntr].WhichCorner.ToString());
-                    }
-                }
-            }
-        }
-
+        /// <returns>
+        /// A list of vertices and which triangles use them.  Also tells which corner is pointing that that particular vertex
+        /// </returns>
         public static NeighborVertex[] LinkTriangles_Corners(IEnumerable<TriangleIndexedLinked_wpf> triangles, bool setNullIfNoLink)
         {
             if (setNullIfNoLink)
@@ -1753,11 +1686,12 @@ namespace Game.Math_WPF.Mathematics
             var retVal = new List<NeighborVertex>();
 
             // Iterate by vertex, wiring up triangles
+            var tris = new List<TriangleIndexedLinked_wpf>();
             foreach (var link in links_query)
             {
-                var tris = link.
-                    Select(o => o.o).
-                    ToArray();
+                tris.Clear();
+                foreach (var t in link)
+                    tris.Add(t.o);
 
                 retVal.Add(WireUpNeighborCorners(link.Key, tris, setNullIfNoLink));
             }
@@ -1970,31 +1904,7 @@ namespace Game.Math_WPF.Mathematics
             return false;
         }
 
-        private static TriangleIndexedLinked_wpf FindLinkCorner(List<TriangleIndexedLinked_wpf> triangles, long calling_token, int cornerVertex, int otherVertex1, int otherVertex2)
-        {
-            // Find the triangle that has cornerVertex, but not otherVertex1 or 2
-            for (int i = 0; i < triangles.Count; i++)
-            {
-                if (triangles[i].Token == calling_token)
-                    // This is the currently requested triangle, so ignore it
-                    continue;
-
-                if ((triangles[i].Index0 == cornerVertex && triangles[i].Index1 != otherVertex1 && triangles[i].Index2 != otherVertex1 && triangles[i].Index1 != otherVertex2 && triangles[i].Index2 != otherVertex2) ||
-                    (triangles[i].Index1 == cornerVertex && triangles[i].Index0 != otherVertex1 && triangles[i].Index2 != otherVertex1 && triangles[i].Index0 != otherVertex2 && triangles[i].Index2 != otherVertex2) ||
-                    (triangles[i].Index2 == cornerVertex && triangles[i].Index0 != otherVertex1 && triangles[i].Index1 != otherVertex1 && triangles[i].Index0 != otherVertex2 && triangles[i].Index1 != otherVertex2))
-                {
-                    // Found it
-                    // NOTE: Just returning the first match.  Assuming that the list of triangles is a valid hull
-                    // NOTE: Not validating that the triangle has 3 unique points, and the 3 points passed in are unique
-                    return triangles[i];
-                }
-            }
-
-            // No neighbor found
-            return null;
-        }
-
-        private static NeighborVertex WireUpNeighborCorners(int vertex_index, TriangleIndexedLinked_wpf[] triangles, bool setNullIfNoLink)
+        private static NeighborVertex WireUpNeighborCorners(int vertex_index, IEnumerable<TriangleIndexedLinked_wpf> triangles, bool setNullIfNoLink)
         {
             var tri_corners = new List<(TriangleIndexedLinked_wpf, TriangleCorner)>();
 
@@ -2039,7 +1949,7 @@ namespace Game.Math_WPF.Mathematics
             };
 
         }
-        private static TriangleIndexedLinked_CornerNeighbor[] WireUpNeighborCorners_Others(int vertex_index, long token, TriangleIndexedLinked_wpf[] triangles)
+        private static TriangleIndexedLinked_CornerNeighbor[] WireUpNeighborCorners_Others(int vertex_index, long token, IEnumerable<TriangleIndexedLinked_wpf> triangles)
         {
             var retVal = new List<TriangleIndexedLinked_CornerNeighbor>();
 

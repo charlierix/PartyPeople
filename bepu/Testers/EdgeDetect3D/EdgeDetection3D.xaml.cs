@@ -369,15 +369,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     if (triangles.Length == 0)
                         continue;
 
-                    var triangles_linked = triangles.
-                        Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).
-                        ToArray();
-
-                    var triangles_by_edge = TriangleIndexedLinked_wpf.LinkTriangles_Edges(triangles_linked, false);
-
-                    var triangles_by_corner = TriangleIndexedLinked_wpf.LinkTriangles_Corners(triangles_linked, false);
-
-
+                    //var tri2 = TriangleIndexedLinked_wpf.ConvertToLinked(triangles, true, true);
+                    var tri2 = TriangleIndexedLinked_wpf.ConvertToLinked(triangles, true, false);
 
 
 

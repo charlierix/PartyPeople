@@ -2213,7 +2213,7 @@ namespace Game.Math_WPF.Mathematics
             public static (int, int)[] ThrowOutThinTriangles(TriangleIndexed_wpf[] triangles, double skipThinRatio)
             {
                 // Figure out which edges to throw out
-                (int, int)[] removes = TriangleIndexedLinked_wpf.ConvertToLinked(triangles, true, false).      // need to convert to linked so that shouldRemove knows if the edges are interior or exterior
+                (int, int)[] removes = TriangleIndexedLinked_wpf.ConvertToLinked(triangles, true, false).triangles.      // need to convert to linked so that shouldRemove knows if the edges are interior or exterior
                     Select(o => ShouldRemoveThinOuter(o, skipThinRatio)).
                     Where(o => o != null).
                     Select(o => o.Item1 < o.Item2 ? (o.Item1, o.Item2) : (o.Item2, o.Item1)).        // make sure that item1 is less than item2 so that the tuples will match later
