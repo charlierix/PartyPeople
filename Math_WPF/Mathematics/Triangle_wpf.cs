@@ -1250,6 +1250,8 @@ namespace Game.Math_WPF.Mathematics
 
         public record NeighborResults
         {
+            public Point3D[] AllPoints { get; init; }
+
             public NeighborEdgeSingle[] EdgeSingles { get; init; }
             public NeighborEdgePair[] EdgePairs { get; init; }
 
@@ -1542,6 +1544,9 @@ namespace Game.Math_WPF.Mathematics
 
         public static (TriangleIndexedLinked_wpf[] triangles, NeighborResults by_edge_vertex) ConvertToLinked(ITriangleIndexed_wpf[] triangles, bool linkEdges, bool linkCorners)
         {
+            if (triangles.Length == 0)
+                return new([], new NeighborResults() { AllPoints = [], EdgeSingles = linkEdges ? [] : null, EdgePairs = linkEdges ? [] : null, Corners = linkCorners ? [] : null });
+
             var retVal = triangles.
                 Select(o => new TriangleIndexedLinked_wpf(o.Index0, o.Index1, o.Index2, o.AllPoints)).
                 ToList();
@@ -1560,6 +1565,7 @@ namespace Game.Math_WPF.Mathematics
                 retVal.ToArray(),
                 new NeighborResults()
                 {
+                    AllPoints = triangles[0].AllPoints,
                     EdgeSingles = singles,
                     EdgePairs = pairs,
                     Corners = vertices,
