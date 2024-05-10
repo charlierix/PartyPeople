@@ -380,7 +380,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        private void NormalDot1_Click(object sender, RoutedEventArgs e)
+        private void NormalDot_POC_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -400,7 +400,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     var (triangles, by_edge) = TriangleIndexedLinked_wpf.ConvertToLinked(triangles_fromobj, true, false);
 
                     var dot_diffs = by_edge.EdgePairs.
-                        Select(o => GetNormalDot(o)).
+                        Select(o => EdgeUtil.GetNormalDot(o)).
                         ToArray();
 
                     var grouped = dot_diffs.
@@ -469,17 +469,171 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
                     foreach (var group in grouped)
                     {
-                        // Group the list of samples into sets of 0.05
-                        for(double target = -1d; target <= 1d; target += 0.15)
+                        // Group the list of samples into sets of dot product range
+                        double step = 0.15;
+                        for (double target = -1d; target <= 1d; target += step)
                         {
                             var inrange = group.edges.
-                                Where(o => Math.Abs(o.Dot - target) <= 0.025).
+                                Where(o => Math.Abs(o.Dot - target) <= step / 2).
                                 ToArray();
 
-                            if(inrange.Length > 0)
+                            if (inrange.Length > 0)
                                 drawExample(inrange[StaticRandom.Next(inrange.Length)]);
                         }
                     }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void NormalDot_Isolated_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_parsed_file == null)
+                {
+                    MessageBox.Show("Need to load a .obj file first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                foreach (var obj in _parsed_file.Objects)
+                {
+                    var triangles_fromobj = Obj_Util.ToTrianglesIndexed(obj);
+
+                    if (triangles_fromobj.Length == 0)
+                        continue;
+
+                    var (triangles, by_edge) = TriangleIndexedLinked_wpf.ConvertToLinked(triangles_fromobj, true, false);
+
+                    // May also want to throw out tiny triangles
+
+                    var dot_diffs = by_edge.EdgePairs.
+                        Select(o => EdgeUtil.GetNormalDot(o)).
+                        Where(o => o.Dot < 0.97).       // throw out the mostly parallel joins
+                        ToArray();
+
+                    var grouped = dot_diffs.
+                        ToLookup(o => o.Direction).
+                        Select(o => new
+                        {
+                            dir = o.Key,
+                            edges = o.
+                                OrderBy(p => p.Dot).
+                                ToArray(),
+                        }).
+                        ToArray();
+
+                    var drawScene = new Action<string, bool, Color, NormalDot[]>((title, show_hull, max_color, nd) =>
+                    {
+                        var window = new Debug3DWindow()
+                        {
+                            Title = title,
+                            Background = UtilityWPF.BrushFromHex("000"),
+                            Width = 1500,
+                            Height = 1500,
+                        };
+
+                        if (show_hull)
+                            window.AddHull(triangles, UtilityWPF.ColorFromHex("000"), isIndependentFaces: false);
+
+                        // Draw the lines in sets (should reduce the total number of visuals)
+                        double step = 0.05;
+                        for (double target = -1d; target <= 1d; target += step)
+                        {
+                            var inrange = nd.
+                                Where(o => Math.Abs(o.Dot - target) <= step / 2).
+                                ToArray();
+
+                            Color color = UtilityWPF.AlphaBlend(max_color, Colors.Black, Math.Pow(UtilityMath.GetScaledValue_Capped(0, 1, 1, -1, target), 0.66));
+
+                            if (inrange.Length > 0)
+                                window.AddLines_Flat(inrange.Select(o => (by_edge.AllPoints[o.Edge.EdgeIndex0], by_edge.AllPoints[o.Edge.EdgeIndex1])), 2, color);
+                        }
+
+                        window.Show();
+                    });
+
+
+                    foreach (var group in grouped)
+                    {
+                        drawScene(group.dir.ToString(), true, Colors.Chartreuse, group.edges);
+                        drawScene(group.dir.ToString(), false, Colors.Chartreuse, group.edges);
+                        drawScene(group.dir.ToString(), false, Colors.White, group.edges);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void NormalDot_Combined_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_parsed_file == null)
+                {
+                    MessageBox.Show("Need to load a .obj file first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                foreach (var obj in _parsed_file.Objects)
+                {
+                    var triangles_fromobj = Obj_Util.ToTrianglesIndexed(obj);
+
+                    if (triangles_fromobj.Length == 0)
+                        continue;
+
+                    var (triangles, by_edge) = TriangleIndexedLinked_wpf.ConvertToLinked(triangles_fromobj, true, false);
+
+                    // May also want to throw out tiny triangles
+
+                    var dot_diffs = by_edge.EdgePairs.
+                        Select(o => EdgeUtil.GetNormalDot(o)).
+                        Where(o => o.Dot < 0.97).       // throw out the mostly parallel joins
+                        ToArray();
+
+                    // Delegate to draw a scene
+                    var drawScene = new Action<bool, Color, Color, NormalDot[]>((show_hull, color_valley, color_peak, nd) =>
+                    {
+                        var window = new Debug3DWindow()
+                        {
+                            //Title = title,
+                            Background = UtilityWPF.BrushFromHex("000"),
+                            Width = 1500,
+                            Height = 1500,
+                        };
+
+                        if (show_hull)
+                            window.AddHull(triangles, UtilityWPF.ColorFromHex("000"), isIndependentFaces: false);
+
+                        // Delegate to draw either peak or valley lines
+                        var drawLines = new Action<Color, TriangleFoldDirection>((max_color, dir) =>
+                        {
+                            double step = 0.05;
+                            for (double target = -1d; target <= 1d; target += step)     // Draw the lines in sets (should reduce the total number of visuals)
+                            {
+                                var inrange = nd.
+                                    Where(o => o.Direction == dir && Math.Abs(o.Dot - target) <= step / 2).
+                                    ToArray();
+
+                                Color color = UtilityWPF.AlphaBlend(max_color, Colors.Black, Math.Pow(UtilityMath.GetScaledValue_Capped(0, 1, 1, -1, target), 0.66));
+
+                                if (inrange.Length > 0)
+                                    window.AddLines_Flat(inrange.Select(o => (by_edge.AllPoints[o.Edge.EdgeIndex0], by_edge.AllPoints[o.Edge.EdgeIndex1])), 2, color);
+                            }
+                        });
+
+                        drawLines(color_valley, TriangleFoldDirection.Valley);
+                        drawLines(color_peak, TriangleFoldDirection.Peak);
+
+                        window.Show();
+                    });
+
+                    drawScene(true, Colors.White, Colors.Chartreuse, dot_diffs);
+                    drawScene(false, Colors.White, Colors.Chartreuse, dot_diffs);
                 }
             }
             catch (Exception ex)
@@ -647,74 +801,5 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         }
 
         #endregion
-
-
-
-        private static NormalDot GetNormalDot(TriangleIndexedLinked_wpf.NeighborEdgePair edge)
-        {
-            double dot = Vector3D.DotProduct(edge.Triangle0.NormalUnit, edge.Triangle1.NormalUnit);
-
-            if (dot.IsNearValue(1))
-                return new NormalDot()
-                {
-                    Edge = edge,
-                    Dot = dot,
-                    Direction = TriangleFoldDirection.Parallel,
-                };
-
-            // Pick a triangle, find the other triangle's non edge vertex
-            //  If that other vertex is above the first triangle, then it's a pinch
-
-            // Need to do that for both triangles, because the normals might be backward (one up, one down)
-
-            int other0 = edge.Triangle0.GetOppositeIndex(edge.EdgeIndex0, edge.EdgeIndex1);
-            int other1 = edge.Triangle1.GetOppositeIndex(edge.EdgeIndex0, edge.EdgeIndex1);
-
-
-            bool isAbove0 = Math3D.IsAbovePlane(edge.Triangle0, edge.Triangle0.AllPoints[other1]);
-            bool isAbove1 = Math3D.IsAbovePlane(edge.Triangle1, edge.Triangle1.AllPoints[other0]);
-
-
-            return new NormalDot()
-            {
-                Edge = edge,
-                Dot = dot,
-                Direction =
-                    isAbove0 && isAbove1 ? TriangleFoldDirection.Valley :
-                    !isAbove0 && !isAbove1 ? TriangleFoldDirection.Peak :
-                    TriangleFoldDirection.UpsideDown,
-            };
-        }
-
-        private record NormalDot
-        {
-            public TriangleIndexedLinked_wpf.NeighborEdgePair Edge { get; init; }
-            public double Dot { get; init; }
-            public TriangleFoldDirection Direction { get; init; }
-
-        }
-
-        /// <summary>
-        /// Used when two triangles are connected at an edge, tells how they are angled (normals pointing up)
-        /// </summary>
-        private enum TriangleFoldDirection
-        {
-            Parallel,
-            /// <summary>
-            /// The triangles face each other
-            /// </summary>
-            Valley,
-            /// <summary>
-            /// The triangles face away from each other
-            /// </summary>
-            Peak,
-            /// <summary>
-            /// One triangle points up, the other points down.  This would be considered a badly formed mesh
-            /// </summary>
-            UpsideDown,
-        }
-
-
-
     }
 }
