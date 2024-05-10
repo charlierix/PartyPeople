@@ -925,13 +925,10 @@ namespace Game.Math_WPF.WPF.Viewers
             double maxY = values.Max();
 
             if (minY < 0 && maxY < 0)
-            {
                 maxY = 0;
-            }
+
             else if (minY > 0 && maxY > 0)
-            {
                 minY = 0;
-            }
 
             double range = maxY - minY;
 

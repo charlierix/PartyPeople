@@ -9,7 +9,7 @@
     <Grid Name="grdViewPort" Background="Transparent" MouseMove="grdViewPort_MouseMove" SizeChanged="grdViewPort_SizeChanged">
         <Viewport3D Name="_viewport" IsHitTestVisible="False">
             <Viewport3D.Camera>
-                <PerspectiveCamera x:Name="_camera" Position="0,0,7" LookDirection="0,0,-1" UpDirection="0,1,0" FieldOfView="45" Changed="Camera_Changed"/>
+                <PerspectiveCamera x:Name="_camera" Position="0,0,7" LookDirection="0,0,-1" UpDirection="0,1,0" FieldOfView="45" NearPlaneDistance="0.01" Changed="Camera_Changed"/>
             </Viewport3D.Camera>
             <ModelVisual3D>
                 <ModelVisual3D.Content>

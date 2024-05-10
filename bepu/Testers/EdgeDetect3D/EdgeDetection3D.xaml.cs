@@ -1,5 +1,4 @@
-﻿using BepuPhysics.Collidables;
-using Game.Core;
+﻿using Game.Core;
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.FileHandlers3D;
@@ -247,7 +246,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                         if (cell_triangles.Length > 0)
                             window.AddHull(cell_triangles, cell_color);
 
-                        if(chkOctreeLines.IsChecked.Value)
+                        if (chkOctreeLines.IsChecked.Value)
                         {
                             var boundary_lines = Polytopes.GetCubeLines(cells[i].Bounds.Min.ToPoint_wpf(), cells[i].Bounds.Max.ToPoint_wpf());
 
@@ -374,6 +373,113 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
 
 
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void NormalDot1_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_parsed_file == null)
+                {
+                    MessageBox.Show("Need to load a .obj file first", Title, MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                foreach (var obj in _parsed_file.Objects)
+                {
+                    var triangles_fromobj = Obj_Util.ToTrianglesIndexed(obj);
+
+                    if (triangles_fromobj.Length == 0)
+                        continue;
+
+                    var (triangles, by_edge) = TriangleIndexedLinked_wpf.ConvertToLinked(triangles_fromobj, true, false);
+
+                    var dot_diffs = by_edge.EdgePairs.
+                        Select(o => GetNormalDot(o)).
+                        ToArray();
+
+                    var grouped = dot_diffs.
+                        ToLookup(o => o.Direction).
+                        Select(o => new
+                        {
+                            dir = o.Key,
+                            edges = o.
+                                OrderBy(p => p.Dot).
+                                ToArray(),
+                        }).
+                        ToArray();
+
+                    var drawExample = new Action<NormalDot>(nd =>
+                    {
+                        var window = new Debug3DWindow()
+                        {
+                            Title = nd.Direction.ToString(),
+                        };
+
+                        var aabb = Math3D.GetAABB([nd.Edge.Triangle0, nd.Edge.Triangle1]);
+                        Point3D center = Math3D.GetCenter(aabb.min, aabb.max);
+
+                        var sizes = Debug3DWindow.GetDrawSizes([aabb.min, aabb.max], center);
+
+                        var triangle0 = new Triangle_wpf(nd.Edge.Triangle0.Point0 - center.ToVector(), nd.Edge.Triangle0.Point1 - center.ToVector(), nd.Edge.Triangle0.Point2 - center.ToVector());
+                        var triangle1 = new Triangle_wpf(nd.Edge.Triangle1.Point0 - center.ToVector(), nd.Edge.Triangle1.Point1 - center.ToVector(), nd.Edge.Triangle1.Point2 - center.ToVector());
+
+                        window.AddTriangle(triangle0, Colors.Linen);
+                        window.AddTriangle(triangle1, Colors.Linen);
+
+                        window.AddLine(triangle0.GetCenterPoint(), triangle0.GetCenterPoint() + triangle0.Normal, sizes.line, Colors.Orange);
+                        window.AddLine(triangle1.GetCenterPoint(), triangle1.GetCenterPoint() + triangle1.Normal, sizes.line, Colors.Orange);
+
+                        window.AddText($"dot: {nd.Dot}");
+
+                        window.Show();
+                    });
+
+
+                    // Most of the edge pairs are nearly flat
+                    //foreach(var group in grouped)
+                    //    foreach(int index in UtilityCore.RandomRange(0, group.edges.Length, 3))
+                    //        drawExample(group.edges[index]);
+
+
+                    // Picking the midpoint doesn't work either, since the interesting parts aren't right in the middle of the set
+                    //foreach (var group in grouped)
+                    //    drawExample(group.edges[group.edges.Length / 2]);
+
+
+                    // AddGraph tries to draw all the points.  It would look like a near vertical step from -1 to 1 anyway
+                    //foreach (var group in grouped)
+                    //{
+                    //    var window = new Debug3DWindow()
+                    //    {
+                    //        Title = group.dir.ToString(),
+                    //    };
+
+                    //    var graph = Debug3DWindow.GetGraph(group.edges.Select(o => o.Dot).ToArray());
+                    //    window.AddGraph(graph, new Point3D(), 1);
+
+                    //    window.Show();
+                    //}
+
+
+                    foreach (var group in grouped)
+                    {
+                        // Group the list of samples into sets of 0.05
+                        for(double target = -1d; target <= 1d; target += 0.15)
+                        {
+                            var inrange = group.edges.
+                                Where(o => Math.Abs(o.Dot - target) <= 0.025).
+                                ToArray();
+
+                            if(inrange.Length > 0)
+                                drawExample(inrange[StaticRandom.Next(inrange.Length)]);
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -508,10 +614,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             return retVal.ToArray();
         }
 
-
-        // TODO: don't ask for divider size.  Calculate based on triangle count
-
         // Populates an octree with triangles.  The larger the divider, the smaller the node sizes can be
+        // TODO: don't ask for divider size.  Calculate based on triangle count
         private static BoundsOctree<T> CreateOctreeWithTriangles<T>(T[] triangles, int size_divider = 150) where T : ITriangleIndexed_wpf
         {
             var aabb = Math3D.GetAABB(triangles[0].AllPoints);
@@ -542,7 +646,75 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             return tree;
         }
 
-
         #endregion
+
+
+
+        private static NormalDot GetNormalDot(TriangleIndexedLinked_wpf.NeighborEdgePair edge)
+        {
+            double dot = Vector3D.DotProduct(edge.Triangle0.NormalUnit, edge.Triangle1.NormalUnit);
+
+            if (dot.IsNearValue(1))
+                return new NormalDot()
+                {
+                    Edge = edge,
+                    Dot = dot,
+                    Direction = TriangleFoldDirection.Parallel,
+                };
+
+            // Pick a triangle, find the other triangle's non edge vertex
+            //  If that other vertex is above the first triangle, then it's a pinch
+
+            // Need to do that for both triangles, because the normals might be backward (one up, one down)
+
+            int other0 = edge.Triangle0.GetOppositeIndex(edge.EdgeIndex0, edge.EdgeIndex1);
+            int other1 = edge.Triangle1.GetOppositeIndex(edge.EdgeIndex0, edge.EdgeIndex1);
+
+
+            bool isAbove0 = Math3D.IsAbovePlane(edge.Triangle0, edge.Triangle0.AllPoints[other1]);
+            bool isAbove1 = Math3D.IsAbovePlane(edge.Triangle1, edge.Triangle1.AllPoints[other0]);
+
+
+            return new NormalDot()
+            {
+                Edge = edge,
+                Dot = dot,
+                Direction =
+                    isAbove0 && isAbove1 ? TriangleFoldDirection.Valley :
+                    !isAbove0 && !isAbove1 ? TriangleFoldDirection.Peak :
+                    TriangleFoldDirection.UpsideDown,
+            };
+        }
+
+        private record NormalDot
+        {
+            public TriangleIndexedLinked_wpf.NeighborEdgePair Edge { get; init; }
+            public double Dot { get; init; }
+            public TriangleFoldDirection Direction { get; init; }
+
+        }
+
+        /// <summary>
+        /// Used when two triangles are connected at an edge, tells how they are angled (normals pointing up)
+        /// </summary>
+        private enum TriangleFoldDirection
+        {
+            Parallel,
+            /// <summary>
+            /// The triangles face each other
+            /// </summary>
+            Valley,
+            /// <summary>
+            /// The triangles face away from each other
+            /// </summary>
+            Peak,
+            /// <summary>
+            /// One triangle points up, the other points down.  This would be considered a badly formed mesh
+            /// </summary>
+            UpsideDown,
+        }
+
+
+
     }
 }

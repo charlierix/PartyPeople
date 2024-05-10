@@ -978,6 +978,20 @@ namespace Game.Math_WPF.Mathematics
                     throw new ApplicationException($"Unknown TriangleEdge: {edge}");
             }
         }
+        public int GetOppositeIndex(int indexA, int indexB)
+        {
+            if (Index0 != indexA && Index0 != indexB)
+                return Index0;
+
+            else if (Index1 != indexA && Index1 != indexB)
+                return Index1;
+
+            else if (Index2 != indexA && Index2 != indexB)
+                return Index2;
+
+            else
+                throw new ApplicationException($"Invalid indices or corrupt triangle.  indexA: {indexA}, indexB: {indexB}, Index0: {Index0}, Index1: {Index1}, Index2: {Index2}");
+        }
 
         #endregion
         #region IComparable<ITriangle> Members

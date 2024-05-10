@@ -67,7 +67,8 @@
                             <Button Content="octree" VerticalAlignment="Center" Click="Octree_Click"/>
                         </DockPanel>
                         <Button Content="octree node + touching" Click="OctreeNodeTouching_Click"/>
-                        <Button Content="triangles by edge" Click="TrianglesByEdge_Click"/>
+                        <Button Visibility="Collapsed" Content="triangles by edge" Click="TrianglesByEdge_Click"/>
+                        <Button Content="normal dot 1" Click="NormalDot1_Click"/>
                     </StackPanel>
                 </Border>
             </StackPanel>
