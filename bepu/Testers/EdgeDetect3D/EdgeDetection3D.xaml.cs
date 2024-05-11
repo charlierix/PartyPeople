@@ -1,4 +1,5 @@
 ﻿using Game.Core;
+using Game.Core.Threads;
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.FileHandlers3D;
@@ -20,6 +21,34 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 {
     public partial class EdgeDetection3D : Window
     {
+        #region record: FileAnalyzed
+
+        private record FileAnalyzed
+        {
+            // These are the inputs
+            public string Filename { get; init; }
+            public Obj_File ParsedFile { get; init; }
+
+            // These are the results
+            public ObjectAnalyzed[] Objects { get; init; }
+        }
+
+        #endregion
+        #region record: ObjectAnalyzed
+
+        private record ObjectAnalyzed
+        {
+            public Obj_Object ParsedObject { get; init; }
+
+            // edges
+
+            // octree<trianglelinked>
+            // octree<edge>
+
+        }
+
+        #endregion
+
         #region Declaration Section
 
         private TrackBallRoam _trackball = null;
@@ -29,6 +58,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         private string _filename = null;
         private Obj_File _parsed_file = null;
         //TODO: populate an octree, linked triangles, triangles by edge - on a background thread
+
+        private readonly BackgroundTaskWorker<EdgeBackgroundWorker.WorkerRequest, EdgeBackgroundWorker.WorkerResponse> _backgroundWorker;
 
         private List<Visual3D> _visuals = new List<Visual3D>();
 
@@ -56,6 +87,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             };
 
             txtObjFile.Effect = _errorEffect;       // textchange sets this, but the first time must be happening before window load event
+
+            _backgroundWorker = new BackgroundTaskWorker<EdgeBackgroundWorker.WorkerRequest, EdgeBackgroundWorker.WorkerResponse>(EdgeBackgroundWorker.DoWork, FinishedBackgroundWork, ExceptionBackgroundWork);
         }
 
         #endregion
@@ -648,6 +681,9 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
         private void UnloadFile()
         {
+            if (_backgroundWorker != null)
+                _backgroundWorker.Cancel();
+
             _viewport.Children.RemoveAll(_visuals);
             _visuals.Clear();
 
@@ -690,6 +726,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             lblStats_Mesh.Content = report.ToString();
 
             AimCamera();
+
+            _backgroundWorker.Start(new EdgeBackgroundWorker.WorkerRequest()
+            {
+            });
 
             return true;
         }
@@ -801,5 +841,14 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         }
 
         #endregion
+
+        private void FinishedBackgroundWork(EdgeBackgroundWorker.WorkerRequest request, EdgeBackgroundWorker.WorkerResponse response)
+        {
+
+        }
+        private void ExceptionBackgroundWork(EdgeBackgroundWorker.WorkerRequest request, Exception ex)
+        {
+
+        }
     }
 }
