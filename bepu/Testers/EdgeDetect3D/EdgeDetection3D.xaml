@@ -52,12 +52,17 @@
 
         <Grid HorizontalAlignment="Left" VerticalAlignment="Top">
             <StackPanel Margin="6" HorizontalAlignment="Left" VerticalAlignment="Top">
-                <Border Style="{StaticResource propBorder}">
-                    <StackPanel>
-                        <Label x:Name="lblObjFile" Content=".obj file"/>
-                        <TextBox x:Name="txtObjFile" Text="drag/drop file" AllowDrop="True" PreviewDragEnter="txtObjFile_PreviewDragEnter" PreviewDragOver="txtObjFile_PreviewDragEnter" Drop="txtObjFile_Drop" TextChanged="txtObjFile_TextChanged"/>
-                    </StackPanel>
-                </Border>
+                <StackPanel Orientation="Horizontal">
+                    <Border Style="{StaticResource propBorder}" VerticalAlignment="Top">
+                        <StackPanel>
+                            <Label x:Name="lblObjFile" Content=".obj file"/>
+                            <TextBox x:Name="txtObjFile" Text="drag/drop file" AllowDrop="True" PreviewDragEnter="txtObjFile_PreviewDragEnter" PreviewDragOver="txtObjFile_PreviewDragEnter" Drop="txtObjFile_Drop" TextChanged="txtObjFile_TextChanged"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Label x:Name="lblAnalyzing" Visibility="Collapsed" Content="analyzing..." VerticalAlignment="Top"/>
+                    <Label x:Name="lblAnalyzeError" Visibility="Collapsed" Content="ERROR" Background="Firebrick" FontWeight="Bold" VerticalAlignment="Top"/>
+                </StackPanel>
 
                 <Border Style="{StaticResource propBorder}">
                     <StackPanel>

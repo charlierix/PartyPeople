@@ -57,7 +57,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
         private string _filename = null;
         private Obj_File _parsed_file = null;
-        //TODO: populate an octree, linked triangles, triangles by edge - on a background thread
+        // Linked triangles, edges, stored in octrees (populated from background task)
+        private EdgeBackgroundWorker.WorkerResponse _edges = null;
 
         private readonly BackgroundTaskWorker<EdgeBackgroundWorker.WorkerRequest, EdgeBackgroundWorker.WorkerResponse> _backgroundWorker;
 
@@ -690,7 +691,14 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             if (lblStats_Mesh != null)
                 lblStats_Mesh.Content = "";
 
+            if (lblAnalyzing != null)
+                lblAnalyzing.Visibility = Visibility.Collapsed;
+
+            if(lblAnalyzeError != null)
+                lblAnalyzeError.Visibility = Visibility.Collapsed;
+
             _parsed_file = null;
+            _edges = null;
         }
         private bool LoadFile(string filename)
         {
@@ -727,8 +735,12 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             AimCamera();
 
+            lblAnalyzing.Visibility = Visibility.Visible;
+
             _backgroundWorker.Start(new EdgeBackgroundWorker.WorkerRequest()
             {
+                Filename = filename,
+                ParsedFile = _parsed_file,
             });
 
             return true;
@@ -844,11 +856,14 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
         private void FinishedBackgroundWork(EdgeBackgroundWorker.WorkerRequest request, EdgeBackgroundWorker.WorkerResponse response)
         {
-
+            lblAnalyzing.Visibility = Visibility.Collapsed;
+            _edges = response;
         }
         private void ExceptionBackgroundWork(EdgeBackgroundWorker.WorkerRequest request, Exception ex)
         {
-
+            lblAnalyzing.Visibility = Visibility.Collapsed;
+            lblAnalyzeError.Content = ex.Message;
+            lblAnalyzeError.Visibility = Visibility.Visible;
         }
     }
 }
