@@ -31,7 +31,7 @@
     </Window.Resources>
 
     <Grid>
-        <Border Name="grdViewPort" Background="#999999">
+        <Border Name="grdViewPort" Background="#999999" MouseDown="grdViewPort_MouseDown" MouseLeftButtonDown="grdViewPort_MouseLeftButtonDown" MouseLeftButtonUp="grdViewPort_MouseLeftButtonUp" MouseMove="grdViewPort_MouseMove">
             <Viewport3D Name="_viewport" IsHitTestVisible="False">
                 <!-- Camera -->
                 <Viewport3D.Camera>

@@ -30,6 +30,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         public record WorkerResponse
         {
             public WorkerResponse_Object[] Objects { get; init; }
+
+            public Point3D AABB_Min { get; init; }
+            public Point3D AABB_Max { get; init; }
+            public double AABB_DiagLen { get; init; }
         }
 
         #endregion
@@ -42,6 +46,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             public TriangleIndexedLinked_wpf[] Triangles { get; init; }
 
             public Point3D[] AllPoints { get; init; }
+
+            public Point3D AABB_Min { get; init; }
+            public Point3D AABB_Max { get; init; }
+            public double AABB_DiagLen { get; init; }
 
             public NeighborEdgeSingle[] EdgeSingles { get; init; }
             public NeighborEdgePair[] EdgePairs { get; init; }
@@ -87,6 +95,11 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     Obj = obj,
                     Triangles = triangles,
                     AllPoints = by_edge.AllPoints,
+
+                    AABB_Min = bounds.aabb_min,
+                    AABB_Max = bounds.aabb_max,
+                    AABB_DiagLen = bounds.aabb_diaglen,
+
                     EdgeSingles = by_edge.EdgeSingles,
                     EdgePairs = by_edge.EdgePairs,
                     Tree_Triangles = tree_triangles,
@@ -94,25 +107,42 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 });
             }
 
+            if (objects.Count == 0)
+                return new WorkerResponse()
+                {
+                    Objects = [],
+                    AABB_Min = new Point3D(),
+                    AABB_Max = new Point3D(),
+                    AABB_DiagLen = 0,
+                };
+
+            var aabb = Math3D.GetAABB(objects.SelectMany(o => new Point3D[] { o.AABB_Min, o.AABB_Max }));       // compiler can't infer []
+
             return new WorkerResponse()
             {
                 Objects = objects.ToArray(),
+
+                AABB_Min = aabb.min,
+                AABB_Max = aabb.max,
+                AABB_DiagLen = (aabb.max - aabb.min).Length,
             };
         }
 
-        private static (float world_size, Vector3 center, float min_size) GetTreeBounds(Point3D[] allPoints, int size_divider = 150)
+        private static (float world_size, Vector3 center, float min_size, Point3D aabb_min, Point3D aabb_max, double aabb_diaglen) GetTreeBounds(Point3D[] allPoints, int size_divider = 150)
         {
             var aabb = Math3D.GetAABB(allPoints);
 
             //Point3D center = Math3D.GetCenter(triangles[0].AllPoints);        // can't use this way because it's weighted
             Point3D center = aabb.min + ((aabb.max - aabb.min) / 2);
 
+            double aabb_diaglen = (aabb.max - aabb.min).Length;
+
             //TODO: may want max of width,height,depth
-            double diag_len = (aabb.max - aabb.min).Length;
+            double diag_len = aabb_diaglen;
 
             double min_size = diag_len / size_divider;
 
-            return ((float)diag_len, center.ToVector3(), (float)min_size);
+            return ((float)diag_len, center.ToVector3(), (float)min_size, aabb.min, aabb.max, aabb_diaglen);
         }
 
         // Populates an octree with triangles.  The larger the divider, the smaller the node sizes can be
@@ -136,7 +166,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         {
             var tree = new BoundsOctree<NormalDot>(world_size, center, min_size, TREE_LOOSENESS);
 
-            foreach(var edge in  edge_dots)
+            foreach (var edge in edge_dots)
             {
                 var aabb = Math3D.GetAABB([edge.Edge.Triangle0, edge.Edge.Triangle1]);
                 Vector3 size = new Vector3((float)(aabb.max.X - aabb.min.X), (float)(aabb.max.Y - aabb.min.Y), (float)(aabb.max.Z - aabb.min.Z));

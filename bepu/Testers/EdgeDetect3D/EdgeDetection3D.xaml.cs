@@ -13,6 +13,7 @@ using System.Numerics;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Media3D;
@@ -63,6 +64,11 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         private readonly BackgroundTaskWorker<EdgeBackgroundWorker.WorkerRequest, EdgeBackgroundWorker.WorkerResponse> _backgroundWorker;
 
         private List<Visual3D> _visuals = new List<Visual3D>();
+        private List<Visual3D> _stroke_visuals = new List<Visual3D>();
+        private List<Point3D> _stroke_points = new List<Point3D>();
+        private bool _dragging_stroke = false;
+
+        private double _stroke_thickness = 0;
 
         #endregion
 
@@ -95,6 +101,83 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         #endregion
 
         #region Event Listeners
+
+        private void grdViewPort_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            // When the are editing a textbox and click in the editor area, focus doesn't change without some assistance
+            grdViewPort.Focus();
+        }
+        private void grdViewPort_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            try
+            {
+                if (_edges == null || _edges.AABB_DiagLen.IsNearZero())
+                    return;
+
+                _viewport.Children.RemoveAll(_stroke_visuals);
+                _stroke_visuals.Clear();
+                _stroke_points.Clear();
+
+                Point3D? point = RayCast(e);
+                if (point != null)
+                    _stroke_points.Add(point.Value);
+
+                var sizes = Debug3DWindow.GetDrawSizes(_edges.AABB_DiagLen);
+                _stroke_thickness = sizes.line;
+
+                _dragging_stroke = true;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void grdViewPort_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            try
+            {
+                if (_dragging_stroke && _stroke_points != null)
+                {
+                    // TODO: show a debug window
+                }
+
+                _viewport.Children.RemoveAll(_stroke_visuals);
+                _stroke_visuals.Clear();
+                _stroke_points.Clear();
+
+                _dragging_stroke = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void grdViewPort_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            try
+            {
+                if (!_dragging_stroke)
+                    return;
+
+                Point3D? point = RayCast(e);
+                if (point == null)
+                    return;
+
+                if (_stroke_points.Count > 0)
+                {
+                    //var line_segment = Debug3DWindow.GetLine(_stroke_points[^1], point.Value, _stroke_thickness, Colors.Orange);
+                    var line_segment = Debug3DWindow.GetLines_Flat([_stroke_points[^1], point.Value], 4, Colors.Orange, true);
+                    _stroke_visuals.Add(line_segment);
+                    _viewport.Children.Add(line_segment);
+                }
+
+                _stroke_points.Add(point.Value);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
         private void txtObjFile_PreviewDragEnter(object sender, DragEventArgs e)
         {
@@ -685,6 +768,11 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             if (_backgroundWorker != null)
                 _backgroundWorker.Cancel();
 
+            _dragging_stroke = false;
+            _viewport.Children.RemoveAll(_stroke_visuals);
+            _stroke_visuals.Clear();
+            _stroke_points.Clear();
+
             _viewport.Children.RemoveAll(_visuals);
             _visuals.Clear();
 
@@ -694,7 +782,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             if (lblAnalyzing != null)
                 lblAnalyzing.Visibility = Visibility.Collapsed;
 
-            if(lblAnalyzeError != null)
+            if (lblAnalyzeError != null)
                 lblAnalyzeError.Visibility = Visibility.Collapsed;
 
             _parsed_file = null;
@@ -746,6 +834,30 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             return true;
         }
 
+        private void FinishedBackgroundWork(EdgeBackgroundWorker.WorkerRequest request, EdgeBackgroundWorker.WorkerResponse response)
+        {
+            lblAnalyzing.Visibility = Visibility.Collapsed;
+            _edges = response;
+        }
+        private void ExceptionBackgroundWork(EdgeBackgroundWorker.WorkerRequest request, Exception ex)
+        {
+            lblAnalyzing.Visibility = Visibility.Collapsed;
+            lblAnalyzeError.Content = ex.Message;
+            lblAnalyzeError.Visibility = Visibility.Visible;
+        }
+
+        private Point3D? RayCast(MouseEventArgs e)
+        {
+            // Fire a ray at the mouse point
+            Point clickPoint = e.GetPosition(grdViewPort);
+
+            List<MyHitTestResult> hits = UtilityWPF.CastRay(out RayHitTestParameters clickRay, clickPoint, grdViewPort, _camera, _viewport, false, _stroke_visuals);
+
+            return hits.Count > 0 ?
+                hits[0].Point :
+                null;
+        }
+
         // Copied from Debug3DWindow
         private void AimCamera()
         {
@@ -793,6 +905,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             // Set camera to look at center, at a distance of X times average
             return Tuple.Create(new Point3D(center.X, center.Y, center.Z + cameraDist), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
         }
+
         private static Point3D[] TryGetVisualPoints(IEnumerable<Visual3D> visuals)
         {
             IEnumerable<Point3D> retVal = new Point3D[0];
@@ -853,17 +966,5 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         }
 
         #endregion
-
-        private void FinishedBackgroundWork(EdgeBackgroundWorker.WorkerRequest request, EdgeBackgroundWorker.WorkerResponse response)
-        {
-            lblAnalyzing.Visibility = Visibility.Collapsed;
-            _edges = response;
-        }
-        private void ExceptionBackgroundWork(EdgeBackgroundWorker.WorkerRequest request, Exception ex)
-        {
-            lblAnalyzing.Visibility = Visibility.Collapsed;
-            lblAnalyzeError.Content = ex.Message;
-            lblAnalyzeError.Visibility = Visibility.Visible;
-        }
     }
 }
