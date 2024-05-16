@@ -1,7 +1,6 @@
 ﻿using Game.Core;
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF.Viewers;
-using GeneticSharp.Domain.Mutations;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,21 +24,21 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         {
             points = RemoveDupes(points);
 
-            if (points.Length <= 96 * 1.25)
+            Draw(Enumerable.Range(0, points.Length), points, "passed in");
+
+            if (points.Length <= 72 * 1.25)
                 return points;
 
-            // If there's an ideal number of sample points (24), then start with a quarter of those (6)
-
-            // Take the first N samples from the list
-            var indices = Initial(points.Length, 7);        // 7 points makes 6 segments
+            // Take the first N samples from the list.  Doing quite a few to get an even spread
+            var indices = Initial(points.Length, 37);        // 37 points makes 36 segments
             Draw(indices, points, "initial");
 
-            for (int i = 0; i < 4; i++)     // each iteration doubles the amount of segments: 6 -> 12 -> 24 -> 48
-            {
-                // Split each segment in two
-                indices = Split_Path(indices, points);
-                Draw(indices, points, $"split {i + 1}");
-            }
+            //for (int i = 0; i < 1; i++)     // each iteration doubles the amount of segments
+            //{
+            // Split each segment in two, but be more selective in which points to use
+            indices = Split_Path(indices, points);
+            Draw(indices, points, $"split {1}");
+            //}
 
             Point3D[] retVal = new Point3D[indices.Length];
 
