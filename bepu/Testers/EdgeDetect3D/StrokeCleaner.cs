@@ -20,6 +20,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
     /// </remarks>
     public static class StrokeCleaner
     {
+        private const bool SHOULD_DRAW = false;
+
         public static Point3D[] CleanPath(Point3D[] points)
         {
             points = RemoveDupes(points);
@@ -181,6 +183,9 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
         private static void Draw(IEnumerable<int> end_points, Point3D[] points, string title)
         {
+            if (!SHOULD_DRAW)
+                return;
+
             Point3D center = Math3D.GetCenter(points);
 
             Point3D[] centered_points = points.

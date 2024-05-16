@@ -1,9 +1,11 @@
-﻿using Game.Math_WPF.Mathematics;
+﻿using Game.Core;
+using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF.Viewers;
+using NetOctree.Octree;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
+using System.Numerics;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
@@ -11,94 +13,110 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 {
     public static class StrokeAnalyzer
     {
+        const bool SHOULD_DRAW = true;
+
         public static void Stroke(Point3D[] points, EdgeBackgroundWorker.WorkerResponse objects)
         {
-
             // Convert the raw points into something more uniform
-            //GetUniformStrokePoints3(points);
             points = StrokeCleaner.CleanPath(points);
 
+            double search_radius = GetSearchRadius(points);
 
 
+
+
+            var triangles = GetNearbyTriangles(points, objects.Objects, search_radius);
+            Draw_NearbyTriangles(points, triangles);
+
+
+
+
+
+
+            // Iterate each line segment, looking for the best nearby edge
+            //  some combination of distance to edge and alignment
+
+            // Join the best matches together, looking for long chains of edges
+
+            // Smooth it out with a bezier
 
 
         }
 
-        private static void GetUniformStrokePoints1(Point3D[] points)
+        private static double GetSearchRadius(Point3D[] points)
         {
+            double[] lengths = new double[points.Length - 1];
+
+            for (int i = 0; i < points.Length - 1; i++)
+                lengths[i] = (points[i + 1] - points[i]).Length;
+
+            double avg = Math1D.Avg(lengths);
+
+            return avg * 6;
+        }
+
+        private static TriangleIndexedLinked_wpf[] GetNearbyTriangles(Point3D[] points, EdgeBackgroundWorker.WorkerResponse_Object[] objects, double search_radius)
+        {
+            var retVal = new List<TriangleIndexedLinked_wpf>();
+
+            foreach (var obj in objects)
+                retVal.AddRange(GetNearbyTriangles_Obj(points, obj.Tree_Triangles, search_radius));
+
+            return retVal.ToArray();
+        }
+        private static TriangleIndexedLinked_wpf[] GetNearbyTriangles_Obj(Point3D[] points, BoundsOctree<TriangleIndexedLinked_wpf> tree, double search_radius)
+        {
+            var retVal = new List<TriangleIndexedLinked_wpf>();
+
+            Vector3 box_size = new Vector3((float)search_radius, (float)search_radius, (float)search_radius);
+
+            for (int i = 0; i < points.Length - 1; i++)
+            {
+                Point3D center = points[i] + ((points[i + 1] - points[i]) / 2);
+                var search_box = new BoundingBox(center.ToVector3(), box_size);
+
+                retVal.AddRange(tree.GetColliding(search_box));
+            }
+
+            return retVal.
+                Distinct(o => o.Token).
+                ToArray();
+        }
+
+        private static void Draw_NearbyTriangles(Point3D[] points, TriangleIndexed_wpf[] triangles)
+        {
+            if (!SHOULD_DRAW)
+                return;
+
+
             Point3D center = Math3D.GetCenter(points);
 
             Point3D[] centered_points = points.
                 Select(o => (o - center).ToPoint()).
                 ToArray();
 
-            var segments = BezierUtil.GetBezierSegments(centered_points);
+            Point3D[] allpoints_shifted = triangles[0].AllPoints.
+                Select(o => (o - center).ToPoint()).
+                ToArray();
 
-
-            // This is uniform points, but also looses too much (points form too much of an average line)
-            var test = new BezierSegment3D_wpf(centered_points[0], centered_points[^1], centered_points.Skip(1).Take(centered_points.Length - 2).Select(o => o).ToArray());
-            var cleanedPoints2 = BezierUtil.GetPoints(144, test);
-
-
-
-            // TODO: This is creating way too many points.  It was designed against far fewer segments
-            //Point3D[] cleaned_points = BezierUtil.GetPoints(1, segments);
-
-
-
-            //Smoothing Algorithms:
-            //  Consider applying smoothing algorithms to your data.These algorithms can help reduce noise and create a smoother trajectory.Examples include moving average, Savitzky-Golay filter, or cubic spline interpolation.
-            //
-            //Downsampling:
-            //  If you have a large number of points, downsampling can help. Remove some points while preserving the overall shape of the curve. You can use techniques like uniform sampling or random sampling.
-            //
-            //Bezier Curves:
-            //  Fit a Bezier curve to your points.Bezier curves provide smooth interpolation between control points. You can adjust the degree of the curve to control the level of smoothness.
-            //
-            //B - spline Interpolation:
-            //  B - spline interpolation is another method for creating smooth curves.It uses a set of control points and basis functions to generate a smooth curve that passes through those points.
-
-
-
-
-
-
-
-
+            var centered_triangles = triangles.
+                Select(o => new TriangleIndexed_wpf(o.Index0, o.Index1, o.Index2, allpoints_shifted)).
+                ToArray();
 
 
             var window = new Debug3DWindow()
             {
-                Title = "Stroke Points",
+                Title = "Nearby Triangles",
             };
 
             var sizes = Debug3DWindow.GetDrawSizes(centered_points);
 
-            window.AddDots(centered_points, sizes.dot / 2, Colors.SaddleBrown);
+            window.AddDots(centered_points, sizes.dot, Colors.DarkOliveGreen);
+            window.AddLines(centered_points, sizes.line, Colors.DarkSeaGreen);
 
-            //window.AddDots(cleaned_points, sizes.dot, Colors.LimeGreen);
-            window.AddDots(cleanedPoints2, sizes.dot, Colors.LimeGreen);
+            window.AddHull(centered_triangles, Colors.Snow);
 
             window.Show();
         }
-        private static void GetUniformStrokePoints2(Point3D[] points)
-        {
-            // Get the aabb of the points
-
-            // Figure out a good average distance
-
-            // Get distance squared between each point
-
-            // Try to throw out points that are really close to each other
-
-            // ---------------------------
-
-            // Try to get subsets of lower resolution, but still keeping the ideal shape
-
-
-
-
-        }
-
     }
 }
