@@ -137,9 +137,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             try
             {
                 if (_dragging_stroke && _stroke_points != null)
-                {
-                    // TODO: show a debug window
-                }
+                    StrokeAnalyzer.Stroke(_stroke_points.ToArray(), _edges);
 
                 _viewport.Children.RemoveAll(_stroke_visuals);
                 _stroke_visuals.Clear();

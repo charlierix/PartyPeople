@@ -934,12 +934,9 @@ namespace Game.Core
         public static IEnumerable<int> RandomRange(int start, int count)
         {
             // Prepare a list of indices (these represent what's left to return)
-            //int[] indices = Enumerable.Range(start, count).ToArray();		// this is a smaller amount of code, but slower
             int[] indices = new int[count];
             for (int cntr = 0; cntr < count; cntr++)
-            {
                 indices[cntr] = start + cntr;
-            }
 
             Random rand = StaticRandom.GetRandomForThread();
 
@@ -966,10 +963,7 @@ namespace Game.Core
         public static IEnumerable<int> RandomRange(int start, int rangeCount, int iterateCount)
         {
             if (iterateCount > rangeCount)
-            {
-                //throw new ArgumentOutOfRangeException(string.Format("iterateCount can't be greater than rangeCount.  iterateCount={0}, rangeCount={1}", iterateCount.ToString(), rangeCount.ToString()));
                 iterateCount = rangeCount;
-            }
 
             if (iterateCount < rangeCount / 3)
             {
@@ -981,7 +975,7 @@ namespace Game.Core
                 List<int> used = new List<int>();
                 int maxValue = start + rangeCount;
 
-                for (int cntr = 0; cntr < iterateCount; cntr++)
+                for (int i = 0; i < iterateCount; i++)
                 {
                     // Find a value that hasn't been returned yet
                     int retVal = 0;

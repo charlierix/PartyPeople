@@ -14,6 +14,9 @@ namespace Game.Bepu.Testers.EdgeDetect3D
     /// <summary>
     /// After a file is loaded, this gets called to do some post process analysis
     /// </summary>
+    /// <remarks>
+    /// Links triangles by edge, takes dot products of each edge's triangle's normals
+    /// </remarks>
     public class EdgeBackgroundWorker
     {
         #region record: WorkerRequest
