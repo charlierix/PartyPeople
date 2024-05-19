@@ -20,6 +20,21 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             // Convert the raw points into something more uniform
             points = StrokeCleaner.CleanPath(points);
 
+
+            // NOTE: average only works if all the triangles are roughly the same size.  If there are high density patches, this
+            // will make the path return too course of a path, and the triangle search will return way too many triangles
+
+            // TODO: instead of getting average for the entire object, get average of the current volume
+
+
+
+
+            // If the path's segments are a lot smaller than the object's edges, that will be a lot of extra processing
+            // and could be a problem with tiny segments pointing in odd directions
+            points  = StrokeCleaner.MatchSegmentLength(points, objects.Average_Segment_Length * 0.33);
+
+
+
             double search_radius = GetSearchRadius(points);
 
 
@@ -52,7 +67,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             double avg = Math1D.Avg(lengths);
 
-            return avg * 6;
+            return avg * 5;
         }
 
         private static TriangleIndexedLinked_wpf[] GetNearbyTriangles(Point3D[] points, EdgeBackgroundWorker.WorkerResponse_Object[] objects, double search_radius)

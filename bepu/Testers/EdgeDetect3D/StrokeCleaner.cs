@@ -26,7 +26,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         {
             points = RemoveDupes(points);
 
-            Draw(Enumerable.Range(0, points.Length), points, "passed in");
+            Draw(points, "passed in");
 
             if (points.Length <= 72 * 1.25)
                 return points;
@@ -49,6 +49,32 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             return retVal;
         }
+
+        public static Point3D[] MatchSegmentLength(Point3D[] points, double target_length)
+        {
+            double sum_lengths_sqr = 0;
+            for (int i = 0; i < points.Length - 1; i++)
+                sum_lengths_sqr += (points[i + 1] - points[i]).LengthSquared;
+
+            double sum_lengths = Math.Sqrt(sum_lengths_sqr);
+
+            int target_count = (sum_lengths / target_length).ToInt_Ceiling();
+
+            var segments = BezierUtil.GetBezierSegments(points);
+
+            // This wasn't meant for more segments than points, ends up generating more points
+            Point3D[] bezier_points1 = BezierUtil.GetPoints(target_count, segments);
+            Draw(bezier_points1, "bezier points");
+
+            // This creates the desired amount of points, but points are spread completely uniform
+            Point3D[] bezier_points2 = BezierUtil.GetPoints_UniformDistribution(target_count, segments);
+            Draw(bezier_points2, "uniform bezier");
+
+            // Just return the uniform for now
+            return bezier_points2;
+        }
+
+        #region Private Methods
 
         private static Point3D[] RemoveDupes(Point3D[] points)
         {
@@ -181,6 +207,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             return retVal;
         }
 
+        private static void Draw(Point3D[] points, string title)
+        {
+            Draw(Enumerable.Range(0, points.Length), points, title);
+        }
         private static void Draw(IEnumerable<int> end_points, Point3D[] points, string title)
         {
             if (!SHOULD_DRAW)
@@ -209,5 +239,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             window.Show();
         }
+
+        #endregion
     }
 }

@@ -37,6 +37,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             public Point3D AABB_Min { get; init; }
             public Point3D AABB_Max { get; init; }
             public double AABB_DiagLen { get; init; }
+
+            public double Average_Segment_Length { get; init; }
         }
 
         #endregion
@@ -69,6 +71,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         {
             var objects = new List<WorkerResponse_Object>();
 
+            var edge_lengths = new List<double>();
+
             foreach (var obj in args.ParsedFile.Objects)
             {
                 var triangles_fromobj = Obj_Util.ToTrianglesIndexed(obj);
@@ -92,6 +96,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
                 // octree of dot_diffs
                 var tree_edgedots = CreateOctree_EdgeDots(edge_dots, bounds.world_size, bounds.center, bounds.min_size);
+
+                edge_lengths.AddRange(collection: GetEdgeLengths(by_edge));
 
                 objects.Add(new WorkerResponse_Object()
                 {
@@ -128,6 +134,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 AABB_Min = aabb.min,
                 AABB_Max = aabb.max,
                 AABB_DiagLen = (aabb.max - aabb.min).Length,
+                Average_Segment_Length = Math1D.Avg(edge_lengths.ToArray()),
             };
         }
 
@@ -180,6 +187,19 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             }
 
             return tree;
+        }
+
+        private static IEnumerable<double> GetEdgeLengths(NeighborResults edges)
+        {
+            var singles = edges.EdgeSingles.
+                Select(o => (edges.AllPoints[o.EdgeIndex0], edges.AllPoints[o.EdgeIndex1]));
+
+            var pairs = edges.EdgePairs.
+                Select(o => (edges.AllPoints[o.EdgeIndex0], edges.AllPoints[o.EdgeIndex1]));
+
+            return singles.
+                Concat(pairs).
+                Select(o => (o.Item2 - o.Item1).Length);
         }
     }
 }
