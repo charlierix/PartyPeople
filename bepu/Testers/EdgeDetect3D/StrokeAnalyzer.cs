@@ -17,21 +17,25 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
         public static void Stroke(Point3D[] points, EdgeBackgroundWorker.WorkerResponse objects)
         {
+            double? avg_segment_len = GetAverageSegmentLength(points, objects);
+            if (avg_segment_len == null)
+            {
+                throw new ApplicationException("No triangles in box.  TODO: Return the cleaned up path");
+                //return StrokeCleaner.CleanPath_2(points, objects.Average_Segment_Length * 0.33);
+            }
+
+
+            // --------------- ATTEMPT 1 ---------------
             // Convert the raw points into something more uniform
-            points = StrokeCleaner.CleanPath(points);
-
-
-            // NOTE: average only works if all the triangles are roughly the same size.  If there are high density patches, this
-            // will make the path return too course of a path, and the triangle search will return way too many triangles
-
-            // TODO: instead of getting average for the entire object, get average of the current volume
-
-
-
+            points = StrokeCleaner.CleanPath_1(points);
 
             // If the path's segments are a lot smaller than the object's edges, that will be a lot of extra processing
             // and could be a problem with tiny segments pointing in odd directions
-            points  = StrokeCleaner.MatchSegmentLength(points, objects.Average_Segment_Length * 0.33);
+            points = StrokeCleaner.MatchSegmentLength(points, avg_segment_len.Value * 0.25);
+
+            // --------------- ATTEMPT 2 ---------------
+            //points = StrokeCleaner.CleanPath_2(points, objects.Average_Segment_Length * 0.25);
+
 
 
 
@@ -58,6 +62,81 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
         }
 
+        /// <summary>
+        /// Returns the average length of edges within the points aabb
+        /// </summary>
+        /// <remarks>
+        /// objects.Average_Segment_Length only works if all the triangles are roughly the same size.  If there are high density
+        /// patches, that would make the path return too course of a path, and the triangle search will return way too many triangles
+        /// 
+        /// so instead of getting average for the entire object, this gets average of the current volume
+        /// </remarks>
+        private static double GetAverageSegmentLength_ATTEMPT1(Point3D[] points, EdgeBackgroundWorker.WorkerResponse objects)
+        {
+            var aabb = Math3D.GetAABB(points);
+
+            NormalDot[] edges = GetEdgesInBox(aabb.min, aabb.max, objects);
+
+            double[] lengths = edges.
+                Select(o => (o.Edge.Triangle0.AllPoints[o.Edge.EdgeIndex1] - o.Edge.Triangle0.AllPoints[o.Edge.EdgeIndex0]).Length).        // both triangles should have the same reference to AllPoints
+                ToArray();
+
+            return Math1D.Avg(lengths);
+        }
+        private static NormalDot[] GetEdgesInBox(Point3D min, Point3D max, EdgeBackgroundWorker.WorkerResponse objects)
+        {
+            Vector3 center = Math3D.GetCenter(min, max).ToVector3();
+            Vector3 size = (max - min).ToVector3();
+
+            BoundingBox box = new BoundingBox(center, size);
+
+            var retVal = new List<NormalDot>();
+
+            foreach (var obj in objects.Objects)
+                retVal.AddRange(obj.Tree_Edges.GetColliding(box));
+
+            return retVal.ToArray();
+        }
+
+        private static double? GetAverageSegmentLength(Point3D[] points, EdgeBackgroundWorker.WorkerResponse objects)
+        {
+            var aabb = Math3D.GetAABB(points);
+
+            var triangles_per_obj = GetTrianglesInBox(aabb.min, aabb.max, objects);     // NOTE: this is a jagged array, because each object probably has different AllPoints
+            if (triangles_per_obj.Length == 0 || triangles_per_obj.All(o => o.Length == 0))
+                return null;
+
+            var edges_len = triangles_per_obj.
+                Select(o =>
+                {
+                    var lines = TriangleIndexed_wpf.GetUniqueLines(o);
+                    return lines.
+                        Select(p => (o[0].AllPoints[p.Item1], o[0].AllPoints[p.Item2])).
+                        ToArray();
+                }).
+                SelectMany(o => o).
+                //Select(o => (o.Item2 - o.Item1).LengthSquared).       // this doesn't work
+                Select(o => (o.Item2 - o.Item1).Length).
+                ToArray();
+
+            return edges_len.Sum() / edges_len.Length;
+        }
+
+        private static TriangleIndexedLinked_wpf[][] GetTrianglesInBox(Point3D min, Point3D max, EdgeBackgroundWorker.WorkerResponse objects)
+        {
+            Vector3 center = Math3D.GetCenter(min, max).ToVector3();
+            Vector3 size = (max - min).ToVector3();
+
+            BoundingBox box = new BoundingBox(center, size);
+
+            var retVal = new List<TriangleIndexedLinked_wpf[]>();
+
+            foreach (var obj in objects.Objects)
+                retVal.Add(obj.Tree_Triangles.GetColliding(box));
+
+            return retVal.ToArray();
+        }
+
         private static double GetSearchRadius(Point3D[] points)
         {
             double[] lengths = new double[points.Length - 1];
@@ -67,7 +146,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             double avg = Math1D.Avg(lengths);
 
-            return avg * 5;
+            return avg * 6;
         }
 
         private static TriangleIndexedLinked_wpf[] GetNearbyTriangles(Point3D[] points, EdgeBackgroundWorker.WorkerResponse_Object[] objects, double search_radius)
@@ -129,7 +208,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             window.AddDots(centered_points, sizes.dot, Colors.DarkOliveGreen);
             window.AddLines(centered_points, sizes.line, Colors.DarkSeaGreen);
 
-            window.AddHull(centered_triangles, Colors.Snow);
+            window.AddHull(centered_triangles, Colors.Gainsboro);
 
             window.Show();
         }

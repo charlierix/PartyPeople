@@ -22,7 +22,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
     {
         private const bool SHOULD_DRAW = false;
 
-        public static Point3D[] CleanPath(Point3D[] points)
+        // --------------- ATTEMPT 1 ---------------
+        public static Point3D[] CleanPath_1(Point3D[] points)
         {
             points = RemoveDupes(points);
 
@@ -49,7 +50,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             return retVal;
         }
-
         public static Point3D[] MatchSegmentLength(Point3D[] points, double target_length)
         {
             double sum_lengths_sqr = 0;
@@ -73,6 +73,25 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             // Just return the uniform for now
             return bezier_points2;
         }
+
+        // --------------- ATTEMPT 2 ---------------
+        public static Point3D[] CleanPath_2(Point3D[] points, double target_length)
+        {
+            points = RemoveDupes(points);
+
+            Draw(points, "passed in");
+
+
+            // Call the equivalent of CleanPath_1, but set the number of target segments to triple the final
+
+
+            // Then run the uniform bezier
+
+
+
+            return points;
+        }
+
 
         #region Private Methods
 

@@ -874,7 +874,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             _trackball.PanScale = scale / 10;
             _trackball.ZoomScale = scale;
-            _trackball.MouseWheelScale = distance * .0007;
+            //_trackball.MouseWheelScale = distance * .0007;
+            _trackball.MouseWheelScale = distance * .00005;
         }
         private static Tuple<Point3D, Vector3D, Vector3D> GetCameraPosition(Point3D[] points)
         {
