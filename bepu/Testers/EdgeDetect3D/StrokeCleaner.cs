@@ -33,7 +33,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 return points;
 
             // Take the first N samples from the list.  Doing quite a few to get an even spread
-            var indices = Initial(points.Length, 37);        // 37 points makes 36 segments
+            int[] indices = ReducePoints_Initial(points.Length, 37);        // 37 points makes 36 segments
             Draw(indices, points, "initial");
 
             //for (int i = 0; i < 1; i++)     // each iteration doubles the amount of segments
@@ -52,13 +52,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         }
         public static Point3D[] MatchSegmentLength(Point3D[] points, double target_length)
         {
-            double sum_lengths_sqr = 0;
-            for (int i = 0; i < points.Length - 1; i++)
-                sum_lengths_sqr += (points[i + 1] - points[i]).LengthSquared;
-
-            double sum_lengths = Math.Sqrt(sum_lengths_sqr);
-
-            int target_count = (sum_lengths / target_length).ToInt_Ceiling();
+            int target_count = (GetPathLength(points) / target_length).ToInt_Ceiling();
 
             var segments = BezierUtil.GetBezierSegments(points);
 
@@ -75,23 +69,39 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         }
 
         // --------------- ATTEMPT 2 ---------------
-        public static Point3D[] CleanPath_2(Point3D[] points, double target_length)
+        public static Point3D[] CleanPath_2(Point3D[] points, double target_segment_length)
         {
             points = RemoveDupes(points);
 
+            if (points.Length < 2)
+                return points;
+
             Draw(points, "passed in");
 
+            // Getting cases where triangles are pretty large, so I was drawing a fairly detailed path, but segment count
+            // was 3 or 4, so adding a min count
+            double target_segment_count = Math.Max(36, GetPathLength(points) / target_segment_length);
 
-            // Call the equivalent of CleanPath_1, but set the number of target segments to triple the final
-
+            // Reduce if there are too many points
+            if (points.Length > target_segment_count * 1.5)
+                points = ReducePoints(points, (target_segment_count * 1.5).ToInt_Ceiling());
 
             // Then run the uniform bezier
+            bool is_closed = IsClosedPath(points, target_segment_length);
 
+            var segments = BezierUtil.GetBezierSegments(points, isClosed: is_closed);
 
+            // This wasn't meant for more segments than points, ends up generating more points
+            //points = BezierUtil.GetPoints(target_segment_count.ToInt_Ceiling(), segments);
+
+            // Just return the uniform for now
+
+            // This creates the desired amount of points, but points are spread completely uniform
+            points = BezierUtil.GetPoints_UniformDistribution(target_segment_count.ToInt_Ceiling(), segments);
+            Draw(points, "uniform bezier");
 
             return points;
         }
-
 
         #region Private Methods
 
@@ -112,7 +122,28 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             return retVal.ToArray();
         }
 
-        private static int[] Initial(int count, int initial_count)
+        private static Point3D[] ReducePoints(Point3D[] points, int count)
+        {
+            int initial_count = (count / 2d).ToInt_Round();
+
+            // Take the first N samples from the list.  Doing quite a few to get an even spread
+            int[] indices = ReducePoints_Initial(points.Length, initial_count);
+            Draw(indices, points, "reduce - initial");
+
+            // Split each segment in two, but be more selective in which points to use
+            // NOTE: first attempt had a small count for initial and 3 calls to split_path.  But that created a lot
+            // of clusters.  It seems better to have a mostly uniform return
+            indices = Split_Path(indices, points);
+            Draw(indices, points, $"reduce - split");
+
+            var retVal = new Point3D[indices.Length];
+
+            for (int i = 0; i < indices.Length; i++)
+                retVal[i] = points[indices[i]];
+
+            return retVal;
+        }
+        private static int[] ReducePoints_Initial(int count, int initial_count)
         {
             int[] retVal = new int[initial_count];
 
@@ -206,6 +237,16 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 ToArray();
         }
 
+
+        private static double GetPathLength(Point3D[] points)
+        {
+            double sum_lengths_sqr = 0;
+            for (int i = 0; i < points.Length - 1; i++)
+                sum_lengths_sqr += (points[i + 1] - points[i]).LengthSquared;
+
+            return Math.Sqrt(sum_lengths_sqr);
+        }
+
         // Get the sum of dist squared between each raw point and the line segments
         private static double GetSumDistSqr(int index_from, int index_to, int index_mid, Point3D[] points)
         {
@@ -224,6 +265,14 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             }
 
             return retVal;
+        }
+
+        private static bool IsClosedPath(Point3D[] points, double target_segment_length)
+        {
+            double max_dist_sqr = target_segment_length / 3;
+            max_dist_sqr *= max_dist_sqr;
+
+            return (points[^1] - points[0]).LengthSquared < max_dist_sqr;
         }
 
         private static void Draw(Point3D[] points, string title)

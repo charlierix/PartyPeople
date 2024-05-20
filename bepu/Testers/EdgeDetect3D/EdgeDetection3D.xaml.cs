@@ -872,7 +872,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             double distance = _camera.Position.ToVector().Length;
             double scale = distance * .0214;
 
-            _trackball.PanScale = scale / 10;
+            //_trackball.PanScale = scale / 10;
+            _trackball.PanScale = scale / 60;
             _trackball.ZoomScale = scale;
             //_trackball.MouseWheelScale = distance * .0007;
             _trackball.MouseWheelScale = distance * .00005;

@@ -27,14 +27,14 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             // --------------- ATTEMPT 1 ---------------
             // Convert the raw points into something more uniform
-            points = StrokeCleaner.CleanPath_1(points);
+            //points = StrokeCleaner.CleanPath_1(points);
 
             // If the path's segments are a lot smaller than the object's edges, that will be a lot of extra processing
             // and could be a problem with tiny segments pointing in odd directions
-            points = StrokeCleaner.MatchSegmentLength(points, avg_segment_len.Value * 0.25);
+            //points = StrokeCleaner.MatchSegmentLength(points, avg_segment_len.Value * 0.25);
 
             // --------------- ATTEMPT 2 ---------------
-            //points = StrokeCleaner.CleanPath_2(points, objects.Average_Segment_Length * 0.25);
+            points = StrokeCleaner.CleanPath_2(points, avg_segment_len.Value * 0.25);
 
 
 
