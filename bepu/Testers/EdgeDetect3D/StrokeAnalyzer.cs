@@ -18,37 +18,17 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         public static void Stroke(Point3D[] points, EdgeBackgroundWorker.WorkerResponse objects)
         {
             double? avg_segment_len = GetAverageSegmentLength(points, objects);
-            if (avg_segment_len == null)
-            {
-                throw new ApplicationException("No triangles in box.  TODO: Return the cleaned up path");
-                //return StrokeCleaner.CleanPath_2(points, objects.Average_Segment_Length * 0.33);
-            }
 
-
-            // --------------- ATTEMPT 1 ---------------
-            // Convert the raw points into something more uniform
-            //points = StrokeCleaner.CleanPath_1(points);
-
-            // If the path's segments are a lot smaller than the object's edges, that will be a lot of extra processing
-            // and could be a problem with tiny segments pointing in odd directions
-            //points = StrokeCleaner.MatchSegmentLength(points, avg_segment_len.Value * 0.25);
-
-            // --------------- ATTEMPT 2 ---------------
-            points = StrokeCleaner.CleanPath_2(points, avg_segment_len.Value * 0.25);
-
-
-
+            points = avg_segment_len == null ?
+                StrokeCleaner.CleanPath(points, objects.Average_Segment_Length * 0.25) :        // there are no triangles in the path's box.  Use the global average triangle size
+                StrokeCleaner.CleanPath(points, avg_segment_len.Value * 0.25);
 
             double search_radius = GetSearchRadius(points);
 
 
-
-
+            // This is just a visual for debugging
             var triangles = GetNearbyTriangles(points, objects.Objects, search_radius);
             Draw_NearbyTriangles(points, triangles);
-
-
-
 
 
 

@@ -22,54 +22,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
     {
         private const bool SHOULD_DRAW = false;
 
-        // --------------- ATTEMPT 1 ---------------
-        public static Point3D[] CleanPath_1(Point3D[] points)
-        {
-            points = RemoveDupes(points);
-
-            Draw(points, "passed in");
-
-            if (points.Length <= 72 * 1.25)
-                return points;
-
-            // Take the first N samples from the list.  Doing quite a few to get an even spread
-            int[] indices = ReducePoints_Initial(points.Length, 37);        // 37 points makes 36 segments
-            Draw(indices, points, "initial");
-
-            //for (int i = 0; i < 1; i++)     // each iteration doubles the amount of segments
-            //{
-            // Split each segment in two, but be more selective in which points to use
-            indices = Split_Path(indices, points);
-            Draw(indices, points, $"split {1}");
-            //}
-
-            Point3D[] retVal = new Point3D[indices.Length];
-
-            for (int i = 0; i < retVal.Length; i++)
-                retVal[i] = points[indices[i]];
-
-            return retVal;
-        }
-        public static Point3D[] MatchSegmentLength(Point3D[] points, double target_length)
-        {
-            int target_count = (GetPathLength(points) / target_length).ToInt_Ceiling();
-
-            var segments = BezierUtil.GetBezierSegments(points);
-
-            // This wasn't meant for more segments than points, ends up generating more points
-            Point3D[] bezier_points1 = BezierUtil.GetPoints(target_count, segments);
-            Draw(bezier_points1, "bezier points");
-
-            // This creates the desired amount of points, but points are spread completely uniform
-            Point3D[] bezier_points2 = BezierUtil.GetPoints_UniformDistribution(target_count, segments);
-            Draw(bezier_points2, "uniform bezier");
-
-            // Just return the uniform for now
-            return bezier_points2;
-        }
-
-        // --------------- ATTEMPT 2 ---------------
-        public static Point3D[] CleanPath_2(Point3D[] points, double target_segment_length)
+        public static Point3D[] CleanPath(Point3D[] points, double target_segment_length)
         {
             points = RemoveDupes(points);
 
@@ -237,7 +190,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 ToArray();
         }
 
-
         private static double GetPathLength(Point3D[] points)
         {
             double sum_lengths_sqr = 0;
@@ -269,7 +221,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
         private static bool IsClosedPath(Point3D[] points, double target_segment_length)
         {
-            double max_dist_sqr = target_segment_length / 3;
+            double max_dist_sqr = target_segment_length * 0.75;
             max_dist_sqr *= max_dist_sqr;
 
             return (points[^1] - points[0]).LengthSquared < max_dist_sqr;
