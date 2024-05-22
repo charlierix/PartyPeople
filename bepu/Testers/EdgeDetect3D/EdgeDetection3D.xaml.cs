@@ -22,34 +22,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 {
     public partial class EdgeDetection3D : Window
     {
-        #region record: FileAnalyzed
-
-        private record FileAnalyzed
-        {
-            // These are the inputs
-            public string Filename { get; init; }
-            public Obj_File ParsedFile { get; init; }
-
-            // These are the results
-            public ObjectAnalyzed[] Objects { get; init; }
-        }
-
-        #endregion
-        #region record: ObjectAnalyzed
-
-        private record ObjectAnalyzed
-        {
-            public Obj_Object ParsedObject { get; init; }
-
-            // edges
-
-            // octree<trianglelinked>
-            // octree<edge>
-
-        }
-
-        #endregion
-
         #region Declaration Section
 
         private TrackBallRoam _trackball = null;
@@ -67,8 +39,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         private List<Visual3D> _stroke_visuals = new List<Visual3D>();
         private List<Point3D> _stroke_points = new List<Point3D>();
         private bool _dragging_stroke = false;
-
-        private double _stroke_thickness = 0;
 
         #endregion
 
@@ -104,7 +74,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
         private void grdViewPort_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
-            // When the are editing a textbox and click in the editor area, focus doesn't change without some assistance
+            // When they are editing a textbox and click in the editor area, focus doesn't change without some assistance
             grdViewPort.Focus();
         }
         private void grdViewPort_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
@@ -121,9 +91,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 Point3D? point = RayCast(e);
                 if (point != null)
                     _stroke_points.Add(point.Value);
-
-                var sizes = Debug3DWindow.GetDrawSizes(_edges.AABB_DiagLen);
-                _stroke_thickness = sizes.line;
 
                 _dragging_stroke = true;
             }
@@ -163,7 +130,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
                 if (_stroke_points.Count > 0)
                 {
-                    //var line_segment = Debug3DWindow.GetLine(_stroke_points[^1], point.Value, _stroke_thickness, Colors.Orange);
                     var line_segment = Debug3DWindow.GetLines_Flat([_stroke_points[^1], point.Value], 4, Colors.Orange, true);
                     _stroke_visuals.Add(line_segment);
                     _viewport.Children.Add(line_segment);
@@ -664,7 +630,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                             Color color = UtilityWPF.AlphaBlend(max_color, Colors.Black, Math.Pow(UtilityMath.GetScaledValue_Capped(0, 1, 1, -1, target), 0.66));
 
                             if (inrange.Length > 0)
-                                window.AddLines_Flat(inrange.Select(o => (by_edge.AllPoints[o.Edge.EdgeIndex0], by_edge.AllPoints[o.Edge.EdgeIndex1])), 2, color);
+                                window.AddLines_Flat(inrange.Select(o => (o.Edge.EdgePoint0, o.Edge.EdgePoint1)), 2, color);
                         }
 
                         window.Show();
@@ -737,7 +703,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                                 Color color = UtilityWPF.AlphaBlend(max_color, Colors.Black, Math.Pow(UtilityMath.GetScaledValue_Capped(0, 1, 1, -1, target), 0.66));
 
                                 if (inrange.Length > 0)
-                                    window.AddLines_Flat(inrange.Select(o => (by_edge.AllPoints[o.Edge.EdgeIndex0], by_edge.AllPoints[o.Edge.EdgeIndex1])), 2, color);
+                                    window.AddLines_Flat(inrange.Select(o => (o.Edge.EdgePoint0, o.Edge.EdgePoint1)), 2, color);
                             }
                         });
 

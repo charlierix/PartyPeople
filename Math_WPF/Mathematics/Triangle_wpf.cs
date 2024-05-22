@@ -1277,6 +1277,9 @@ namespace Game.Math_WPF.Mathematics
             public int EdgeIndex0 { get; init; }
             public int EdgeIndex1 { get; init; }
             public TriangleIndexedLinked_wpf Triangle0 { get; init; }
+
+            public Point3D EdgePoint0 => Triangle0.AllPoints[EdgeIndex0];
+            public Point3D EdgePoint1 => Triangle0.AllPoints[EdgeIndex1];
         }
 
         public record NeighborEdgePair
@@ -1285,6 +1288,9 @@ namespace Game.Math_WPF.Mathematics
             public int EdgeIndex1 { get; init; }
             public TriangleIndexedLinked_wpf Triangle0 { get; init; }
             public TriangleIndexedLinked_wpf Triangle1 { get; init; }
+
+            public Point3D EdgePoint0 => Triangle0.AllPoints[EdgeIndex0];       // it doesn't matter which triangle to use, they should all have a reference to the same AllPoints array
+            public Point3D EdgePoint1 => Triangle0.AllPoints[EdgeIndex1];
         }
 
         public record NeighborVertex
@@ -1293,6 +1299,8 @@ namespace Game.Math_WPF.Mathematics
 
             // These are all the triangles tied to this vertex
             public (TriangleIndexedLinked_wpf triangle, TriangleCorner which_corner)[] Triangles { get; init; }
+
+            public Point3D VertexPoint => Triangles[0].triangle.AllPoints[VertexIndex];
         }
 
         #endregion

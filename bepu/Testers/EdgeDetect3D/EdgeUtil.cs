@@ -1,4 +1,5 @@
-﻿using Game.Math_WPF.Mathematics;
+﻿using Game.Core;
+using Game.Math_WPF.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +21,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     Edge = edge,
                     Dot = dot,
                     Direction = TriangleFoldDirection.Parallel,
+                    Token = TokenGenerator.NextToken(),
                 };
 
             // Pick a triangle, find the other triangle's non edge vertex
@@ -43,6 +45,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     isAbove0 && isAbove1 ? TriangleFoldDirection.Valley :
                     !isAbove0 && !isAbove1 ? TriangleFoldDirection.Peak :
                     TriangleFoldDirection.UpsideDown,
+                Token = TokenGenerator.NextToken(),
             };
         }
     }
@@ -54,7 +57,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         public TriangleIndexedLinked_wpf.NeighborEdgePair Edge { get; init; }
         public double Dot { get; init; }
         public TriangleFoldDirection Direction { get; init; }
-
+        public long Token { get; init; }
     }
 
     #endregion

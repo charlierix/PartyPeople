@@ -192,10 +192,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         private static IEnumerable<double> GetEdgeLengths(NeighborResults edges)
         {
             var singles = edges.EdgeSingles.
-                Select(o => (edges.AllPoints[o.EdgeIndex0], edges.AllPoints[o.EdgeIndex1]));
+                Select(o => (o.EdgePoint0, o.EdgePoint1));
 
             var pairs = edges.EdgePairs.
-                Select(o => (edges.AllPoints[o.EdgeIndex0], edges.AllPoints[o.EdgeIndex1]));
+                Select(o => (o.EdgePoint0, o.EdgePoint1));
 
             return singles.
                 Concat(pairs).

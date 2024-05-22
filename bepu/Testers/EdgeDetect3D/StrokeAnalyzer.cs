@@ -32,12 +32,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
 
 
-            // Iterate each line segment, looking for the best nearby edge
-            //  some combination of distance to edge and alignment
 
-            // Join the best matches together, looking for long chains of edges
-
-            // Smooth it out with a bezier
+            StrokeEdgeLinker.GetBestEdges(points, objects.Objects, search_radius);
 
 
         }
@@ -58,7 +54,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             NormalDot[] edges = GetEdgesInBox(aabb.min, aabb.max, objects);
 
             double[] lengths = edges.
-                Select(o => (o.Edge.Triangle0.AllPoints[o.Edge.EdgeIndex1] - o.Edge.Triangle0.AllPoints[o.Edge.EdgeIndex0]).Length).        // both triangles should have the same reference to AllPoints
+                Select(o => (o.Edge.EdgePoint1 - o.Edge.EdgePoint0).Length).
                 ToArray();
 
             return Math1D.Avg(lengths);
@@ -161,7 +157,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         {
             if (!SHOULD_DRAW)
                 return;
-
 
             Point3D center = Math3D.GetCenter(points);
 
