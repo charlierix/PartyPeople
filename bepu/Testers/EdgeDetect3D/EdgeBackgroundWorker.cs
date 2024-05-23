@@ -87,6 +87,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 var edge_dots = by_edge.EdgePairs.
                     Select(o => EdgeUtil.GetNormalDot(o)).
                     Where(o => o.Dot < 0.995).       // need to throw out parallel joins
+                    Concat(by_edge.EdgeSingles.Select(o => EdgeUtil.GetNormalDot(o))).
                     ToArray();
 
                 var bounds = GetTreeBounds(by_edge.AllPoints);
@@ -178,7 +179,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             foreach (var edge in edge_dots)
             {
-                var aabb = Math3D.GetAABB([edge.Edge.Triangle0, edge.Edge.Triangle1]);
+                var aabb = Math3D.GetAABB(edge.Triangles);
                 Vector3 size = new Vector3((float)(aabb.max.X - aabb.min.X), (float)(aabb.max.Y - aabb.min.Y), (float)(aabb.max.Z - aabb.min.Z));
 
                 Vector3 edge_center = new Vector3((float)aabb.min.X + size.X / 2, (float)aabb.min.Y + size.Y / 2, (float)aabb.min.Z + size.Z / 2);

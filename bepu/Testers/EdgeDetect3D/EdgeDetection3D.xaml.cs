@@ -482,6 +482,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
                     var dot_diffs = by_edge.EdgePairs.
                         Select(o => EdgeUtil.GetNormalDot(o)).
+                        Concat(by_edge.EdgeSingles.Select(o => EdgeUtil.GetNormalDot(o))).
                         ToArray();
 
                     var grouped = dot_diffs.
@@ -502,19 +503,30 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                             Title = nd.Direction.ToString(),
                         };
 
-                        var aabb = Math3D.GetAABB([nd.Edge.Triangle0, nd.Edge.Triangle1]);
+                        var aabb = Math3D.GetAABB(nd.Triangles);
                         Point3D center = Math3D.GetCenter(aabb.min, aabb.max);
 
                         var sizes = Debug3DWindow.GetDrawSizes([aabb.min, aabb.max], center);
 
-                        var triangle0 = new Triangle_wpf(nd.Edge.Triangle0.Point0 - center.ToVector(), nd.Edge.Triangle0.Point1 - center.ToVector(), nd.Edge.Triangle0.Point2 - center.ToVector());
-                        var triangle1 = new Triangle_wpf(nd.Edge.Triangle1.Point0 - center.ToVector(), nd.Edge.Triangle1.Point1 - center.ToVector(), nd.Edge.Triangle1.Point2 - center.ToVector());
+                        if(nd.Direction == TriangleFoldDirection.Single)
+                        {
+                            var triangle0 = new Triangle_wpf(nd.Edge_Single.Triangle0.Point0 - center.ToVector(), nd.Edge_Single.Triangle0.Point1 - center.ToVector(), nd.Edge_Single.Triangle0.Point2 - center.ToVector());
 
-                        window.AddTriangle(triangle0, Colors.Linen);
-                        window.AddTriangle(triangle1, Colors.Linen);
+                            window.AddTriangle(triangle0, Colors.Linen);
 
-                        window.AddLine(triangle0.GetCenterPoint(), triangle0.GetCenterPoint() + triangle0.Normal, sizes.line, Colors.Orange);
-                        window.AddLine(triangle1.GetCenterPoint(), triangle1.GetCenterPoint() + triangle1.Normal, sizes.line, Colors.Orange);
+                            window.AddLine(triangle0.GetCenterPoint(), triangle0.GetCenterPoint() + triangle0.Normal, sizes.line, Colors.Orange);
+                        }
+                        else
+                        {
+                            var triangle0 = new Triangle_wpf(nd.Edge_Pair.Triangle0.Point0 - center.ToVector(), nd.Edge_Pair.Triangle0.Point1 - center.ToVector(), nd.Edge_Pair.Triangle0.Point2 - center.ToVector());
+                            var triangle1 = new Triangle_wpf(nd.Edge_Pair.Triangle1.Point0 - center.ToVector(), nd.Edge_Pair.Triangle1.Point1 - center.ToVector(), nd.Edge_Pair.Triangle1.Point2 - center.ToVector());
+
+                            window.AddTriangle(triangle0, Colors.Linen);
+                            window.AddTriangle(triangle1, Colors.Linen);
+
+                            window.AddLine(triangle0.GetCenterPoint(), triangle0.GetCenterPoint() + triangle0.Normal, sizes.line, Colors.Orange);
+                            window.AddLine(triangle1.GetCenterPoint(), triangle1.GetCenterPoint() + triangle1.Normal, sizes.line, Colors.Orange);
+                        }
 
                         window.AddText($"dot: {nd.Dot}");
 
@@ -593,6 +605,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     var dot_diffs = by_edge.EdgePairs.
                         Select(o => EdgeUtil.GetNormalDot(o)).
                         Where(o => o.Dot < 0.97).       // throw out the mostly parallel joins
+                        Concat(by_edge.EdgeSingles.Select(o => EdgeUtil.GetNormalDot(o))).
                         ToArray();
 
                     var grouped = dot_diffs.
@@ -630,7 +643,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                             Color color = UtilityWPF.AlphaBlend(max_color, Colors.Black, Math.Pow(UtilityMath.GetScaledValue_Capped(0, 1, 1, -1, target), 0.66));
 
                             if (inrange.Length > 0)
-                                window.AddLines_Flat(inrange.Select(o => (o.Edge.EdgePoint0, o.Edge.EdgePoint1)), 2, color);
+                                window.AddLines_Flat(inrange.Select(o => (o.EdgePoint0, o.EdgePoint1)), 2, color);
                         }
 
                         window.Show();
@@ -674,10 +687,11 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     var dot_diffs = by_edge.EdgePairs.
                         Select(o => EdgeUtil.GetNormalDot(o)).
                         Where(o => o.Dot < 0.97).       // throw out the mostly parallel joins
+                        Concat(by_edge.EdgeSingles.Select(o => EdgeUtil.GetNormalDot(o))).
                         ToArray();
 
                     // Delegate to draw a scene
-                    var drawScene = new Action<bool, Color, Color, NormalDot[]>((show_hull, color_valley, color_peak, nd) =>
+                    var drawScene = new Action<bool, Color, Color, Color, Color, NormalDot[]>((show_hull, color_valley, color_peak, color_boundary, color_flipped, nd) =>
                     {
                         var window = new Debug3DWindow()
                         {
@@ -703,18 +717,20 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                                 Color color = UtilityWPF.AlphaBlend(max_color, Colors.Black, Math.Pow(UtilityMath.GetScaledValue_Capped(0, 1, 1, -1, target), 0.66));
 
                                 if (inrange.Length > 0)
-                                    window.AddLines_Flat(inrange.Select(o => (o.Edge.EdgePoint0, o.Edge.EdgePoint1)), 2, color);
+                                    window.AddLines_Flat(inrange.Select(o => (o.EdgePoint0, o.EdgePoint1)), 2, color);
                             }
                         });
 
                         drawLines(color_valley, TriangleFoldDirection.Valley);
                         drawLines(color_peak, TriangleFoldDirection.Peak);
+                        drawLines(color_boundary, TriangleFoldDirection.Single);
+                        drawLines(color_flipped, TriangleFoldDirection.UpsideDown);
 
                         window.Show();
                     });
 
-                    drawScene(true, Colors.White, Colors.Chartreuse, dot_diffs);
-                    drawScene(false, Colors.White, Colors.Chartreuse, dot_diffs);
+                    drawScene(true, Colors.White, Colors.Chartreuse, Colors.DarkSlateGray, Colors.Magenta, dot_diffs);
+                    drawScene(false, Colors.White, Colors.Chartreuse, Colors.DarkSlateGray, Colors.Magenta, dot_diffs);
                 }
             }
             catch (Exception ex)

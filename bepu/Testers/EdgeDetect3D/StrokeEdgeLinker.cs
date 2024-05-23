@@ -101,8 +101,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             {
                 foreach (var edge in obj.Tree_Edges.GetColliding(box))
                 {
-                    Point3D edge_point0 = edge.Edge.EdgePoint0;
-                    Point3D edge_point1 = edge.Edge.EdgePoint1;
+                    Point3D edge_point0 = edge.EdgePoint0;
+                    Point3D edge_point1 = edge.EdgePoint1;
 
                     Point3D edge_center = edge_point0 + ((edge_point1 - edge_point0) / 2);
                     Vector3D edge_dir_unit = (edge_point1 - edge_point0).ToUnit();
@@ -161,7 +161,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 ToArray();
 
             var used_points = points.
-                Concat(deduped_edges.SelectMany(o => new Point3D[] { o.Edge.EdgePoint0, o.Edge.EdgePoint1 })).
+                Concat(deduped_edges.SelectMany(o => new Point3D[] { o.EdgePoint0, o.EdgePoint1 })).
                 ToArray();
 
             Point3D center = Math3D.GetCenter(used_points);
@@ -171,12 +171,12 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 ToArray();
 
             Point3D[] centered_edge_points = deduped_edges.
-                Select(o => new Point3D[] { (o.Edge.EdgePoint0 - center).ToPoint(), (o.Edge.EdgePoint1 - center).ToPoint() }).
+                Select(o => new Point3D[] { (o.EdgePoint0 - center).ToPoint(), (o.EdgePoint1 - center).ToPoint() }).
                 SelectMany(o => o).
                 ToArray();
 
             var edges_centered = deduped_edges.
-                Select(o => ((o.Edge.EdgePoint0 - center).ToPoint(), (o.Edge.EdgePoint1 - center).ToPoint())).
+                Select(o => ((o.EdgePoint0 - center).ToPoint(), (o.EdgePoint1 - center).ToPoint())).
                 ToArray();
 
             var window = new Debug3DWindow()
@@ -211,6 +211,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     {
                         TriangleFoldDirection.Peak => Colors.DarkRed,
                         TriangleFoldDirection.Valley => Colors.MediumBlue,
+                        TriangleFoldDirection.Single => Colors.Black,
                         _ => Colors.Magenta,
                     };
 
@@ -253,7 +254,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 ToArray();
 
             var used_points = points.
-                Concat(deduped_edges.SelectMany(o => new Point3D[] { o.Edge.EdgePoint0, o.Edge.EdgePoint1 })).
+                Concat(deduped_edges.SelectMany(o => new Point3D[] { o.EdgePoint0, o.EdgePoint1 })).
                 ToArray();
 
             Point3D center = Math3D.GetCenter(used_points);
@@ -312,11 +313,12 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     {
                         TriangleFoldDirection.Peak => Colors.DarkRed,
                         TriangleFoldDirection.Valley => Colors.MediumBlue,
+                        TriangleFoldDirection.Single => Colors.Black,
                         _ => Colors.Magenta,
                     };
 
-                    Point3D edge_centered_0 = (matches_per_segment[index][i].Edge.Edge.EdgePoint0 - center).ToPoint();
-                    Point3D edge_centered_1 = (matches_per_segment[index][i].Edge.Edge.EdgePoint1 - center).ToPoint();
+                    Point3D edge_centered_0 = (matches_per_segment[index][i].Edge.EdgePoint0 - center).ToPoint();
+                    Point3D edge_centered_1 = (matches_per_segment[index][i].Edge.EdgePoint1 - center).ToPoint();
 
                     visuals.Add(window.AddLine(edge_centered_0, edge_centered_1, sizes.line * 0.5, color));
                 }

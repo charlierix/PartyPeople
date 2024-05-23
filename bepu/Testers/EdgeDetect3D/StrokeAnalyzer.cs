@@ -54,7 +54,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             NormalDot[] edges = GetEdgesInBox(aabb.min, aabb.max, objects);
 
             double[] lengths = edges.
-                Select(o => (o.Edge.EdgePoint1 - o.Edge.EdgePoint0).Length).
+                Select(o => (o.EdgePoint1 - o.EdgePoint0).Length).
                 ToArray();
 
             return Math1D.Avg(lengths);
