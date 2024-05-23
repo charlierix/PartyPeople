@@ -58,12 +58,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 matches_per_segment[i] = FindNearbyEdges(i, points[i], points[i + 1], objects, search_radius);
 
 
-
-            // TODO: NormalDot is too heavily filtered.  Need more edges to match against
-
-
-
-
             // Draw: path segments, deduped edge segments
             //  checkbox: show normal dot
             Draw_AllEdgeMatches(points, matches_per_segment);
@@ -76,16 +70,18 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             //      distance
             //      along dot
             //      orth dot
+            Draw_EdgeMatchesPerSegment(points, matches_per_segment, search_radius);
 
 
 
 
 
-            // These two might need to be in a different class
 
             // Join the best matches together, looking for long chains of edges
 
-            // Smooth it out with a bezier
+            // There will sometimes be gaps between linked edges.  Fill those gaps with a bezier
+
+            // Smooth it out the whole think with a bezier
 
 
 
@@ -189,12 +185,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 Background = Brushes.White,
             };
 
-            var sizes = Debug3DWindow.GetDrawSizes(centered_points.Concat(centered_edge_points));
+            var sizes = Debug3DWindow.GetDrawSizes(used_points, center);
 
             window.AddDots(centered_points, sizes.dot * 0.3, UtilityWPF.ColorFromHex("CAE69A"));        // Colors.DarkOliveGreen
             window.AddLines(centered_points, sizes.line * 0.3, UtilityWPF.ColorFromHex("BAE6BA"));        // Colors.DarkSeaGreen
-
-            #region checkbox
 
             var checkbox = new CheckBox()
             {
@@ -242,11 +236,157 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             window.Messages_Top.Add(checkbox);      // even though it's called messages, it's just a list of uielements, so any control can be added to it
 
-            #endregion
-
             window.Loaded += (s, e) => { checkbox.IsChecked = false; };     // force the checkchange event to fire
 
             window.Show();
+        }
+
+        private static void Draw_EdgeMatchesPerSegment(Point3D[] points, EdgeMatch[][] matches_per_segment, double search_radius)
+        {
+            if (!SHOULD_DRAW)
+                return;
+
+            var deduped_edges = matches_per_segment.
+                SelectMany(o => o).
+                Select(o => o.Edge).
+                DistinctBy(o => o.Token).
+                ToArray();
+
+            var used_points = points.
+                Concat(deduped_edges.SelectMany(o => new Point3D[] { o.Edge.EdgePoint0, o.Edge.EdgePoint1 })).
+                ToArray();
+
+            Point3D center = Math3D.GetCenter(used_points);
+
+            Point3D[] centered_points = points.
+                Select(o => (o - center).ToPoint()).
+                ToArray();
+
+            var window = new Debug3DWindow()
+            {
+                Title = "Edge Matches per Segment",
+                Background = Brushes.White,
+            };
+
+            var sizes = Debug3DWindow.GetDrawSizes(used_points, center);
+
+            Grid grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Auto) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(8) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(50) });
+
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(4) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+
+            Slider seg_index = Add_Label_Slider(grid, 0, "Segment Index", 0, points.Length - 2, 1, true);       // setting to one so that window loaded can set to zero, causing a change and redraw
+            Slider normal_dot = Add_Label_Slider(grid, 2, "Edge Steepness", 0, 1, 0.33);
+            Slider distance = Add_Label_Slider(grid, 3, "Distance From Segment", 0, 1, 0.33);
+            Slider along_dot = Add_Label_Slider(grid, 4, "Direction parallel to segment", 0, 1, 0.66);
+            Slider orth_dot = Add_Label_Slider(grid, 5, "Position perpendicular to segment", 0, 1, 0.8);
+
+            var visuals = new List<Visual3D>();
+
+            var redraw = new RoutedPropertyChangedEventHandler<double>((s, e) =>
+            {
+                // Apply a score to current segment's edge matches
+                int index = seg_index.Value.ToInt_Floor();
+                ScoreEdges_SingleSegment(points[index], points[index + 1], matches_per_segment[index], search_radius, normal_dot.Value, distance.Value, along_dot.Value, orth_dot.Value);
+
+                // Clear existing visuals
+                window.Visuals3D.Clear();
+                //window.Visuals3D.RemoveAll(visuals);      // this fails when removing all visuals
+                visuals.Clear();
+
+                // Draw everything
+                visuals.Add(window.AddDots([centered_points[index], centered_points[index + 1]], sizes.dot * 0.3, Colors.DarkOliveGreen));
+                visuals.Add(window.AddLine(centered_points[index], centered_points[index + 1], sizes.line * 0.3, Colors.DarkSeaGreen));
+
+                for (int i = 0; i < matches_per_segment[index].Length; i++)
+                {
+                    Color color = deduped_edges[i].Direction switch
+                    {
+                        TriangleFoldDirection.Peak => Colors.DarkRed,
+                        TriangleFoldDirection.Valley => Colors.MediumBlue,
+                        _ => Colors.Magenta,
+                    };
+
+                    Point3D edge_centered_0 = (matches_per_segment[index][i].Edge.Edge.EdgePoint0 - center).ToPoint();
+                    Point3D edge_centered_1 = (matches_per_segment[index][i].Edge.Edge.EdgePoint1 - center).ToPoint();
+
+                    visuals.Add(window.AddLine(edge_centered_0, edge_centered_1, sizes.line * 0.5, color));
+                }
+
+                window.AutoSetCamera();
+            });
+
+            seg_index.ValueChanged += redraw;
+            normal_dot.ValueChanged += redraw;
+            distance.ValueChanged += redraw;
+            along_dot.ValueChanged += redraw;
+            orth_dot.ValueChanged += redraw;
+
+            window.Messages_Top.Add(grid);      // even though it's called messages, it's just a list of uielements, so any control can be added to it
+
+            window.Loaded += (s, e) => { seg_index.Value = 0; };     // force the value change event to fire
+
+            window.Show();
+        }
+
+        private static Slider Add_Label_Slider(Grid grid, int row_index, string text, double min, double max, double value, bool is_integer = false)
+        {
+            TextBlock label = new TextBlock()
+            {
+                Text = text,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+            };
+
+            Grid.SetColumn(label, 0);
+            Grid.SetRow(label, row_index);
+
+            grid.Children.Add(label);
+
+            Slider slider = new Slider()
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = value.ToString(),
+                Minimum = min,
+                Maximum = max,
+                Value = value,
+            };
+
+            if (is_integer)
+            {
+                slider.TickFrequency = 1;
+                slider.IsSnapToTickEnabled = true;
+            }
+
+            slider.ValueChanged += (s, e) => slider.ToolTip = slider.Value.ToString();
+
+            Grid.SetColumn(slider, 2);
+            Grid.SetRow(slider, row_index);
+
+            grid.Children.Add(slider);
+
+            return slider;
+        }
+
+        private static double[] ScoreEdges_SingleSegment(Point3D seg_point0, Point3D seg_point1, EdgeMatch[] edges, double search_radius, double normal_dot_priority, double distance_priority, double along_dot_priority, double orth_dot_priority)
+        {
+
+            // For now, just return all segments with same score
+
+            return Enumerable.Range(0, edges.Length).
+                Select(o => 1d).
+                ToArray();
+
+
         }
     }
 }

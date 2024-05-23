@@ -1278,6 +1278,28 @@ namespace Game.Math_WPF.WPF.Viewers
             return UtilityWPF.CastRay(out _, e.GetPosition(grdViewPort), grdViewPort, _camera, _viewport, true);
         }
 
+        public void AutoSetCamera()
+        {
+            Point3D[] points = TryGetVisualPoints(this.Visuals3D);
+
+            Tuple<Point3D, Vector3D, Vector3D> cameraPos = GetCameraPosition(points);      // this could return null
+            if (cameraPos == null)
+                cameraPos = Tuple.Create(new Point3D(0, 0, 7), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
+
+            _camera.Position = cameraPos.Item1;
+            _camera.LookDirection = cameraPos.Item2;
+            _camera.UpDirection = cameraPos.Item3;
+
+            double distance = _camera.Position.ToVector().Length;
+            double scale = distance * .0214;
+
+            _trackball.PanScale = scale / 10;
+            _trackball.ZoomScale = scale;
+            _trackball.MouseWheelScale = distance * .0007;
+
+            RecalculateLineGeometries();
+        }
+
         #endregion
 
         #region Event Listeners
@@ -1535,7 +1557,7 @@ namespace Game.Math_WPF.WPF.Viewers
             if (oldStartingIndex >= 0)
             {
                 if (_viewport.Children.Count <= _viewportOffset + oldItems.Count)
-                    throw new ApplicationException("Trying to remove more item than exists in the viewport (observable collection and viewport fell out of sync)");
+                    throw new ApplicationException("Trying to remove more items than exists in the viewport (observable collection and viewport fell out of sync)");
 
                 for (int cntr = 0; cntr < oldItems.Count; cntr++)
                     _viewport.Children.RemoveAt(_viewportOffset + oldStartingIndex);
@@ -1545,28 +1567,6 @@ namespace Game.Math_WPF.WPF.Viewers
                 foreach (Visual3D item in oldItems)
                     _viewport.Children.Remove(item);
             }
-        }
-
-        private void AutoSetCamera()
-        {
-            Point3D[] points = TryGetVisualPoints(this.Visuals3D);
-
-            Tuple<Point3D, Vector3D, Vector3D> cameraPos = GetCameraPosition(points);      // this could return null
-            if (cameraPos == null)
-                cameraPos = Tuple.Create(new Point3D(0, 0, 7), new Vector3D(0, 0, -1), new Vector3D(0, 1, 0));
-
-            _camera.Position = cameraPos.Item1;
-            _camera.LookDirection = cameraPos.Item2;
-            _camera.UpDirection = cameraPos.Item3;
-
-            double distance = _camera.Position.ToVector().Length;
-            double scale = distance * .0214;
-
-            _trackball.PanScale = scale / 10;
-            _trackball.ZoomScale = scale;
-            _trackball.MouseWheelScale = distance * .0007;
-
-            RecalculateLineGeometries();
         }
 
         /// <summary>
