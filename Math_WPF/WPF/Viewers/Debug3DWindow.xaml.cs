@@ -181,10 +181,13 @@ namespace Game.Math_WPF.WPF.Viewers
             panelSnapshots.Children.Clear();
         }
 
-        public void AddAxisLines(double length, double thickness)
+        public Visual3D[] AddAxisLines(double length, double thickness)
         {
-            Visuals3D.AddRange(
-                GetAxisLines(length, thickness));
+            var retVal = GetAxisLines(length, thickness);
+
+            Visuals3D.AddRange(retVal);
+
+            return retVal;
         }
         public static Visual3D[] GetAxisLines(double length, double thickness)
         {
@@ -196,14 +199,17 @@ namespace Game.Math_WPF.WPF.Viewers
             };
         }
 
-        public void AddDot(Point3D position, double radius, Color color, bool isShiny = true, bool isHiRes = false)
+        public Visual3D AddDot(Point3D position, double radius, Color color, bool isShiny = true, bool isHiRes = false)
         {
-            Visuals3D.Add(
-                GetDot(position, radius, color, isShiny, isHiRes));
+            var retVal = GetDot(position, radius, color, isShiny, isHiRes);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
-        public void AddDot(Vector3D position, double radius, Color color, bool isShiny = true, bool isHiRes = false)
+        public Visual3D AddDot(Vector3D position, double radius, Color color, bool isShiny = true, bool isHiRes = false)
         {
-            AddDot(position.ToPoint(), radius, color, isShiny, isHiRes);
+            return AddDot(position.ToPoint(), radius, color, isShiny, isHiRes);
         }
         public static Visual3D GetDot(Point3D position, double radius, Color color, bool isShiny = true, bool isHiRes = false)
         {
@@ -221,14 +227,17 @@ namespace Game.Math_WPF.WPF.Viewers
             };
         }
 
-        public void AddDots(IEnumerable<Point3D> positions, double radius, Color color, bool isShiny = true, bool isHiRes = false)
+        public Visual3D AddDots(IEnumerable<Point3D> positions, double radius, Color color, bool isShiny = true, bool isHiRes = false)
         {
-            Visuals3D.Add(
-                GetDots(positions, radius, color, isShiny, isHiRes));
+            var retVal = GetDots(positions, radius, color, isShiny, isHiRes);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
-        public void AddDots(IEnumerable<Vector3D> positions, double radius, Color color, bool isShiny = true, bool isHiRes = false)
+        public Visual3D AddDots(IEnumerable<Vector3D> positions, double radius, Color color, bool isShiny = true, bool isHiRes = false)
         {
-            AddDots(positions.Select(o => o.ToPoint()), radius, color, isShiny, isHiRes);
+            return AddDots(positions.Select(o => o.ToPoint()), radius, color, isShiny, isHiRes);
         }
         public static Visual3D GetDots(IEnumerable<Point3D> positions, double radius, Color color, bool isShiny = true, bool isHiRes = false)
         {
@@ -253,10 +262,13 @@ namespace Game.Math_WPF.WPF.Viewers
             };
         }
 
-        public void AddDots(IEnumerable<(Point3D position, double radius, Color color, bool isShiny, bool isHiRes)> definitions)
+        public Visual3D AddDots(IEnumerable<(Point3D position, double radius, Color color, bool isShiny, bool isHiRes)> definitions)
         {
-            Visuals3D.Add(
-                GetDots(definitions));
+            var retVal = GetDots(definitions);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
         public static Visual3D GetDots(IEnumerable<(Point3D position, double radius, Color color, bool isShiny, bool isHiRes)> definitions)
         {
@@ -281,10 +293,13 @@ namespace Game.Math_WPF.WPF.Viewers
             };
         }
 
-        public void AddEllipsoid(Point3D position, Vector3D radius, Color color, bool isShiny = true, bool isHiRes = false, Quaternion? rotation = null)
+        public Visual3D AddEllipsoid(Point3D position, Vector3D radius, Color color, bool isShiny = true, bool isHiRes = false, Quaternion? rotation = null)
         {
-            Visuals3D.Add(
-                GetEllipsoid(position, radius, color, isShiny, isHiRes, rotation));
+            var retVal = GetEllipsoid(position, radius, color, isShiny, isHiRes, rotation);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
         public static Visual3D GetEllipsoid(Point3D position, Vector3D radius, Color color, bool isShiny = true, bool isHiRes = false, Quaternion? rotation = null)
         {
@@ -312,23 +327,29 @@ namespace Game.Math_WPF.WPF.Viewers
             };
         }
 
-        public void AddLine(Point3D point1, Point3D point2, double thickness, Color color, bool arrow_left = false, bool arrow_right = false)
+        public Visual3D AddLine(Point3D point1, Point3D point2, double thickness, Color color, bool arrow_left = false, bool arrow_right = false)
         {
-            Visuals3D.Add(
-                GetLine(point1, point2, thickness, color, arrow_left, arrow_right));
+            var retVal = GetLine(point1, point2, thickness, color, arrow_left, arrow_right);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
-        public void AddLine(Vector3D point1, Vector3D point2, double thickness, Color color, bool arrow_left = false, bool arrow_right = false)
+        public Visual3D AddLine(Vector3D point1, Vector3D point2, double thickness, Color color, bool arrow_left = false, bool arrow_right = false)
         {
-            AddLine(point1.ToPoint(), point2.ToPoint(), thickness, color, arrow_left, arrow_right);
+            return AddLine(point1.ToPoint(), point2.ToPoint(), thickness, color, arrow_left, arrow_right);
         }
-        public void AddLine(Point3D point1, Point3D point2, double thickness, Color colorFrom, Color colorTo, bool arrow_left = false, bool arrow_right = false)
+        public Visual3D AddLine(Point3D point1, Point3D point2, double thickness, Color colorFrom, Color colorTo, bool arrow_left = false, bool arrow_right = false)
         {
-            Visuals3D.Add(
-                GetLine(point1, point2, thickness, colorFrom, colorTo, arrow_left, arrow_right));
+            var retVal = GetLine(point1, point2, thickness, colorFrom, colorTo, arrow_left, arrow_right);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
-        public void AddLine(Vector3D point1, Vector3D point2, double thickness, Color colorFrom, Color colorTo, bool arrow_left = false, bool arrow_right = false)
+        public Visual3D AddLine(Vector3D point1, Vector3D point2, double thickness, Color colorFrom, Color colorTo, bool arrow_left = false, bool arrow_right = false)
         {
-            AddLine(point1.ToPoint(), point2.ToPoint(), thickness, colorFrom, colorTo, arrow_left, arrow_right);
+            return AddLine(point1.ToPoint(), point2.ToPoint(), thickness, colorFrom, colorTo, arrow_left, arrow_right);
         }
 
         //TODO: left and right arrows are switched
@@ -405,7 +426,7 @@ namespace Game.Math_WPF.WPF.Viewers
             };
         }
 
-        public void AddLines(Point3D cubeMin, Point3D cubeMax, double thickness, Color color)
+        public Visual3D AddLines(Point3D cubeMin, Point3D cubeMax, double thickness, Color color)
         {
             var segments = new List<(Point3D, Point3D)>();
 
@@ -427,21 +448,27 @@ namespace Game.Math_WPF.WPF.Viewers
             segments.Add((new Point3D(cubeMax.X, cubeMax.Y, cubeMin.Z), new Point3D(cubeMax.X, cubeMax.Y, cubeMax.Z)));
             segments.Add((new Point3D(cubeMin.X, cubeMax.Y, cubeMin.Z), new Point3D(cubeMin.X, cubeMax.Y, cubeMax.Z)));
 
-            AddLines(segments, thickness, color);
+            return AddLines(segments, thickness, color);
         }
-        public void AddLines(IEnumerable<Point3D> points, double thickness, Color color)
+        public Visual3D AddLines(IEnumerable<Point3D> points, double thickness, Color color)
         {
-            Visuals3D.Add(
-                GetLines(points, thickness, color));
+            var retVal = GetLines(points, thickness, color);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
-        public void AddLines(IEnumerable<(Point3D point1, Point3D point2)> lines, double thickness, Color color)
+        public Visual3D AddLines(IEnumerable<(Point3D point1, Point3D point2)> lines, double thickness, Color color)
         {
-            Visuals3D.Add(
-                GetLines(lines, thickness, color));
+            var retVal = GetLines(lines, thickness, color);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
-        public void AddLines((int i1, int i2)[] index_pairs, Point3D[] all_points, double thickness, Color color)
+        public Visual3D AddLines((int i1, int i2)[] index_pairs, Point3D[] all_points, double thickness, Color color)
         {
-            AddLines(index_pairs.Select(o => (all_points[o.i1], all_points[o.i2])), thickness, color);
+            return AddLines(index_pairs.Select(o => (all_points[o.i1], all_points[o.i2])), thickness, color);
         }
 
         public static Visual3D GetLines(IEnumerable<Point3D> points, double thickness, Color color)
@@ -475,7 +502,7 @@ namespace Game.Math_WPF.WPF.Viewers
 
         // These use ScreenSpaceLines3D instead of BillboardLine3D, which are constant size.  These are faster when you have lots of lines
 
-        public void AddLines_Flat(Point3D cubeMin, Point3D cubeMax, double thickness_mult, Color color, bool autoUpdate = false)
+        public Visual3D AddLines_Flat(Point3D cubeMin, Point3D cubeMax, double thickness_mult, Color color, bool autoUpdate = false)
         {
             var segments = new List<(Point3D, Point3D)>();
 
@@ -497,21 +524,27 @@ namespace Game.Math_WPF.WPF.Viewers
             segments.Add((new Point3D(cubeMax.X, cubeMax.Y, cubeMin.Z), new Point3D(cubeMax.X, cubeMax.Y, cubeMax.Z)));
             segments.Add((new Point3D(cubeMin.X, cubeMax.Y, cubeMin.Z), new Point3D(cubeMin.X, cubeMax.Y, cubeMax.Z)));
 
-            AddLines_Flat(segments, thickness_mult, color, autoUpdate);
+            return AddLines_Flat(segments, thickness_mult, color, autoUpdate);
         }
-        public void AddLines_Flat(IEnumerable<Point3D> points, double thickness_mult, Color color, bool autoUpdate = false)
+        public Visual3D AddLines_Flat(IEnumerable<Point3D> points, double thickness_mult, Color color, bool autoUpdate = false)
         {
-            Visuals3D.Add(
-                GetLines_Flat(points, thickness_mult, color, autoUpdate));
+            var retVal = GetLines_Flat(points, thickness_mult, color, autoUpdate);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
-        public void AddLines_Flat(IEnumerable<(Point3D point1, Point3D point2)> lines, double thickness_mult, Color color, bool autoUpdate = false)
+        public Visual3D AddLines_Flat(IEnumerable<(Point3D point1, Point3D point2)> lines, double thickness_mult, Color color, bool autoUpdate = false)
         {
-            Visuals3D.Add(
-                GetLines_Flat(lines, thickness_mult, color, autoUpdate));
+            var retVal = GetLines_Flat(lines, thickness_mult, color, autoUpdate);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
-        public void AddLines_Flat((int i1, int i2)[] index_pairs, Point3D[] all_points, double thickness_mult, Color color, bool autoUpdate = false)
+        public Visual3D AddLines_Flat((int i1, int i2)[] index_pairs, Point3D[] all_points, double thickness_mult, Color color, bool autoUpdate = false)
         {
-            AddLines_Flat(index_pairs.Select(o => (all_points[o.i1], all_points[o.i2])), thickness_mult, color, autoUpdate);
+            return AddLines_Flat(index_pairs.Select(o => (all_points[o.i1], all_points[o.i2])), thickness_mult, color, autoUpdate);
         }
 
         public static Visual3D GetLines_Flat(IEnumerable<Point3D> points, double thickness_mult, Color color, bool autoUpdate = false)
@@ -543,10 +576,13 @@ namespace Game.Math_WPF.WPF.Viewers
             return visual;
         }
 
-        public void AddPlane(ITriangle_wpf plane, double size, Color color, Color? reflectiveColor = null, int numCells = 12, Point3D? center = null)
+        public Visual3D AddPlane(ITriangle_wpf plane, double size, Color color, Color? reflectiveColor = null, int numCells = 12, Point3D? center = null)
         {
-            Visuals3D.Add(
-                GetPlane(plane, size, color, reflectiveColor, numCells, center));
+            var retVal = GetPlane(plane, size, color, reflectiveColor, numCells, center);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
         public static Visual3D GetPlane(ITriangle_wpf plane, double size, Color color, Color? reflectiveColor = null, int numCells = 12, Point3D? center = null)
         {
@@ -556,10 +592,13 @@ namespace Game.Math_WPF.WPF.Viewers
             };
         }
 
-        public void AddCircle(Point3D center, double radius, double thickness, Color color, ITriangle_wpf plane = null, bool isShiny = true)
+        public Visual3D AddCircle(Point3D center, double radius, double thickness, Color color, ITriangle_wpf plane = null, bool isShiny = true)
         {
-            Visuals3D.Add(
-                GetCircle(center, radius, thickness, color, plane, isShiny));
+            var retVal = GetCircle(center, radius, thickness, color, plane, isShiny);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
         public static Visual3D GetCircle(Point3D center, double radius, double thickness, Color color, ITriangle_wpf plane = null, bool isShiny = true)
         {
@@ -599,10 +638,13 @@ namespace Game.Math_WPF.WPF.Viewers
             };
         }
 
-        public void AddEllipse(Point3D center, Vector3D direction_x, Vector3D direction_y, double radiusX, double radiusY, double thickness, Color color, bool isShiny = true)
+        public Visual3D AddEllipse(Point3D center, Vector3D direction_x, Vector3D direction_y, double radiusX, double radiusY, double thickness, Color color, bool isShiny = true)
         {
-            Visuals3D.Add(
-                GetEllipse(center, direction_x, direction_y, radiusX, radiusY, thickness, color, isShiny));
+            var retVal = GetEllipse(center, direction_x, direction_y, radiusX, radiusY, thickness, color, isShiny);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
         public static Visual3D GetEllipse(Point3D center, Vector3D direction_x, Vector3D direction_y, double radiusX, double radiusY, double thickness, Color color, bool isShiny = true)
         {
@@ -631,10 +673,13 @@ namespace Game.Math_WPF.WPF.Viewers
         /// Angles are in degrees.  Zero angle is 1,0 (90 degrees is 0,1)
         /// direction_x and y are the directions (out from center) in world space
         /// </summary>
-        public void AddArc(Point3D center, Vector3D direction_x, Vector3D direction_y, double radius, double fromAngle, double toAngle, double thickness, Color color, bool isShiny = true, int num_segments = 30)
+        public Visual3D AddArc(Point3D center, Vector3D direction_x, Vector3D direction_y, double radius, double fromAngle, double toAngle, double thickness, Color color, bool isShiny = true, int num_segments = 30)
         {
-            Visuals3D.Add(
-                GetArc(center, direction_x, direction_y, radius, fromAngle, toAngle, thickness, color, isShiny, num_segments));
+            var retVal = GetArc(center, direction_x, direction_y, radius, fromAngle, toAngle, thickness, color, isShiny, num_segments);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
         public static Visual3D GetArc(Point3D center, Vector3D direction_x, Vector3D direction_y, double radius, double fromAngle, double toAngle, double thickness, Color color, bool isShiny = true, int num_segments = 30)
         {
@@ -659,23 +704,26 @@ namespace Game.Math_WPF.WPF.Viewers
             };
         }
 
-        public void AddTriangle(ITriangle_wpf triangle, Color? faceColor = null, Color? edgeColor = null, double? edgeThickness = null, bool isShinyFaces = true)
+        public Visual3D[] AddTriangle(ITriangle_wpf triangle, Color? faceColor = null, Color? edgeColor = null, double? edgeThickness = null, bool isShinyFaces = true)
         {
             TriangleIndexed_wpf indexed = new TriangleIndexed_wpf(0, 1, 2, new[] { triangle.Point0, triangle.Point1, triangle.Point2 });
 
-            AddHull(new[] { indexed }, faceColor, edgeColor, edgeThickness, isShinyFaces, true);
+            return AddHull(new[] { indexed }, faceColor, edgeColor, edgeThickness, isShinyFaces, true);
         }
-        public void AddTriangle(Point3D point1, Point3D point2, Point3D point3, Color? faceColor = null, Color? edgeColor = null, double? edgeThickness = null, bool isShinyFaces = true)
+        public Visual3D[] AddTriangle(Point3D point1, Point3D point2, Point3D point3, Color? faceColor = null, Color? edgeColor = null, double? edgeThickness = null, bool isShinyFaces = true)
         {
             TriangleIndexed_wpf indexed = new TriangleIndexed_wpf(0, 1, 2, new[] { point1, point2, point3 });
 
-            AddHull(new[] { indexed }, faceColor, edgeColor, edgeThickness, isShinyFaces, true);
+            return AddHull(new[] { indexed }, faceColor, edgeColor, edgeThickness, isShinyFaces, true);
         }
 
-        public void AddHull(ITriangleIndexed_wpf[] hull, Color? faceColor = null, Color? edgeColor = null, double? edgeThickness = null, bool isShinyFaces = true, bool isIndependentFaces = true)
+        public Visual3D[] AddHull(ITriangleIndexed_wpf[] hull, Color? faceColor = null, Color? edgeColor = null, double? edgeThickness = null, bool isShinyFaces = true, bool isIndependentFaces = true)
         {
-            Visuals3D.AddRange(
-                GetHull(hull, faceColor, edgeColor, edgeThickness, isShinyFaces, isIndependentFaces));
+            var retVal = GetHull(hull, faceColor, edgeColor, edgeThickness, isShinyFaces, isIndependentFaces);
+
+            Visuals3D.AddRange(retVal);
+
+            return retVal;
         }
         public static Visual3D[] GetHull(ITriangleIndexed_wpf[] hull, Color? faceColor = null, Color? edgeColor = null, double? edgeThickness = null, bool isShinyFaces = true, bool isIndependentFaces = true, bool use_flat_lines = true)
         {
@@ -716,7 +764,7 @@ namespace Game.Math_WPF.WPF.Viewers
             return retVal.ToArray();
         }
 
-        public void AddSquare(Point center, double sizeX, double sizeY, Color color, bool isShiny = true, double z = 0)
+        public Visual3D AddSquare(Point center, double sizeX, double sizeY, Color color, bool isShiny = true, double z = 0)
         {
             double halfSizeX = sizeX / 2;
             double halfSizeY = sizeY / 2;
@@ -724,16 +772,19 @@ namespace Game.Math_WPF.WPF.Viewers
             Point min = new Point(center.X - halfSizeX, center.Y - halfSizeY);
             Point max = new Point(center.X + halfSizeX, center.Y + halfSizeY);
 
-            AddSquare(min, max, color, isShiny, z);
+            return AddSquare(min, max, color, isShiny, z);
         }
-        public void AddSquare(Point min, Point max, Color color, bool isShiny = true, double z = 0)
+        public Visual3D AddSquare(Point min, Point max, Color color, bool isShiny = true, double z = 0)
         {
-            Visuals3D.Add(
-                GetSquare(min, max, color, isShiny, z));
+            var retVal = GetSquare(min, max, color, isShiny, z);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
-        public void AddSquare(Rect rect, Color color, bool isShiny = true, double z = 0)
+        public Visual3D AddSquare(Rect rect, Color color, bool isShiny = true, double z = 0)
         {
-            AddSquare(rect.TopLeft, rect.BottomRight, color, isShiny, z);
+            return AddSquare(rect.TopLeft, rect.BottomRight, color, isShiny, z);
         }
         public static Visual3D GetSquare(Point min, Point max, Color color, bool isShiny = true, double z = 0)
         {
@@ -750,10 +801,13 @@ namespace Game.Math_WPF.WPF.Viewers
             };
         }
 
-        public void AddMesh(MeshGeometry3D mesh, Color color, bool isShinyFaces = true)
+        public Visual3D AddMesh(MeshGeometry3D mesh, Color color, bool isShinyFaces = true)
         {
-            this.Visuals3D.Add(
-                GetMesh(mesh, color, isShinyFaces));
+            var retVal = GetMesh(mesh, color, isShinyFaces);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
         public static Visual3D GetMesh(MeshGeometry3D mesh, Color color, bool isShinyFaces = true)
         {
@@ -771,10 +825,13 @@ namespace Game.Math_WPF.WPF.Viewers
             };
         }
 
-        public void AddModel(Model3D model)
+        public Visual3D AddModel(Model3D model)
         {
-            this.Visuals3D.Add(
-                GetModel(model));
+            var retVal = GetModel(model);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
         public static Visual3D GetModel(Model3D model)
         {
@@ -794,13 +851,16 @@ namespace Game.Math_WPF.WPF.Viewers
         /// <param name="position">The center point of the text</param>
         /// <param name="normal">The direction of the vector that points straight out of the plane of the text (default is 0,0,1)</param>
         /// <param name="textDirection">The direction of the vector that points along the text (default is 1,0,0)</param>
-        public void AddText3D(string text, Point3D position, Vector3D normal, double height, Color color, bool isShiny, Vector3D? textDirection = null, double? depth = null, FontFamily font = null, FontStyle? style = null, FontWeight? weight = null, FontStretch? stretch = null)
+        public Visual3D AddText3D(string text, Point3D position, Vector3D normal, double height, Color color, bool isShiny, Vector3D? textDirection = null, double? depth = null, FontFamily font = null, FontStyle? style = null, FontWeight? weight = null, FontStretch? stretch = null)
         {
             if (string.IsNullOrWhiteSpace(text))
-                return;
+                return null;
 
-            this.Visuals3D.Add(
-                GetText3D(text, position, normal, height, color, isShiny, textDirection, depth, font ?? this.FontFamily, style, weight, stretch));
+            var retVal = GetText3D(text, position, normal, height, color, isShiny, textDirection, depth, font ?? FontFamily, style, weight, stretch);
+
+            Visuals3D.Add(retVal);
+
+            return retVal;
         }
         public static Visual3D GetText3D(string text, Point3D position, Vector3D normal, double height, Color color, bool isShiny, Vector3D? textDirection = null, double? depth = null, FontFamily font = null, FontStyle? style = null, FontWeight? weight = null, FontStretch? stretch = null)
         {
@@ -822,15 +882,10 @@ namespace Game.Math_WPF.WPF.Viewers
 
             Transform3DGroup transform = new Transform3DGroup();
 
-            Quaternion quat;
-            if (textDirection == null)
-            {
-                quat = Math3D.GetRotation(new Vector3D(0, 0, 1), normal);
-            }
-            else
-            {
-                quat = Math3D.GetRotation(new DoubleVector_wpf(new Vector3D(0, 0, 1), new Vector3D(1, 0, 0)), new DoubleVector_wpf(normal, textDirection.Value));
-            }
+            Quaternion quat = textDirection == null ?
+                Math3D.GetRotation(new Vector3D(0, 0, 1), normal) :
+                Math3D.GetRotation(new DoubleVector_wpf(new Vector3D(0, 0, 1), new Vector3D(1, 0, 0)), new DoubleVector_wpf(normal, textDirection.Value));
+
             transform.Children.Add(new RotateTransform3D(new QuaternionRotation3D(quat)));
 
             transform.Children.Add(new TranslateTransform3D(position.ToVector()));
@@ -948,19 +1003,21 @@ namespace Game.Math_WPF.WPF.Viewers
             };
         }
 
-        public void AddGraph(GraphResult graph, Point3D center, double size, Action<GraphMouseArgs> mouseMove = null)
+        public Visual3D[] AddGraph(GraphResult graph, Point3D center, double size, Action<GraphMouseArgs> mouseMove = null)
         {
             double halfSize = size / 2;
 
             Rect3D rect = new Rect3D(center.X - halfSize, center.Y - halfSize, center.Z, size, size, 0);
 
-            AddGraph(graph, rect, mouseMove);
+            return AddGraph(graph, rect, mouseMove);
         }
-        public void AddGraph(GraphResult graph, Rect3D location, Action<GraphMouseArgs> mouseMove = null)
+        public Visual3D[] AddGraph(GraphResult graph, Rect3D location, Action<GraphMouseArgs> mouseMove = null)
         {
+            var retVal = new List<Visual3D>();
+
             double thickness = Math1D.Max(location.SizeX, location.SizeY, location.SizeZ) / 500;
 
-            AddLines(
+            retVal.Add(AddLines(
                 new[]
                 {
                     // horizontal
@@ -979,16 +1036,16 @@ namespace Game.Math_WPF.WPF.Viewers
                     (new Point3D(location.X, location.Y, location.Z), new Point3D(location.X + location.SizeX, location.Y + location.SizeY, location.Z)),
                 },
                 thickness,
-                Colors.Gray);
+                Colors.Gray));
 
-            AddLines(
+            retVal.Add(AddLines(
                 new[]
                 {
                     (new Point3D(location.X, location.Y, location.Z), new Point3D(location.X, location.Y + location.SizeY, location.Z)),
                     (new Point3D(location.X, location.Y, location.Z), new Point3D(location.X + location.SizeX, location.Y, location.Z))
                 },
                 thickness,
-                Colors.Black);
+                Colors.Black));
 
             Point3D[] pointsWorld = graph.NormalizedPoints.
                 Select(o => new Point3D
@@ -999,41 +1056,33 @@ namespace Game.Math_WPF.WPF.Viewers
                 )).
                 ToArray();
 
-            AddLines(
+            retVal.Add(AddLines(
                 Enumerable.Range(0, graph.NormalizedPoints.Length - 1).
                     Select(o => (pointsWorld[o], pointsWorld[o + 1])),
                 thickness,
-                Colors.White);
+                Colors.White));
 
             if (mouseMove != null)
-            {
-                AddGraphMousePlate(graph, location, mouseMove);
-            }
+                retVal.Add(AddGraphMousePlate(graph, location, mouseMove));
 
             if (!string.IsNullOrWhiteSpace(graph.Title))
-            {
-                AddText3D(graph.Title, new Point3D(location.CenterX(), location.CenterY(), location.CenterZ()), new Vector3D(0, 0, 1), location.SizeY / 20, Colors.Black, false);
-            }
+                retVal.Add(AddText3D(graph.Title, new Point3D(location.CenterX(), location.CenterY(), location.CenterZ()), new Vector3D(0, 0, 1), location.SizeY / 20, Colors.Black, false));
+
+            return retVal.ToArray();
         }
-        public void AddGraphs(GraphResult[] graphs, Point3D center, double graphSize, Action<GraphMouseArgs>[] mouseMoves = null, bool showHotTrackLines = false)
+        public Visual3D[] AddGraphs(GraphResult[] graphs, Point3D center, double graphSize, Action<GraphMouseArgs>[] mouseMoves = null, bool showHotTrackLines = false)
         {
             if (graphs == null || graphs.Length == 0)
-            {
-                return;
-            }
+                return null;
 
             if (mouseMoves != null && mouseMoves.Length != graphs.Length)
-            {
                 throw new ArgumentException($"If mouseMoves is passed in, it needs to be the same size as graphs: graphs={graphs.Length}, mouseMoves={mouseMoves.Length}");
-            }
 
             int rows = Math.Sqrt(graphs.Length).ToInt_Floor();
 
             int columns = graphs.Length / rows;
             if (graphs.Length % rows != 0)
-            {
                 columns++;
-            }
 
             var cells = Math2D.GetCells_InvertY(graphSize * 1.1111111, columns, rows).
                 ToArray();
@@ -1051,9 +1100,7 @@ namespace Game.Math_WPF.WPF.Viewers
                     Select((o, i) => new Action<GraphMouseArgs>(e =>
                     {
                         if (mouseMoves != null)
-                        {
                             mouseMoves[i](e);
-                        }
 
                         Visuals3D.RemoveAll(lines);
                         lines.Clear();
@@ -1077,13 +1124,17 @@ namespace Game.Math_WPF.WPF.Viewers
                 #endregion
             }
 
+            var retVal = new List<Visual3D>();
+
             for (int cntr = 0; cntr < graphs.Length; cntr++)
             {
                 Rect cellRect = cells[cntr].rect.ChangeSize(.9);
                 cellRect.Location += center.ToVector2D();
 
-                AddGraph(graphs[cntr], cellRect.ToRect3D(center.Z), hottrackEvents?[cntr] ?? mouseMoves?[cntr]);
+                retVal.AddRange(AddGraph(graphs[cntr], cellRect.ToRect3D(center.Z), hottrackEvents?[cntr] ?? mouseMoves?[cntr]));
             }
+
+            return retVal.ToArray();
         }
 
         /// <summary>
@@ -1521,7 +1572,7 @@ namespace Game.Math_WPF.WPF.Viewers
         /// <summary>
         /// This creates a transparent visual that will catch mouse movements and raise the mouse move event
         /// </summary>
-        private void AddGraphMousePlate(GraphResult graph, Rect3D location, Action<GraphMouseArgs> mouseMove)
+        private Visual3D AddGraphMousePlate(GraphResult graph, Rect3D location, Action<GraphMouseArgs> mouseMove)
         {
             DiffuseMaterial material = new DiffuseMaterial(Brushes.Transparent);
 
@@ -1544,6 +1595,8 @@ namespace Game.Math_WPF.WPF.Viewers
             });
 
             Visuals3D.Add(visual);
+
+            return visual;
         }
 
         private void RememberAnyScreenSpaceLines(IList items)

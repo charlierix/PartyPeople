@@ -1,4 +1,6 @@
-﻿using Game.Math_WPF.Mathematics;
+﻿using Game.Core;
+using Game.Math_WPF.Mathematics;
+using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Viewers;
 using NetOctree.Octree;
 using System;
@@ -7,6 +9,8 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
@@ -52,6 +56,12 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             for (int i = 0; i < points.Length - 1; i++)
                 matches_per_segment[i] = FindNearbyEdges(i, points[i], points[i + 1], objects, search_radius);
+
+
+
+            // TODO: NormalDot is too heavily filtered.  Need more edges to match against
+
+
 
 
             // Draw: path segments, deduped edge segments
@@ -169,20 +179,72 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 SelectMany(o => o).
                 ToArray();
 
+            var edges_centered = deduped_edges.
+                Select(o => ((o.Edge.EdgePoint0 - center).ToPoint(), (o.Edge.EdgePoint1 - center).ToPoint())).
+                ToArray();
+
             var window = new Debug3DWindow()
             {
                 Title = "All Edge Matches",
+                Background = Brushes.White,
             };
 
             var sizes = Debug3DWindow.GetDrawSizes(centered_points.Concat(centered_edge_points));
 
-            window.AddDots(centered_points, sizes.dot, Colors.DarkOliveGreen);
-            window.AddLines(centered_points, sizes.line, Colors.DarkSeaGreen);
+            window.AddDots(centered_points, sizes.dot * 0.3, UtilityWPF.ColorFromHex("CAE69A"));        // Colors.DarkOliveGreen
+            window.AddLines(centered_points, sizes.line * 0.3, UtilityWPF.ColorFromHex("BAE6BA"));        // Colors.DarkSeaGreen
 
-            var edges_centered = deduped_edges.
-                Select(o => ((o.Edge.EdgePoint0 - center).ToPoint(), (o.Edge.EdgePoint1 - center).ToPoint()));
+            #region checkbox
 
-            window.AddLines(edges_centered, sizes.line * 0.5, Colors.MediumBlue);
+            var checkbox = new CheckBox()
+            {
+                Content = "Show Edge Steepness",
+                IsChecked = true,       // it will get changed to false in loaded event, forcing the lines to draw
+            };
+
+            var edge_visuals = new List<Visual3D>();
+
+            //var checkbox_changed = new Action<object, System.Windows.RoutedEventArgs>((s,e) =>        -- can't be action, it must be RoutedEventHandler
+            var checkbox_changed = new RoutedEventHandler((s, e) =>
+            {
+                window.Visuals3D.RemoveAll(edge_visuals);
+                edge_visuals.Clear();
+
+                //foreach(var edge in deduped_edges)
+                for (int i = 0; i < deduped_edges.Length; i++)
+                {
+                    Color color = deduped_edges[i].Direction switch
+                    {
+                        TriangleFoldDirection.Peak => Colors.DarkRed,
+                        TriangleFoldDirection.Valley => Colors.MediumBlue,
+                        _ => Colors.Magenta,
+                    };
+
+                    if (checkbox.IsChecked.Value)
+                    {
+                        //double percent = Math.Abs(deduped_edges[i].Dot);
+                        double percent = UtilityMath.GetScaledValue(0.25, 1, 1, -1, deduped_edges[i].Dot);
+
+                        Color final_color = UtilityWPF.AlphaBlend(color, Colors.Transparent, percent);
+                        double line_thickness = sizes.line * percent;
+
+                        edge_visuals.Add(window.AddLine(edges_centered[i].Item1, edges_centered[i].Item2, line_thickness, final_color));
+                    }
+                    else
+                    {
+                        edge_visuals.Add(window.AddLine(edges_centered[i].Item1, edges_centered[i].Item2, sizes.line * 0.5, color));
+                    }
+                }
+            });
+
+            checkbox.Checked += checkbox_changed;
+            checkbox.Unchecked += checkbox_changed;
+
+            window.Messages_Top.Add(checkbox);      // even though it's called messages, it's just a list of uielements, so any control can be added to it
+
+            #endregion
+
+            window.Loaded += (s, e) => { checkbox.IsChecked = false; };     // force the checkchange event to fire
 
             window.Show();
         }

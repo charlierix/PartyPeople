@@ -86,7 +86,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
                 var edge_dots = by_edge.EdgePairs.
                     Select(o => EdgeUtil.GetNormalDot(o)).
-                    Where(o => o.Dot < 0.97).       // throw out the mostly parallel joins
+                    Where(o => o.Dot < 0.995).       // need to throw out parallel joins
                     ToArray();
 
                 var bounds = GetTreeBounds(by_edge.AllPoints);
