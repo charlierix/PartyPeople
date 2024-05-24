@@ -122,7 +122,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             double avg = Math1D.Avg(lengths);
 
-            return avg * 6;
+            return avg * 4;
         }
 
         private static TriangleIndexedLinked_wpf[] GetNearbyTriangles(Point3D[] points, EdgeBackgroundWorker.WorkerResponse_Object[] objects, double search_radius)

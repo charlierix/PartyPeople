@@ -169,6 +169,10 @@ namespace Game.Math_WPF.WPF.Viewers
             }
         }
 
+        public Vector3D Camera_Look => _camera.LookDirection.LengthSquared.IsNearValue(1) ? _camera.LookDirection : _camera.LookDirection.ToUnit();
+        public Vector3D Camera_Up => _camera.UpDirection.LengthSquared.IsNearValue(1) ? _camera.UpDirection : _camera.UpDirection.ToUnit();
+        public Vector3D Camera_Right => Vector3D.CrossProduct(Camera_Look, Camera_Up);
+
         #endregion
 
         #region Public Methods

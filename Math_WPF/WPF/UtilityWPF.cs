@@ -4992,7 +4992,13 @@ namespace Game.Math_WPF.WPF
             weight = weight ?? FontWeights.Normal;
             stretch = stretch ?? FontStretches.Normal;
 
-            FormattedText formattedText = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface(font, style.Value, weight.Value, stretch.Value), height, Brushes.Transparent);
+
+            // Found a bug where height passed in was really small and all the characters stacked on top of each other.  So using
+            // a height of 1, then applying a scale transform
+            //FormattedText formattedText = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface(font, style.Value, weight.Value, stretch.Value), height, Brushes.Transparent);
+            FormattedText formattedText = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, new Typeface(font, style.Value, weight.Value, stretch.Value), 1, Brushes.Transparent);
+
+
             formattedText.TextAlignment = alignment;
             Geometry textGeometry = formattedText.BuildGeometry(new Point(0, 0));
 
@@ -5040,12 +5046,12 @@ namespace Game.Math_WPF.WPF
             double[] zs;
             if (Math1D.IsNearZero(depth))
             {
-                zs = new double[] { 0 };        // no depth, so just create one
+                zs = [0];        // no depth, so just create one
             }
             else
             {
                 double halfDepth = depth / 2d;
-                zs = new[] { -halfDepth, halfDepth };
+                zs = [-halfDepth, halfDepth];
             }
 
             Rect bounds = textGeometry.Bounds;
@@ -5081,6 +5087,8 @@ namespace Game.Math_WPF.WPF
             }
 
             #endregion
+
+            retVal.Transform = new ScaleTransform3D(height, height, height);
 
             return retVal;
         }

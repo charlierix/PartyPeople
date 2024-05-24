@@ -283,20 +283,26 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
 
             Slider seg_index = Add_Label_Slider(grid, 0, "Segment Index", 0, points.Length - 2, 1, true);       // setting to one so that window loaded can set to zero, causing a change and redraw
             Slider normal_dot = Add_Label_Slider(grid, 2, "Edge Steepness", 0, 1, 0.33);
             Slider distance = Add_Label_Slider(grid, 3, "Distance From Segment", 0, 1, 0.33);
             Slider along_dot = Add_Label_Slider(grid, 4, "Direction parallel to segment", 0, 1, 0.66);
             Slider orth_dot = Add_Label_Slider(grid, 5, "Position perpendicular to segment", 0, 1, 0.8);
+            CheckBox show_dots = Add_Checkbox(grid, 6, "Show Dots", false);
+            CheckBox show_scores = Add_Checkbox(grid, 7, "Show Scores", false);
 
             var visuals = new List<Visual3D>();
 
-            var redraw = new RoutedPropertyChangedEventHandler<double>((s, e) =>
+            bool has_autoset = false;
+
+            var redraw = new Action(() =>
             {
                 // Apply a score to current segment's edge matches
                 int index = seg_index.Value.ToInt_Floor();
-                ScoreEdges_SingleSegment(points[index], points[index + 1], matches_per_segment[index], search_radius, normal_dot.Value, distance.Value, along_dot.Value, orth_dot.Value);
+                double[] percents = ScoreEdges_SingleSegment(points[index], points[index + 1], matches_per_segment[index], search_radius, normal_dot.Value, distance.Value, along_dot.Value, orth_dot.Value);
 
                 // Clear existing visuals
                 window.Visuals3D.Clear();
@@ -306,6 +312,17 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 // Draw everything
                 visuals.Add(window.AddDots([centered_points[index], centered_points[index + 1]], sizes.dot * 0.3, Colors.DarkOliveGreen));
                 visuals.Add(window.AddLine(centered_points[index], centered_points[index + 1], sizes.line * 0.3, Colors.DarkSeaGreen));
+
+                if (show_dots.IsChecked.Value)
+                {
+                    var distinct_edge_points = matches_per_segment[index].
+                        Select(o => new[] { (o.Edge.EdgePoint0 - center).ToPoint(), (o.Edge.EdgePoint1 - center).ToPoint() }).
+                        SelectMany(o => o).
+                        Distinct((o1, o2) => o1.IsNearValue(o2)).
+                        ToArray();
+
+                    visuals.Add(window.AddDots(distinct_edge_points, sizes.dot / 6, Colors.Silver));
+                }
 
                 for (int i = 0; i < matches_per_segment[index].Length; i++)
                 {
@@ -320,17 +337,40 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     Point3D edge_centered_0 = (matches_per_segment[index][i].Edge.EdgePoint0 - center).ToPoint();
                     Point3D edge_centered_1 = (matches_per_segment[index][i].Edge.EdgePoint1 - center).ToPoint();
 
-                    visuals.Add(window.AddLine(edge_centered_0, edge_centered_1, sizes.line * 0.5, color));
+                    Color final_color = UtilityWPF.AlphaBlend(color, Colors.Transparent, percents[i]);
+                    double line_thickness = sizes.line * percents[i];
+
+                    visuals.Add(window.AddLine(edge_centered_0, edge_centered_1, line_thickness, final_color));
+
+                    if (show_scores.IsChecked.Value)
+                    {
+                        Point3D edge_center = Math3D.GetCenter(matches_per_segment[index][i].Edge.EdgePoint0, matches_per_segment[index][i].Edge.EdgePoint1);
+                        edge_center = (edge_center - center).ToPoint();
+                        double height = (centered_points[index + 1] - centered_points[index]).Length / 3;
+
+                        visuals.Add(window.AddText3D(percents[i].ToStringSignificantDigits(2), edge_center, -window.Camera_Look, height, Colors.DarkGreen, false, window.Camera_Right));
+                    }
                 }
 
-                window.AutoSetCamera();
+                if (!has_autoset)
+                {
+                    window.AutoSetCamera();
+                    has_autoset = true;
+                }
             });
 
-            seg_index.ValueChanged += redraw;
-            normal_dot.ValueChanged += redraw;
-            distance.ValueChanged += redraw;
-            along_dot.ValueChanged += redraw;
-            orth_dot.ValueChanged += redraw;
+            var redraw_slider = new RoutedPropertyChangedEventHandler<double>((s, e) => redraw());
+            var redraw_checkbox = new RoutedEventHandler((s, e) => redraw());
+
+            seg_index.ValueChanged += redraw_slider;
+            normal_dot.ValueChanged += redraw_slider;
+            distance.ValueChanged += redraw_slider;
+            along_dot.ValueChanged += redraw_slider;
+            orth_dot.ValueChanged += redraw_slider;
+            show_dots.Checked += redraw_checkbox;
+            show_dots.Unchecked += redraw_checkbox;
+            show_scores.Checked += redraw_checkbox;
+            show_scores.Unchecked += redraw_checkbox;
 
             window.Messages_Top.Add(grid);      // even though it's called messages, it's just a list of uielements, so any control can be added to it
 
@@ -361,6 +401,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 Minimum = min,
                 Maximum = max,
                 Value = value,
+                Focusable = false,
             };
 
             if (is_integer)
@@ -371,6 +412,11 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             slider.ValueChanged += (s, e) => slider.ToolTip = slider.Value.ToString();
 
+            // Need to stop these events from being seen by the viewport.  Otherwise dragging a slider will cause the viewport's trackball to move the scene
+            slider.MouseDown += (s, e) => e.Handled = true;
+            slider.MouseUp += (s, e) => e.Handled = true;
+            slider.MouseMove += (s, e) => e.Handled = true;
+
             Grid.SetColumn(slider, 2);
             Grid.SetRow(slider, row_index);
 
@@ -378,17 +424,40 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             return slider;
         }
+        private static CheckBox Add_Checkbox(Grid grid, int row_index, string text, bool default_val)
+        {
+            CheckBox checkbox = new CheckBox()
+            {
+                Content = text,
+                IsChecked = default_val,
+            };
+
+            Grid.SetColumn(checkbox, 0);
+            Grid.SetRow(checkbox, row_index);
+
+            grid.Children.Add(checkbox);
+
+            return checkbox;
+        }
 
         private static double[] ScoreEdges_SingleSegment(Point3D seg_point0, Point3D seg_point1, EdgeMatch[] edges, double search_radius, double normal_dot_priority, double distance_priority, double along_dot_priority, double orth_dot_priority)
         {
+            double[] retVal = new double[edges.Length];
 
-            // For now, just return all segments with same score
+            for (int i = 0; i < edges.Length; i++)
+            {
+                double normal_dot = UtilityMath.GetScaledValue(0, 1, 1, -1, edges[i].Edge.Dot) * normal_dot_priority;
 
-            return Enumerable.Range(0, edges.Length).
-                Select(o => 1d).
-                ToArray();
+                double distance = ((search_radius - edges[i].Edge_Dist) / search_radius) * distance_priority;
 
+                double along_dot = edges[i].Edge_Dot_Along * along_dot_priority;
 
+                double orth_dot = edges[i].Edge_Dot_Orth * orth_dot_priority;
+
+                retVal[i] = (normal_dot + distance + along_dot + orth_dot) / 4;
+            }
+
+            return retVal;
         }
     }
 }
