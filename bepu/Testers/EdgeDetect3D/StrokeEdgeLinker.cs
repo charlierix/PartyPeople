@@ -18,7 +18,12 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 {
     public static class StrokeEdgeLinker
     {
-        const bool SHOULD_DRAW = true;
+        private const bool SHOULD_DRAW = true;
+
+        private const double SCORING_NORMAL_DOT = 0.33;
+        private const double SCORING_DISTANCE = 0.33;
+        private const double SCORING_ALONG_DOT = 0.66;
+        private const double SCORING_ORTH_DOT = 0.8;
 
         #region record: EdgeMatch
 
@@ -42,6 +47,11 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             // path segments.  A good way to tell which is best for which is to also find the edges that are in the path
             // segment's "cylinder"
             public double Edge_Dot_Orth { get; init; }
+
+            /// <summary>
+            /// The score for the current segment, according to SCORING_ constants
+            /// </summary>
+            public double Score { get; init; }
         }
 
         #endregion
@@ -71,7 +81,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             //      along dot
             //      orth dot
             Draw_EdgeMatchesPerSegment(points, matches_per_segment, search_radius);
-
+            //Draw_EdgeMatchesAllSegments(points, matches_per_segment, search_radius);
 
 
 
@@ -110,6 +120,20 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     Vector3D edge_toward_segment_unit = (edge_center - center).ToUnit();
                     Vector3D orth_dir_unit = Vector3D.CrossProduct(Vector3D.CrossProduct(dir_unit, edge_toward_segment_unit), dir_unit);        // this is orthogonal to the segment's dir_unit, in the plane of dir_unit and edge center to segment center
 
+                    double edge_dist = (edge_center - box_center).Length;
+                    double edge_dot_along = Math.Abs(Vector3D.DotProduct(dir_unit, edge_dir_unit));     // using absolute value, because +- doesn't matter, just need 0 to 1
+
+
+
+
+                    // TODO: this isn't working.  It relies on the centers being orthogonal, but if segments are close together, but centers are off, the orth will be really innacurate
+                    double edge_dot_orth = Math.Abs(Vector3D.DotProduct(orth_dir_unit, edge_toward_segment_unit));
+
+
+
+
+                    double score = GetEdgeScore(point0, point1, edge.Dot, edge_dist, edge_dot_along, edge_dot_orth, search_radius, SCORING_NORMAL_DOT, SCORING_DISTANCE, SCORING_ALONG_DOT, SCORING_ORTH_DOT);
+
                     retVal.Add(new EdgeMatch()
                     {
                         SegmentIndex = segment_index,
@@ -117,14 +141,43 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                         Segment_To = point1,
 
                         Edge = edge,
-                        Edge_Dist = (edge_center - box_center).Length,
-                        Edge_Dot_Along = Math.Abs(Vector3D.DotProduct(dir_unit, edge_dir_unit)),      // using absolute value, because +- doesn't matter, just need 0 to 1
-                        Edge_Dot_Orth = Math.Abs(Vector3D.DotProduct(orth_dir_unit, edge_toward_segment_unit)),
+                        Edge_Dist = edge_dist,
+                        Edge_Dot_Along = edge_dot_along,
+                        Edge_Dot_Orth = edge_dot_orth,
+                        Score = score,
                     });
                 }
             }
 
             return retVal.ToArray();
+        }
+
+        /// <summary>
+        /// Returns copies of the edges with a new score based on priority params
+        /// NOTE: They are sorted decending by score to make it easy to find the winner
+        /// </summary>
+        private static EdgeMatch[] ScoreEdges_SingleSegment(Point3D seg_point0, Point3D seg_point1, EdgeMatch[] edges, double search_radius, double normal_dot_priority, double distance_priority, double along_dot_priority, double orth_dot_priority)
+        {
+            return edges.
+                Select(o => o with
+                {
+                    Score = GetEdgeScore(seg_point0, seg_point1, o.Edge.Dot, o.Edge_Dist, o.Edge_Dot_Along, o.Edge_Dot_Orth, search_radius, normal_dot_priority, distance_priority, along_dot_priority, orth_dot_priority),
+                }).
+                OrderByDescending(o => o.Score).
+                ToArray();
+        }
+
+        private static double GetEdgeScore(Point3D seg_point0, Point3D seg_point1, double edge_dot, double edge_dist, double edge_dot_along, double edge_dot_orth, double search_radius, double normal_dot_priority, double distance_priority, double along_dot_priority, double orth_dot_priority)
+        {
+            double normal_dot = UtilityMath.GetScaledValue(0, 1, 1, -1, edge_dot) * normal_dot_priority;
+
+            double distance = ((search_radius - edge_dist) / search_radius) * distance_priority;
+
+            double along_dot = edge_dot_along * along_dot_priority;
+
+            double orth_dot = edge_dot_orth * orth_dot_priority;
+
+            return (normal_dot + distance + along_dot + orth_dot) / 4;
         }
 
         private static (BoundingBox box, Point3D center) GetSearchBox(Point3D point0, Point3D point1, double search_radius)
@@ -278,21 +331,30 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(50) });
 
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
-            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(4) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(8) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(8) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(8) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
 
             Slider seg_index = Add_Label_Slider(grid, 0, "Segment Index", 0, points.Length - 2, 1, true);       // setting to one so that window loaded can set to zero, causing a change and redraw
-            Slider normal_dot = Add_Label_Slider(grid, 2, "Edge Steepness", 0, 1, 0.33);
-            Slider distance = Add_Label_Slider(grid, 3, "Distance From Segment", 0, 1, 0.33);
-            Slider along_dot = Add_Label_Slider(grid, 4, "Direction parallel to segment", 0, 1, 0.66);
-            Slider orth_dot = Add_Label_Slider(grid, 5, "Position perpendicular to segment", 0, 1, 0.8);
-            CheckBox show_dots = Add_Checkbox(grid, 6, "Show Dots", false);
-            CheckBox show_scores = Add_Checkbox(grid, 7, "Show Scores", false);
+
+            Slider normal_dot = Add_Label_Slider(grid, 2, "Edge Steepness", 0, 1, SCORING_NORMAL_DOT);
+            Slider distance = Add_Label_Slider(grid, 3, "Distance From Segment", 0, 1, SCORING_DISTANCE);
+            Slider along_dot = Add_Label_Slider(grid, 4, "Direction parallel to segment", 0, 1, SCORING_ALONG_DOT);
+            Slider orth_dot = Add_Label_Slider(grid, 5, "Position perpendicular to segment", 0, 1, SCORING_ORTH_DOT);
+
+            Slider maxscore_diff = Add_Label_Slider(grid, 7, "Best Score Diff", 0, 1, 0.1);
+
+            CheckBox show_dots = Add_Checkbox(grid, 9, "Show Dots", false);
+            CheckBox show_scores = Add_Checkbox(grid, 10, "Show Scores", false);
+            CheckBox show_winner = Add_Checkbox(grid, 11, "Show Winner", true);
 
             var visuals = new List<Visual3D>();
 
@@ -302,7 +364,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             {
                 // Apply a score to current segment's edge matches
                 int index = seg_index.Value.ToInt_Floor();
-                double[] percents = ScoreEdges_SingleSegment(points[index], points[index + 1], matches_per_segment[index], search_radius, normal_dot.Value, distance.Value, along_dot.Value, orth_dot.Value);
+
+                EdgeMatch[] edges_scored = ScoreEdges_SingleSegment(points[index], points[index + 1], matches_per_segment[index], search_radius, normal_dot.Value, distance.Value, along_dot.Value, orth_dot.Value);
 
                 // Clear existing visuals
                 window.Visuals3D.Clear();
@@ -324,9 +387,9 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     visuals.Add(window.AddDots(distinct_edge_points, sizes.dot / 6, Colors.Silver));
                 }
 
-                for (int i = 0; i < matches_per_segment[index].Length; i++)
+                for (int i = 0; i < edges_scored.Length; i++)
                 {
-                    Color color = deduped_edges[i].Direction switch
+                    Color color = edges_scored[i].Edge.Direction switch
                     {
                         TriangleFoldDirection.Peak => Colors.DarkRed,
                         TriangleFoldDirection.Valley => Colors.MediumBlue,
@@ -334,21 +397,24 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                         _ => Colors.Magenta,
                     };
 
-                    Point3D edge_centered_0 = (matches_per_segment[index][i].Edge.EdgePoint0 - center).ToPoint();
-                    Point3D edge_centered_1 = (matches_per_segment[index][i].Edge.EdgePoint1 - center).ToPoint();
+                    Point3D edge_centered_0 = (edges_scored[i].Edge.EdgePoint0 - center).ToPoint();
+                    Point3D edge_centered_1 = (edges_scored[i].Edge.EdgePoint1 - center).ToPoint();
 
-                    Color final_color = UtilityWPF.AlphaBlend(color, Colors.Transparent, percents[i]);
-                    double line_thickness = sizes.line * percents[i];
+                    if (i == 0 && show_winner.IsChecked.Value && edges_scored.Length > 1 && edges_scored[0].Score - edges_scored[1].Score > maxscore_diff.Value)
+                        visuals.Add(window.AddDots([edge_centered_0, edge_centered_1], sizes.dot, Colors.Goldenrod));
+
+                    Color final_color = UtilityWPF.AlphaBlend(color, Colors.Transparent, edges_scored[i].Score);
+                    double line_thickness = sizes.line * edges_scored[i].Score;
 
                     visuals.Add(window.AddLine(edge_centered_0, edge_centered_1, line_thickness, final_color));
 
                     if (show_scores.IsChecked.Value)
                     {
-                        Point3D edge_center = Math3D.GetCenter(matches_per_segment[index][i].Edge.EdgePoint0, matches_per_segment[index][i].Edge.EdgePoint1);
+                        Point3D edge_center = Math3D.GetCenter(edges_scored[i].Edge.EdgePoint0, edges_scored[i].Edge.EdgePoint1);
                         edge_center = (edge_center - center).ToPoint();
                         double height = (centered_points[index + 1] - centered_points[index]).Length / 3;
 
-                        visuals.Add(window.AddText3D(percents[i].ToStringSignificantDigits(2), edge_center, -window.Camera_Look, height, Colors.DarkGreen, false, window.Camera_Right));
+                        visuals.Add(window.AddText3D(edges_scored[i].Score.ToStringSignificantDigits(2), edge_center, -window.Camera_Look, height, Colors.DarkGreen, false, window.Camera_Right));
                     }
                 }
 
@@ -367,10 +433,13 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             distance.ValueChanged += redraw_slider;
             along_dot.ValueChanged += redraw_slider;
             orth_dot.ValueChanged += redraw_slider;
+            maxscore_diff.ValueChanged += redraw_slider;
             show_dots.Checked += redraw_checkbox;
             show_dots.Unchecked += redraw_checkbox;
             show_scores.Checked += redraw_checkbox;
             show_scores.Unchecked += redraw_checkbox;
+            show_winner.Checked += redraw_checkbox;
+            show_winner.Unchecked += redraw_checkbox;
 
             window.Messages_Top.Add(grid);      // even though it's called messages, it's just a list of uielements, so any control can be added to it
 
@@ -438,26 +507,6 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             grid.Children.Add(checkbox);
 
             return checkbox;
-        }
-
-        private static double[] ScoreEdges_SingleSegment(Point3D seg_point0, Point3D seg_point1, EdgeMatch[] edges, double search_radius, double normal_dot_priority, double distance_priority, double along_dot_priority, double orth_dot_priority)
-        {
-            double[] retVal = new double[edges.Length];
-
-            for (int i = 0; i < edges.Length; i++)
-            {
-                double normal_dot = UtilityMath.GetScaledValue(0, 1, 1, -1, edges[i].Edge.Dot) * normal_dot_priority;
-
-                double distance = ((search_radius - edges[i].Edge_Dist) / search_radius) * distance_priority;
-
-                double along_dot = edges[i].Edge_Dot_Along * along_dot_priority;
-
-                double orth_dot = edges[i].Edge_Dot_Orth * orth_dot_priority;
-
-                retVal[i] = (normal_dot + distance + along_dot + orth_dot) / 4;
-            }
-
-            return retVal;
         }
     }
 }
