@@ -508,7 +508,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
                         var sizes = Debug3DWindow.GetDrawSizes([aabb.min, aabb.max], center);
 
-                        if(nd.Direction == TriangleFoldDirection.Single)
+                        if (nd.Direction == TriangleFoldDirection.Single)
                         {
                             var triangle0 = new Triangle_wpf(nd.Edge_Single.Triangle0.Point0 - center.ToVector(), nd.Edge_Single.Triangle0.Point1 - center.ToVector(), nd.Edge_Single.Triangle0.Point2 - center.ToVector());
 
@@ -732,6 +732,243 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     drawScene(true, Colors.White, Colors.Chartreuse, Colors.DarkSlateGray, Colors.Magenta, dot_diffs);
                     drawScene(false, Colors.White, Colors.Chartreuse, Colors.DarkSlateGray, Colors.Magenta, dot_diffs);
                 }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void PercentOrthToSegment_Points_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Point3D point0 = Math3D.GetRandomVector_Spherical(2).ToPoint();
+                Point3D point1 = Math3D.GetRandomVector_Spherical(2).ToPoint();
+
+                Point3D[] test_points = Enumerable.Range(0, 12).
+                    Select(o => Math3D.GetRandomVector_Spherical(8).ToPoint()).
+                    ToArray();
+
+                var window = new Debug3DWindow()
+                {
+                    Title = "Percent Orth to Segment",
+                };
+
+                var sizes = Debug3DWindow.GetDrawSizes(8);
+
+                window.AddDots([point0, point1], sizes.line, Colors.DarkOliveGreen);
+                window.AddLine(point0, point1, sizes.line, Colors.DarkSeaGreen);
+
+                var plane0 = Math3D.GetPlane(point0, point0 - point1);      // the normal needs to point out from the cylinder
+                var plane1 = Math3D.GetPlane(point1, point1 - point0);
+
+                window.AddCircle(point0, 6, sizes.line * 0.25, Colors.RoyalBlue, plane0);
+                window.AddLine(point0, point0 + plane0.Normal, sizes.line, Colors.RoyalBlue);
+
+                window.AddCircle(point1, 6, sizes.line * 0.25, Colors.RoyalBlue, plane1);
+                window.AddLine(point1, point1 + plane1.Normal, sizes.line, Colors.RoyalBlue);
+
+                window.AddDots(test_points, sizes.dot, Colors.DimGray);
+
+
+                // The original idea was dot product of the centers of the segments, but that is innaccurate when the segments are different sizes
+
+                // Instead, think of the segment as defining a cylinder with infinite radius
+                // So the caps are now planes
+
+                // Then it becomes a test if the points are inside the planes of the cylinder, or some distance above/below
+
+                // If the test points are then test segments, it becomes two tests (one for each end of the test segment)
+
+                window.Show();
+
+                foreach (Point3D test in test_points)
+                {
+                    double dist0 = Math3D.DistanceFromPlane(plane0, test);
+                    double dist1 = Math3D.DistanceFromPlane(plane1, test);
+
+                    //string dist = dist0 < 0 && dist1 < 0 ? "0" :        // between the planes
+                    //    dist0 > 0 && dist1 > 0 ? Math.Min(dist0, dist1).ToStringSignificantDigits(3) :
+                    //    Math.Max(dist0, dist1).ToStringSignificantDigits(3);
+
+                    //window.AddText3D(dist, test, window.Camera_Look, 0.5, Colors.Gray, false, window.Camera_Right);
+
+                    if (dist0 <= 0 && dist1 <= 0)
+                    {
+                        // between the planes
+                        window.AddText3D("*", test, window.Camera_Look, 0.5, Colors.Green, false, window.Camera_Right);
+                    }
+                    else
+                    {
+                        // One is above the plane, the other isn't.  Take the larger value
+                        if (dist0 > 0 && dist1 > 0)
+                            throw new ApplicationException("above both planes, but the planes should be pointing away from each other");
+
+                        string dist = Math.Max(dist0, dist1).ToStringSignificantDigits(3);
+
+                        window.AddText3D(dist, test, window.Camera_Look, 0.5, Colors.Firebrick, false, window.Camera_Right);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void DistFromPlane_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Point3D point = Math3D.GetRandomVector_Spherical(1).ToPoint();
+
+                Vector3D normal = Math3D.GetRandomVector_Circular_Shell(1);
+                var plane = Math3D.GetPlane(point, normal);
+
+                Point3D[] test_points = Enumerable.Range(0, 12).
+                    Select(o => Math3D.GetRandomVector_Spherical(8).ToPoint()).
+                    ToArray();
+
+                var window = new Debug3DWindow()
+                {
+                    Title = "Distance From Plane",
+                };
+
+                var sizes = Debug3DWindow.GetDrawSizes(8);
+
+                window.AddDot(point, sizes.line, Colors.DarkOliveGreen);
+
+                window.AddCircle(point, 6, sizes.line * 0.25, Colors.RoyalBlue, plane);
+                window.AddLine(point, point + normal, sizes.line, Colors.RoyalBlue);
+
+                window.AddDots(test_points, sizes.dot, Colors.DimGray);
+
+
+                // The original idea was dot product of the centers of the segments, but that is innaccurate when the segments are different sizes
+
+                // Instead, think of the segment as defining a cylinder with infinite radius
+                // So the caps are now planes
+
+                // Then it becomes a test if the points are inside the planes of the cylinder, or some distance above/below
+
+                // If the test points are then test segments, it becomes two tests (one for each end of the test segment)
+
+                window.Show();
+
+                foreach (Point3D test in test_points)
+                {
+                    double dist = Math3D.DistanceFromPlane(plane, test);
+
+                    Point3D point_on_plane = Math3D.GetClosestPoint_Plane_Point(plane, test);
+                    window.AddLine(test, point_on_plane, sizes.line * 0.5, Colors.Gray);
+
+                    window.AddText3D(dist.ToStringSignificantDigits(3), test, window.Camera_Look, 0.4, Colors.Gray, false, window.Camera_Right);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void PercentOrthToSegment_Segment_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Point3D point0 = Math3D.GetRandomVector_Spherical(2).ToPoint();
+                Point3D point1 = Math3D.GetRandomVector_Spherical(2).ToPoint();
+
+                Point3D test_point0 = Math3D.GetRandomVector_Spherical(8).ToPoint();
+                Point3D test_point1 = Math3D.GetRandomVector_Spherical(8).ToPoint();
+
+                var window = new Debug3DWindow()
+                {
+                    Title = "Percent Orth to Segment",
+                };
+
+                var sizes = Debug3DWindow.GetDrawSizes(8);
+
+                window.AddDots([point0, point1], sizes.line, Colors.DarkOliveGreen);
+                window.AddLine(point0, point1, sizes.line, Colors.DarkSeaGreen);
+
+                var plane0 = Math3D.GetPlane(point0, point0 - point1);      // the normal needs to point out from the cylinder
+                var plane1 = Math3D.GetPlane(point1, point1 - point0);
+
+                window.AddCircle(point0, 6, sizes.line * 0.25, Colors.RoyalBlue, plane0);
+                window.AddLine(point0, point0 + plane0.NormalUnit, sizes.line, Colors.RoyalBlue);
+
+                window.AddCircle(point1, 6, sizes.line * 0.25, Colors.RoyalBlue, plane1);
+                window.AddLine(point1, point1 + plane1.NormalUnit, sizes.line, Colors.RoyalBlue);
+
+                window.AddDots([test_point0, test_point1], sizes.dot, Colors.DimGray);
+                window.AddLine(test_point0, test_point1, sizes.line, Colors.Gray);
+
+
+                // The original idea was dot product of the centers of the segments, but that is innaccurate when the segments are different sizes
+
+                // Instead, think of the segment as defining a cylinder with infinite radius
+                // So the caps are now planes
+
+                // Then it becomes a test if the points are inside the planes of the cylinder, or some distance above/below
+
+                // If the test points are then test segments, it becomes two tests (one for each end of the test segment)
+
+                double dist0_0 = Math3D.DistanceFromPlane(plane0, test_point0);
+                double dist0_1 = Math3D.DistanceFromPlane(plane1, test_point0);
+
+                double dist1_0 = Math3D.DistanceFromPlane(plane0, test_point1);
+                double dist1_1 = Math3D.DistanceFromPlane(plane1, test_point1);
+
+                Point3D test_center = Math3D.GetCenter(test_point0, test_point1);
+
+                if ((dist0_0 <= 0 && dist0_1 <= 0) || (dist1_0 <= 0 && dist1_1 <= 0))
+                {
+                    // One or both of the test endpoints are betwen the plane
+                    window.AddText3D("*", test_center, window.Camera_Look, 0.5, Colors.Green, false, window.Camera_Right);
+                }
+                else if ((dist0_0 > 0 && dist1_1 > 0) || (dist0_1 > 0 && dist1_0 > 0))
+                {
+                    // The test segment goes through both planes
+                    window.AddText3D("#", test_center, window.Camera_Look, 0.5, Colors.Green, false, window.Camera_Right);
+                }
+                else
+                {
+                    if ((dist0_0 > 0 && dist0_1 > 0) || (dist1_0 > 0 && dist1_1 > 0))
+                        throw new ApplicationException("single point above both planes, but the planes should be pointing away from each other");
+
+                    double dist0 = Math.Max(dist0_0, dist0_1);      // one is negative, one is positive.  only look at the positive value
+                    double dist1 = Math.Max(dist1_0, dist1_1);
+
+
+                    Point3D point_on_plane, test_point;
+
+                    if (dist0 < dist1)
+                    {
+                        test_point = test_point0;
+
+                        if (dist0_0 > 0)
+                            point_on_plane = Math3D.GetClosestPoint_Plane_Point(plane0, test_point);
+                        else
+                            point_on_plane = Math3D.GetClosestPoint_Plane_Point(plane1, test_point);
+                    }
+                    else
+                    {
+                        test_point = test_point1;
+
+                        if (dist1_0 > 0)
+                            point_on_plane = Math3D.GetClosestPoint_Plane_Point(plane0, test_point);
+                        else
+                            point_on_plane = Math3D.GetClosestPoint_Plane_Point(plane1, test_point);
+                    }
+
+                    window.AddLine(test_point, point_on_plane, sizes.line * 0.5, Colors.RosyBrown);
+
+
+
+                    double dist = Math.Min(dist0, dist1);
+
+                    window.AddText3D(dist.ToStringSignificantDigits(3), test_center, window.Camera_Look, 0.5, Colors.Firebrick, false, window.Camera_Right);
+                }
+
+                window.Show();
             }
             catch (Exception ex)
             {

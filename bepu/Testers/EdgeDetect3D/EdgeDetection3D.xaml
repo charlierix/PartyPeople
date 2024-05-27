@@ -67,15 +67,18 @@
                 <Border Style="{StaticResource propBorder}">
                     <StackPanel>
                         <Button Content="indexed triangles" Click="IndexedTriangles_Click"/>
-                        <DockPanel>
+                        <DockPanel Margin="0,4,0,0">
                             <CheckBox x:Name="chkOctreeLines" IsChecked="True" ToolTip="Show node lines (causes slower drawing)" VerticalAlignment="Center"/>
                             <Button Content="octree" VerticalAlignment="Center" Click="Octree_Click"/>
                         </DockPanel>
-                        <Button Content="octree node + touching" Click="OctreeNodeTouching_Click"/>
+                        <Button Content="octree node + touching" Margin="0,4,0,0" Click="OctreeNodeTouching_Click"/>
                         <Button Visibility="Collapsed" Content="triangles by edge" Click="TrianglesByEdge_Click"/>
                         <Button Visibility="Collapsed" Content="normal dot (poc)" Click="NormalDot_POC_Click"/>
-                        <Button Content="normal dot (isolated)" Click="NormalDot_Isolated_Click"/>
+                        <Button Content="normal dot (isolated)" Margin="0,4,0,0" Click="NormalDot_Isolated_Click"/>
                         <Button Content="normal dot (combined)" Click="NormalDot_Combined_Click"/>
+                        <Button Content="% orth to segment (points)" Margin="0,4,0,0" Click="PercentOrthToSegment_Points_Click"/>
+                        <Button Content="dist from plane" Click="DistFromPlane_Click"/>
+                        <Button Content="% orth to segment (segment)" Click="PercentOrthToSegment_Segment_Click"/>
                     </StackPanel>
                 </Border>
             </StackPanel>
