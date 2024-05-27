@@ -23,7 +23,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         private const double SCORING_NORMAL_DOT = 0.33;
         private const double SCORING_DISTANCE = 0.33;
         private const double SCORING_ALONG_DOT = 0.66;
-        private const double SCORING_ORTH_DOT = 0.8;
+        private const double SCORING_ORTH_DIST = 0.8;
 
         #region record: EdgeMatch
 
@@ -46,7 +46,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             // Each segment of a path will match multiple edges, some of the matches will be a better match for neighboring
             // path segments.  A good way to tell which is best for which is to also find the edges that are in the path
             // segment's "cylinder"
-            public double Edge_Dot_Orth { get; init; }
+            public double Edge_Orth_Dist { get; init; }
 
             /// <summary>
             /// The score for the current segment, according to SCORING_ constants
@@ -106,6 +106,9 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             var (box, box_center) = GetSearchBox(point0, point1, search_radius);
 
+            var plane0 = Math3D.GetPlane(point0, point0 - point1);      // the normal needs to point out from the cylinder
+            var plane1 = Math3D.GetPlane(point1, point1 - point0);
+
             // Not sure if it's worth keeping the results of the objects separated.  For now, just merge results from all objects
             foreach (var obj in objects)
             {
@@ -123,16 +126,9 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     double edge_dist = (edge_center - box_center).Length;
                     double edge_dot_along = Math.Abs(Vector3D.DotProduct(dir_unit, edge_dir_unit));     // using absolute value, because +- doesn't matter, just need 0 to 1
 
+                    double edge_orth_dist = GetEdgeOrthDist(plane0, plane1, edge_point0, edge_point1);
 
-
-
-                    // TODO: this isn't working.  It relies on the centers being orthogonal, but if segments are close together, but centers are off, the orth will be really innacurate
-                    double edge_dot_orth = Math.Abs(Vector3D.DotProduct(orth_dir_unit, edge_toward_segment_unit));
-
-
-
-
-                    double score = GetEdgeScore(point0, point1, edge.Dot, edge_dist, edge_dot_along, edge_dot_orth, search_radius, SCORING_NORMAL_DOT, SCORING_DISTANCE, SCORING_ALONG_DOT, SCORING_ORTH_DOT);
+                    double score = GetEdgeScore(point0, point1, edge.Dot, edge_dist, edge_dot_along, edge_orth_dist, search_radius, SCORING_NORMAL_DOT, SCORING_DISTANCE, SCORING_ALONG_DOT, SCORING_ORTH_DIST);
 
                     retVal.Add(new EdgeMatch()
                     {
@@ -143,7 +139,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                         Edge = edge,
                         Edge_Dist = edge_dist,
                         Edge_Dot_Along = edge_dot_along,
-                        Edge_Dot_Orth = edge_dot_orth,
+                        Edge_Orth_Dist = edge_orth_dist,
+
                         Score = score,
                     });
                 }
@@ -152,32 +149,62 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             return retVal.ToArray();
         }
 
+        private static double GetEdgeOrthDist(ITriangle_wpf plane0, ITriangle_wpf plane1, Point3D edge_point0, Point3D edge_point1)
+        {
+            double dist0_0 = Math3D.DistanceFromPlane(plane0, edge_point0);
+            double dist0_1 = Math3D.DistanceFromPlane(plane1, edge_point0);
+
+            double dist1_0 = Math3D.DistanceFromPlane(plane0, edge_point1);
+            double dist1_1 = Math3D.DistanceFromPlane(plane1, edge_point1);
+
+            if ((dist0_0 <= 0 && dist0_1 <= 0) || (dist1_0 <= 0 && dist1_1 <= 0))
+            {
+                // One or both of the test endpoints are betwen the plane
+                return 0;
+            }
+            else if ((dist0_0 > 0 && dist1_1 > 0) || (dist0_1 > 0 && dist1_0 > 0))
+            {
+                // The test segment goes through both planes
+                return 0;
+            }
+            else
+            {
+                if ((dist0_0 > 0 && dist0_1 > 0) || (dist1_0 > 0 && dist1_1 > 0))
+                    throw new ApplicationException("single point above both planes, but the planes should be pointing away from each other");
+
+                double dist0 = Math.Max(dist0_0, dist0_1);      // one is negative, one is positive.  only look at the positive value
+                double dist1 = Math.Max(dist1_0, dist1_1);
+
+                return Math.Min(dist0, dist1);
+            }
+        }
+
         /// <summary>
         /// Returns copies of the edges with a new score based on priority params
         /// NOTE: They are sorted decending by score to make it easy to find the winner
         /// </summary>
-        private static EdgeMatch[] ScoreEdges_SingleSegment(Point3D seg_point0, Point3D seg_point1, EdgeMatch[] edges, double search_radius, double normal_dot_priority, double distance_priority, double along_dot_priority, double orth_dot_priority)
+        private static EdgeMatch[] ScoreEdges_SingleSegment(Point3D seg_point0, Point3D seg_point1, EdgeMatch[] edges, double search_radius, double priority_normal_dot, double priority_distance, double priority_along_dot, double priority_orth_dist)
         {
             return edges.
                 Select(o => o with
                 {
-                    Score = GetEdgeScore(seg_point0, seg_point1, o.Edge.Dot, o.Edge_Dist, o.Edge_Dot_Along, o.Edge_Dot_Orth, search_radius, normal_dot_priority, distance_priority, along_dot_priority, orth_dot_priority),
+                    Score = GetEdgeScore(seg_point0, seg_point1, o.Edge.Dot, o.Edge_Dist, o.Edge_Dot_Along, o.Edge_Orth_Dist, search_radius, priority_normal_dot, priority_distance, priority_along_dot, priority_orth_dist),
                 }).
                 OrderByDescending(o => o.Score).
                 ToArray();
         }
 
-        private static double GetEdgeScore(Point3D seg_point0, Point3D seg_point1, double edge_dot, double edge_dist, double edge_dot_along, double edge_dot_orth, double search_radius, double normal_dot_priority, double distance_priority, double along_dot_priority, double orth_dot_priority)
+        private static double GetEdgeScore(Point3D seg_point0, Point3D seg_point1, double edge_dot, double edge_dist, double edge_dot_along, double edge_orth_dist, double search_radius, double priority_normal_dot, double priority_distance, double priority_along_dot, double priority_orth_dist)
         {
-            double normal_dot = UtilityMath.GetScaledValue(0, 1, 1, -1, edge_dot) * normal_dot_priority;
+            double normal_dot = UtilityMath.GetScaledValue(0, 1, 1, -1, edge_dot) * priority_normal_dot;
 
-            double distance = ((search_radius - edge_dist) / search_radius) * distance_priority;
+            double distance = Math.Max(0, (search_radius - edge_dist) / search_radius) * priority_distance;
 
-            double along_dot = edge_dot_along * along_dot_priority;
+            double along_dot = edge_dot_along * priority_along_dot;
 
-            double orth_dot = edge_dot_orth * orth_dot_priority;
+            double orth_dist = Math.Max(0, (search_radius - edge_orth_dist) / search_radius) * priority_orth_dist;
 
-            return (normal_dot + distance + along_dot + orth_dot) / 4;
+            return (normal_dot + distance + along_dot + orth_dist) / 4;
         }
 
         private static (BoundingBox box, Point3D center) GetSearchBox(Point3D point0, Point3D point1, double search_radius)
@@ -324,7 +351,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             var sizes = Debug3DWindow.GetDrawSizes(used_points, center);
 
-            Grid grid = new Grid();
+            Grid grid = new Grid()
+            {
+                Background = UtilityWPF.BrushFromHex("DFFF"),
+            };
             grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Auto) });
             grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(8) });
             grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
@@ -343,14 +373,15 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
 
-            Slider seg_index = Add_Label_Slider(grid, 0, "Segment Index", 0, points.Length - 2, 1, true);       // setting to one so that window loaded can set to zero, causing a change and redraw
+            Slider seg_index = Add_Label_Slider(grid, 0, "Segment Index", 0, points.Length - 2, 1, "which brush stroke segment to analyze", true);       // setting to one so that window loaded can set to zero, causing a change and redraw
 
-            Slider normal_dot = Add_Label_Slider(grid, 2, "Edge Steepness", 0, 1, SCORING_NORMAL_DOT);
-            Slider distance = Add_Label_Slider(grid, 3, "Distance From Segment", 0, 1, SCORING_DISTANCE);
-            Slider along_dot = Add_Label_Slider(grid, 4, "Direction parallel to segment", 0, 1, SCORING_ALONG_DOT);
-            Slider orth_dot = Add_Label_Slider(grid, 5, "Position perpendicular to segment", 0, 1, SCORING_ORTH_DOT);
+            Slider normal_dot = Add_Label_Slider(grid, 2, "Edge Steepness", 0, 1, SCORING_NORMAL_DOT, "dot product between the two triangles along an edge");
+            Slider distance = Add_Label_Slider(grid, 3, "Distance From Segment", 0, 1, SCORING_DISTANCE, "how far the edge is from the stroke segment");
+            Slider along_dot = Add_Label_Slider(grid, 4, "Direction parallel to segment", 0, 1, SCORING_ALONG_DOT, "how parallel the edge and stroke segment are");
+            Slider orth_dist = Add_Label_Slider(grid, 5, "Position perpendicular to segment", 0, 1, SCORING_ORTH_DIST, "brush stroke segment forms an infinite cylinder.  This is edge's distance from the two plates of that cylinder (touching or above/below)");
 
-            Slider maxscore_diff = Add_Label_Slider(grid, 7, "Best Score Diff", 0, 1, 0.1);
+            Slider maxscore_diff = Add_Label_Slider(grid, 7, "Best Score Diff", 0, 1, 0.1, "winning edge's score must be this much greater than next best score to be declared winner (avoids a near tie to win)");
+            //Slider minscore = Add_Label_Slider(grid, 7, "Min Allowed Score", 0, 1, 0.1);
 
             CheckBox show_dots = Add_Checkbox(grid, 9, "Show Dots", false);
             CheckBox show_scores = Add_Checkbox(grid, 10, "Show Scores", false);
@@ -365,7 +396,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 // Apply a score to current segment's edge matches
                 int index = seg_index.Value.ToInt_Floor();
 
-                EdgeMatch[] edges_scored = ScoreEdges_SingleSegment(points[index], points[index + 1], matches_per_segment[index], search_radius, normal_dot.Value, distance.Value, along_dot.Value, orth_dot.Value);
+                EdgeMatch[] edges_scored = ScoreEdges_SingleSegment(points[index], points[index + 1], matches_per_segment[index], search_radius, normal_dot.Value, distance.Value, along_dot.Value, orth_dist.Value);
 
                 // Clear existing visuals
                 window.Visuals3D.Clear();
@@ -432,7 +463,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             normal_dot.ValueChanged += redraw_slider;
             distance.ValueChanged += redraw_slider;
             along_dot.ValueChanged += redraw_slider;
-            orth_dot.ValueChanged += redraw_slider;
+            orth_dist.ValueChanged += redraw_slider;
             maxscore_diff.ValueChanged += redraw_slider;
             show_dots.Checked += redraw_checkbox;
             show_dots.Unchecked += redraw_checkbox;
@@ -448,11 +479,12 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             window.Show();
         }
 
-        private static Slider Add_Label_Slider(Grid grid, int row_index, string text, double min, double max, double value, bool is_integer = false)
+        private static Slider Add_Label_Slider(Grid grid, int row_index, string text, double min, double max, double value, string label_tooltip, bool is_integer = false)
         {
             TextBlock label = new TextBlock()
             {
                 Text = text,
+                ToolTip = label_tooltip,
                 HorizontalAlignment = HorizontalAlignment.Right,
                 VerticalAlignment = VerticalAlignment.Center,
             };

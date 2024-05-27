@@ -76,9 +76,9 @@
                         <Button Visibility="Collapsed" Content="normal dot (poc)" Click="NormalDot_POC_Click"/>
                         <Button Content="normal dot (isolated)" Margin="0,4,0,0" Click="NormalDot_Isolated_Click"/>
                         <Button Content="normal dot (combined)" Click="NormalDot_Combined_Click"/>
-                        <Button Content="% orth to segment (points)" Margin="0,4,0,0" Click="PercentOrthToSegment_Points_Click"/>
-                        <Button Content="dist from plane" Click="DistFromPlane_Click"/>
-                        <Button Content="% orth to segment (segment)" Click="PercentOrthToSegment_Segment_Click"/>
+                        <Button Visibility="Collapsed" Content="% orth to segment (points)" Margin="0,4,0,0" Click="PercentOrthToSegment_Points_Click"/>
+                        <Button Visibility="Collapsed" Content="dist from plane" Click="DistFromPlane_Click"/>
+                        <Button Visibility="Collapsed" Content="% orth to segment (segment)" Click="PercentOrthToSegment_Segment_Click"/>
                     </StackPanel>
                 </Border>
             </StackPanel>
