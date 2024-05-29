@@ -68,18 +68,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 matches_per_segment[i] = FindNearbyEdges(i, points[i], points[i + 1], objects, search_radius);
 
 
-            // Draw: path segments, deduped edge segments
-            //  checkbox: show normal dot
             Draw_AllEdgeMatches(points, matches_per_segment);
 
-            // Draw: Interactive: path segments, edge segments for selected path segment
-            //  segment index: slider
-            //
-            //  importance sliders
-            //      normal dot
-            //      distance
-            //      along dot
-            //      orth dot
             Draw_EdgeMatchesPerSegment(points, matches_per_segment, search_radius);
             //Draw_EdgeMatchesAllSegments(points, matches_per_segment, search_radius);
 
@@ -97,6 +87,11 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
         }
 
+        #region Private Methods
+
+        /// <summary>
+        /// Finds edges within radius of the brush stroke segment
+        /// </summary>
         private static EdgeMatch[] FindNearbyEdges(int segment_index, Point3D point0, Point3D point1, EdgeBackgroundWorker.WorkerResponse_Object[] objects, double search_radius)
         {
             var retVal = new List<EdgeMatch>();
@@ -123,7 +118,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     Vector3D edge_toward_segment_unit = (edge_center - center).ToUnit();
                     Vector3D orth_dir_unit = Vector3D.CrossProduct(Vector3D.CrossProduct(dir_unit, edge_toward_segment_unit), dir_unit);        // this is orthogonal to the segment's dir_unit, in the plane of dir_unit and edge center to segment center
 
-                    double edge_dist = (edge_center - box_center).Length;
+                    double edge_dist = GetEdgeDist(point0, point1, edge_point0, edge_point1);
+
                     double edge_dot_along = Math.Abs(Vector3D.DotProduct(dir_unit, edge_dir_unit));     // using absolute value, because +- doesn't matter, just need 0 to 1
 
                     double edge_orth_dist = GetEdgeOrthDist(plane0, plane1, edge_point0, edge_point1);
@@ -149,33 +145,56 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             return retVal.ToArray();
         }
 
+        private static double GetEdgeDist(Point3D point0, Point3D point1, Point3D edge_point0, Point3D edge_point1)
+        {
+            if (Math3D.GetClosestPoints_LineSegment_LineSegment(out Point3D? result0, out Point3D? result1, point0, point1, edge_point0, edge_point1, true))
+                return (result1.Value - result0.Value).Length;
+
+            else
+                // This should only happen if they are parallel
+                return Math3D.GetClosestDistance_Line_Point(edge_point0, edge_point1 - edge_point0, point0);
+        }
+
+        /// <summary>
+        /// Returns the edge segment's closest distance from the two planes (0 if between the planes)
+        /// NOTE: plane0 and plane1 need to have their normals pointing away from each other
+        /// </summary>
         private static double GetEdgeOrthDist(ITriangle_wpf plane0, ITriangle_wpf plane1, Point3D edge_point0, Point3D edge_point1)
         {
+            // Point 0
             double dist0_0 = Math3D.DistanceFromPlane(plane0, edge_point0);
             double dist0_1 = Math3D.DistanceFromPlane(plane1, edge_point0);
 
+            // Point 1
             double dist1_0 = Math3D.DistanceFromPlane(plane0, edge_point1);
             double dist1_1 = Math3D.DistanceFromPlane(plane1, edge_point1);
 
             if ((dist0_0 <= 0 && dist0_1 <= 0) || (dist1_0 <= 0 && dist1_1 <= 0))
             {
-                // One or both of the test endpoints are betwen the plane
+                // One or both of the endpoints are betwen the plane
                 return 0;
             }
             else if ((dist0_0 > 0 && dist1_1 > 0) || (dist0_1 > 0 && dist1_0 > 0))
             {
-                // The test segment goes through both planes
+                // The segment goes through both planes
                 return 0;
             }
             else
             {
+                // The segment is outside the planes.  Which means that the distance is positive for one and negative
+                // for the other
+                //
+                // Need to ignore the distance from the plane its behind (negative value), because that's the far plane
+                // 
+                // Then return the distance of the endpoint of the segment that is closest to the near plane
+
                 if ((dist0_0 > 0 && dist0_1 > 0) || (dist1_0 > 0 && dist1_1 > 0))
                     throw new ApplicationException("single point above both planes, but the planes should be pointing away from each other");
 
                 double dist0 = Math.Max(dist0_0, dist0_1);      // one is negative, one is positive.  only look at the positive value
                 double dist1 = Math.Max(dist1_0, dist1_1);
 
-                return Math.Min(dist0, dist1);
+                return Math.Min(dist0, dist1);      // return the closer endpoint
             }
         }
 
@@ -194,6 +213,13 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 ToArray();
         }
 
+        /// <summary>
+        /// Adds up the properties according to the priority weights, returns a score between 0 and 1
+        /// NOTE: Each of the properties need to between 0 and 1 (edge_dot, edge_dist, edge_dot_along) - edge_orth_dist will get divided by search_radius
+        /// </summary>
+        /// <remarks>
+        /// I'm not sure if a simple average is the best way to go.  All the props are important and the result seems muddy
+        /// </remarks>
         private static double GetEdgeScore(Point3D seg_point0, Point3D seg_point1, double edge_dot, double edge_dist, double edge_dot_along, double edge_orth_dist, double search_radius, double priority_normal_dot, double priority_distance, double priority_along_dot, double priority_orth_dist)
         {
             double normal_dot = UtilityMath.GetScaledValue(0, 1, 1, -1, edge_dot) * priority_normal_dot;
@@ -229,6 +255,14 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             return (new BoundingBox(center, size), center_wpf);
         }
 
+        #endregion
+        #region Private Methods - Draw
+
+        /// <summary>
+        /// All Path Segments (brush stroke)
+        /// Deduped Edge Segments
+        /// Checkbox to show relative edge strength (normal dot)
+        /// </summary>
         private static void Draw_AllEdgeMatches(Point3D[] points, EdgeMatch[][] matches_per_segment)
         {
             if (!SHOULD_DRAW)
@@ -322,6 +356,11 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             window.Show();
         }
 
+        /// <summary>
+        /// Single segment of the brush stroke
+        /// Edges within range of that segment
+        /// Various controls to adjust properties importance for the final score
+        /// </summary>
         private static void Draw_EdgeMatchesPerSegment(Point3D[] points, EdgeMatch[][] matches_per_segment, double search_radius)
         {
             if (!SHOULD_DRAW)
@@ -540,5 +579,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             return checkbox;
         }
+
+        #endregion
     }
 }

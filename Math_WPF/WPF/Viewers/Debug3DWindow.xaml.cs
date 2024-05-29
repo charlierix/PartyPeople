@@ -63,6 +63,7 @@ namespace Game.Math_WPF.WPF.Viewers
         private TrackBallRoam _trackball = null;
 
         private bool _wasSetCameraCalled = false;
+        private bool _loaded = false;
 
         private readonly int _viewportOffset;
 
@@ -169,8 +170,32 @@ namespace Game.Math_WPF.WPF.Viewers
             }
         }
 
-        public Vector3D Camera_Look => _camera.LookDirection.LengthSquared.IsNearValue(1) ? _camera.LookDirection : _camera.LookDirection.ToUnit();
-        public Vector3D Camera_Up => _camera.UpDirection.LengthSquared.IsNearValue(1) ? _camera.UpDirection : _camera.UpDirection.ToUnit();
+        public Vector3D Camera_Look
+        {
+            get
+            {
+                if (_loaded)
+                    return _camera.LookDirection.LengthSquared.IsNearValue(1) ?
+                        _camera.LookDirection :
+                        _camera.LookDirection.ToUnit();
+
+                else
+                    return new Vector3D(0, 0, -1);
+            }
+        }
+        public Vector3D Camera_Up
+        {
+            get
+            {
+                if (_loaded)
+                    return _camera.UpDirection.LengthSquared.IsNearValue(1) ?
+                        _camera.UpDirection :
+                        _camera.UpDirection.ToUnit();
+
+                else
+                    return new Vector3D(0, 1, 0);
+            }
+        }
         public Vector3D Camera_Right => Vector3D.CrossProduct(Camera_Look, Camera_Up);
 
         #endregion
@@ -1327,6 +1352,8 @@ namespace Game.Math_WPF.WPF.Viewers
                     AutoSetCamera();
 
                 RecalculateLineGeometries();
+
+                _loaded = true;
             }
             catch (Exception ex)
             {

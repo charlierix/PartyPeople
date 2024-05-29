@@ -169,14 +169,9 @@ namespace Game.Math_WPF.Mathematics
 
             int numDecimals = GetNumDecimals(value);
 
-            if (numDecimals < 0)
-            {
-                return ToStringSignificantDigits_PossibleScientific(value, significantDigits);
-            }
-            else
-            {
-                return ToStringSignificantDigits_Standard(value, significantDigits, true);
-            }
+            return numDecimals < 0 ?
+                ToStringSignificantDigits_PossibleScientific(value, significantDigits) :
+                ToStringSignificantDigits_Standard(value, significantDigits, true);
         }
 
         #endregion

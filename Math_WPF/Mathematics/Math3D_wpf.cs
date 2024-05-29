@@ -6670,21 +6670,38 @@ namespace Game.Math_WPF.Mathematics
                 return false;
             }
 
-            resultPoint1 = beyond1Ind switch
+            if (beyond1Ind == 0 && beyond2Ind == 0)
             {
-                -1 => segment1_start,
-                0 => result1.Value,
-                1 => segment1_stop,
-                _ => throw new ApplicationException($"beyond line segment indicator out of range: {beyond1Ind}"),
-            };
+                resultPoint1 = result1.Value;
+                resultPoint2 = result2.Value;
+            }
+            else
+            {
+                // One or both stop at an endpoint.  The infinite line match points may not be accurate when applied to line
+                // segment endpoints
+                //
+                // There may be a more efficient way, but for now, test all four endpoints against the other line segment
 
-            resultPoint2 = beyond2Ind switch
-            {
-                -1 => segment2_start,
-                0 => result2.Value,
-                1 => segment2_stop,
-                _ => throw new ApplicationException($"beyond line segment indicator out of range: {beyond2Ind}"),
-            };
+                var match_points = new (Point3D result1, Point3D result2)[]
+                {
+                    (GetClosestPoint_LineSegment_Point(segment2_start, segment2_stop, segment1_start), segment1_start),
+                    (GetClosestPoint_LineSegment_Point(segment2_start, segment2_stop, segment1_stop), segment1_stop),
+                    (GetClosestPoint_LineSegment_Point(segment1_start, segment1_stop, segment2_start), segment2_start),
+                    (GetClosestPoint_LineSegment_Point(segment1_start, segment1_stop, segment2_stop), segment2_stop),
+                };
+
+                var closest = match_points.
+                    Select(o => new
+                    {
+                        points = o,
+                        dist_sqr = (o.result1 - o.result2).LengthSquared,
+                    }).
+                    OrderBy(o => o.dist_sqr).
+                    First();
+
+                resultPoint1 = closest.points.result1;
+                resultPoint2 = closest.points.result2;
+            }
 
             return true;
         }
@@ -6707,16 +6724,16 @@ namespace Game.Math_WPF.Mathematics
             bool is_sphere_1 = capsule1.From.IsNearValue(capsule1.To);
             bool is_sphere_2 = capsule2.From.IsNearValue(capsule2.To);
 
-            if(is_sphere_1 && is_sphere_2)
+            if (is_sphere_1 && is_sphere_2)
             {
                 return (capsule2.From - capsule1.From).LengthSquared < sum_radius_squared;
             }
-            else if(is_sphere_1)
+            else if (is_sphere_1)
             {
                 Point3D nearest2 = GetClosestPoint_LineSegment_Point(capsule2.From, capsule2.To, capsule1.From);
                 return (nearest2 - capsule1.From).LengthSquared < sum_radius_squared;
             }
-            else if(is_sphere_2)
+            else if (is_sphere_2)
             {
                 Point3D nearest1 = GetClosestPoint_LineSegment_Point(capsule1.From, capsule1.To, capsule2.From);
                 return (nearest1 - capsule2.From).LengthSquared < sum_radius_squared;

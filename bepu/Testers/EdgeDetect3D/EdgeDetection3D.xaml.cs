@@ -975,6 +975,140 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private void SegmentDistances_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Point3D point0 = Math3D.GetRandomVector_Spherical(2).ToPoint();
+                Point3D point1 = Math3D.GetRandomVector_Spherical(2).ToPoint();
+
+                // Make a few test segments
+                var test_segments = Enumerable.Range(0, 12).
+                    Select(o => Math3D.GetRandomVector_Spherical(7).ToPoint()).
+                    Select(o => (o + Math3D.GetRandomVector_Spherical(2), o + Math3D.GetRandomVector_Spherical(2))).
+                    ToArray();
+
+                var window = new Debug3DWindow()
+                {
+                    Title = "Segment - Segment Distance",
+                };
+
+                var sizes = Debug3DWindow.GetDrawSizes(8);
+
+                window.AddDots([point0, point1], sizes.line, Colors.DarkOliveGreen);
+                window.AddLine(point0, point1, sizes.line, Colors.DarkSeaGreen);
+
+                //window.AddText($"point0: {point0.ToStringSignificantDigits(2)}");
+                //window.AddText($"point1: {point1.ToStringSignificantDigits(2)}");
+
+                foreach (var test_seg in test_segments)
+                {
+                    window.AddDots([test_seg.Item1, test_seg.Item2], sizes.dot, Colors.DimGray);
+                    window.AddLine(test_seg.Item1, test_seg.Item2, sizes.line, Colors.Gray);
+
+                    Point3D center = Math3D.GetCenter(test_seg.Item1, test_seg.Item2);
+
+                    if (Math3D.GetClosestPoints_LineSegment_LineSegment(out Point3D? result0, out Point3D? result1, point0, point1, test_seg.Item1, test_seg.Item2, true))
+                    {
+                        window.AddLine(result0.Value, result1.Value, sizes.line, Colors.DarkKhaki);
+
+                        double dist = (result1.Value - result0.Value).Length;
+                        window.AddText3D(dist.ToStringSignificantDigits(2), center, window.Camera_Look, 0.4, Colors.SteelBlue, false, window.Camera_Right);
+                    }
+                    else
+                    {
+                        window.AddText3D("error", center, window.Camera_Look, 0.4, Colors.Firebrick, false, window.Camera_Right);
+                    }
+
+                    //window.AddText($"test0: {test_seg.Item1.ToStringSignificantDigits(2)}");
+                    //window.AddText($"test1: {test_seg.Item2.ToStringSignificantDigits(2)}");
+                }
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void SegmentDistanceExtra_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Point3D p0 = new Point3D(0.44, -1, -0.39);
+                Point3D p1 = new Point3D(-0.41, 1.6, -0.03);
+
+                Point3D t0 = new Point3D(1.5, -2, 1.2);
+                Point3D t1 = new Point3D(1, -4, 0.78);
+
+                var window = new Debug3DWindow()
+                {
+                    Title = "Segment - Segment Distance (extra)",
+                };
+
+                var sizes = Debug3DWindow.GetDrawSizes(8);
+
+                window.AddDots([p0, p1], sizes.line, Colors.DarkOliveGreen);
+                window.AddLine(p0, p1, sizes.line, Colors.DarkSeaGreen);
+
+                window.AddText($"point0: {p0.ToStringSignificantDigits(2)}");
+                window.AddText($"point1: {p1.ToStringSignificantDigits(2)}");
+
+                window.AddDots([t0, t1], sizes.dot, Colors.DimGray);
+                window.AddLine(t0, t1, sizes.line, Colors.Gray);
+
+
+                var draw_line_dist = new Action<Point3D, Point3D, Color>((l0, l1, c) =>
+                {
+                    window.AddLine(l0, l1, sizes.line, c);
+
+                    Point3D center = Math3D.GetCenter(l0, l1);
+                    double dist = (l1 - l0).Length;
+                    window.AddText3D(dist.ToStringSignificantDigits(3), center, window.Camera_Look, 0.2, c, false, window.Camera_Right);
+                });
+
+                Point3D r0 = Math3D.GetClosestPoint_LineSegment_Point(p0, p1, t0);
+                draw_line_dist(t0, r0, Colors.SteelBlue);
+
+                Point3D r1 = Math3D.GetClosestPoint_LineSegment_Point(p0, p1, t1);
+                draw_line_dist(t1, r1, Colors.SteelBlue);
+
+
+                if (Math3D.GetClosestPoints_LineSegment_LineSegment(out Point3D? result0, out Point3D? result1, p0, p1, t0, t1, true))
+                {
+                    draw_line_dist(result0.Value, result1.Value, Colors.Chocolate);
+                }
+                else
+                {
+                    Point3D center = Math3D.GetCenter(t0, t1);
+                    window.AddText3D("error", center, window.Camera_Look, 0.4, Colors.Firebrick, false, window.Camera_Right);
+                }
+
+
+
+                if(Math3D.GetClosestPoints_Line_Line(out Point3D? resultline0, out Point3D? resultline1, p0, p1, t0, t1))
+                {
+                    draw_line_dist(resultline0.Value, resultline1.Value, Colors.Magenta);
+                }
+                else
+                {
+                    Point3D center = Math3D.GetCenter(t0, t1);
+                    window.AddText3D("error", center, window.Camera_Look, 0.4, Colors.Magenta, false, window.Camera_Right);
+                }
+
+
+
+
+                window.AddText($"test0: {t0.ToStringSignificantDigits(2)}");
+                window.AddText($"test1: {t1.ToStringSignificantDigits(2)}");
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
         #endregion
 

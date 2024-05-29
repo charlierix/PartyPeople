@@ -79,6 +79,8 @@
                         <Button Visibility="Collapsed" Content="% orth to segment (points)" Margin="0,4,0,0" Click="PercentOrthToSegment_Points_Click"/>
                         <Button Visibility="Collapsed" Content="dist from plane" Click="DistFromPlane_Click"/>
                         <Button Visibility="Collapsed" Content="% orth to segment (segment)" Click="PercentOrthToSegment_Segment_Click"/>
+                        <Button Visibility="Collapsed" Content="Segment Distances" Margin="0,4,0,0" Click="SegmentDistances_Click"/>
+                        <Button Visibility="Collapsed" Content="Segment Distance extra" Click="SegmentDistanceExtra_Click"/>
                     </StackPanel>
                 </Border>
             </StackPanel>
