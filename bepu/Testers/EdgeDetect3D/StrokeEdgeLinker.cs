@@ -25,6 +25,9 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         private const double SCORING_ALONG_DOT = 0.66;
         private const double SCORING_ORTH_DIST = 0.8;
 
+        private const double BEST_SCORE_DIFF = 0.05;
+        private const double BEST_SCORE_MIN = 0.25;
+
         #region record: EdgeMatch
 
         private record EdgeMatch
@@ -407,6 +410,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(8) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(8) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
@@ -419,12 +423,12 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             Slider along_dot = Add_Label_Slider(grid, 4, "Direction parallel to segment", 0, 1, SCORING_ALONG_DOT, "how parallel the edge and stroke segment are");
             Slider orth_dist = Add_Label_Slider(grid, 5, "Position perpendicular to segment", 0, 1, SCORING_ORTH_DIST, "brush stroke segment forms an infinite cylinder.  This is edge's distance from the two plates of that cylinder (touching or above/below)");
 
-            Slider maxscore_diff = Add_Label_Slider(grid, 7, "Best Score Diff", 0, 1, 0.1, "winning edge's score must be this much greater than next best score to be declared winner (avoids a near tie to win)");
-            //Slider minscore = Add_Label_Slider(grid, 7, "Min Allowed Score", 0, 1, 0.1);
+            Slider maxscore_diff = Add_Label_Slider(grid, 7, "Best Score Diff", 0, 1, BEST_SCORE_DIFF, "winning edge's score must be this much greater than next best score to be declared winner (avoids a near tie to win)");
+            Slider minscore = Add_Label_Slider(grid, 8, "Min Allowed Score", 0, 1, BEST_SCORE_MIN, "winning edge must have at least this score");
 
-            CheckBox show_dots = Add_Checkbox(grid, 9, "Show Dots", false);
-            CheckBox show_scores = Add_Checkbox(grid, 10, "Show Scores", false);
-            CheckBox show_winner = Add_Checkbox(grid, 11, "Show Winner", true);
+            CheckBox show_dots = Add_Checkbox(grid, 10, "Show Dots", false);
+            CheckBox show_scores = Add_Checkbox(grid, 11, "Show Scores", false);
+            CheckBox show_winner = Add_Checkbox(grid, 12, "Show Winner", true);
 
             var visuals = new List<Visual3D>();
 
@@ -470,7 +474,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     Point3D edge_centered_0 = (edges_scored[i].Edge.EdgePoint0 - center).ToPoint();
                     Point3D edge_centered_1 = (edges_scored[i].Edge.EdgePoint1 - center).ToPoint();
 
-                    if (i == 0 && show_winner.IsChecked.Value && edges_scored.Length > 1 && edges_scored[0].Score - edges_scored[1].Score > maxscore_diff.Value)
+                    if (i == 0 && show_winner.IsChecked.Value && edges_scored.Length > 1 && edges_scored[0].Score - edges_scored[1].Score > maxscore_diff.Value && edges_scored[0].Score >= minscore.Value)
                         visuals.Add(window.AddDots([edge_centered_0, edge_centered_1], sizes.dot, Colors.Goldenrod));
 
                     Color final_color = UtilityWPF.AlphaBlend(color, Colors.Transparent, edges_scored[i].Score);
@@ -504,6 +508,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             along_dot.ValueChanged += redraw_slider;
             orth_dist.ValueChanged += redraw_slider;
             maxscore_diff.ValueChanged += redraw_slider;
+            minscore.ValueChanged += redraw_slider;
             show_dots.Checked += redraw_checkbox;
             show_dots.Unchecked += redraw_checkbox;
             show_scores.Checked += redraw_checkbox;
