@@ -7,8 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -21,8 +19,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         private const bool SHOULD_DRAW = true;
 
         private const double SCORING_NORMAL_DOT = 0.33;
-        private const double SCORING_DISTANCE = 0.33;
-        private const double SCORING_ALONG_DOT = 0.66;
+        private const double SCORING_DISTANCE = 0.8;
+        private const double SCORING_ALONG_DOT = 0.8;
         private const double SCORING_ORTH_DIST = 0.8;
 
         private const double BEST_SCORE_DIFF = 0.05;
@@ -73,8 +71,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             Draw_AllEdgeMatches(points, matches_per_segment);
 
-            Draw_EdgeMatchesPerSegment(points, matches_per_segment, search_radius);
-            //Draw_EdgeMatchesAllSegments(points, matches_per_segment, search_radius);
+            Draw_EdgeMatches_PerSegment(points, matches_per_segment, search_radius);
+            Draw_EdgeMatches_AllSegments(points, matches_per_segment, search_radius);
 
 
 
@@ -364,7 +362,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         /// Edges within range of that segment
         /// Various controls to adjust properties importance for the final score
         /// </summary>
-        private static void Draw_EdgeMatchesPerSegment(Point3D[] points, EdgeMatch[][] matches_per_segment, double search_radius)
+        private static void Draw_EdgeMatches_PerSegment(Point3D[] points, EdgeMatch[][] matches_per_segment, double search_radius)
         {
             if (!SHOULD_DRAW)
                 return;
@@ -474,8 +472,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     Point3D edge_centered_0 = (edges_scored[i].Edge.EdgePoint0 - center).ToPoint();
                     Point3D edge_centered_1 = (edges_scored[i].Edge.EdgePoint1 - center).ToPoint();
 
-                    if (i == 0 && show_winner.IsChecked.Value && edges_scored.Length > 1 && edges_scored[0].Score - edges_scored[1].Score > maxscore_diff.Value && edges_scored[0].Score >= minscore.Value)
-                        visuals.Add(window.AddDots([edge_centered_0, edge_centered_1], sizes.dot, Colors.Goldenrod));
+                    if (i == 0 && show_winner.IsChecked.Value)
+                        if (edges_scored[0].Score >= minscore.Value)
+                            if (edges_scored.Length == 1 || (edges_scored.Length > 1 && edges_scored[0].Score - edges_scored[1].Score > maxscore_diff.Value))
+                                visuals.Add(window.AddDots([edge_centered_0, edge_centered_1], sizes.dot, Colors.Goldenrod));
 
                     Color final_color = UtilityWPF.AlphaBlend(color, Colors.Transparent, edges_scored[i].Score);
                     double line_thickness = sizes.line * edges_scored[i].Score;
@@ -519,6 +519,178 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             window.Messages_Top.Add(grid);      // even though it's called messages, it's just a list of uielements, so any control can be added to it
 
             window.Loaded += (s, e) => { seg_index.Value = 0; };     // force the value change event to fire
+
+            window.Show();
+        }
+
+        private static void Draw_EdgeMatches_AllSegments(Point3D[] points, EdgeMatch[][] matches_per_segment, double search_radius)
+        {
+            if (!SHOULD_DRAW)
+                return;
+
+            var deduped_edges = matches_per_segment.
+                SelectMany(o => o).
+                Select(o => o.Edge).
+                DistinctBy(o => o.Token).
+                ToArray();
+
+            var used_points = points.
+                Concat(deduped_edges.SelectMany(o => new Point3D[] { o.EdgePoint0, o.EdgePoint1 })).
+                ToArray();
+
+            Point3D center = Math3D.GetCenter(used_points);
+
+            Point3D[] centered_points = points.
+                Select(o => (o - center).ToPoint()).
+                ToArray();
+
+            double score_text_height = Enumerable.Range(0, points.Length - 1).
+                Select(o => (centered_points[o + 1] - centered_points[o]).Length / 3).
+                Average();
+
+            var window = new Debug3DWindow()
+            {
+                Title = "Edge Matches All Segments",
+                Background = Brushes.White,
+            };
+
+            var sizes = Debug3DWindow.GetDrawSizes(used_points, center);
+
+            Grid grid = new Grid()
+            {
+                Background = UtilityWPF.BrushFromHex("DFFF"),
+            };
+            grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Auto) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(8) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(50) });
+
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(8) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(8) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+
+            Slider normal_dot = Add_Label_Slider(grid, 0, "Edge Steepness", 0, 1, SCORING_NORMAL_DOT, "dot product between the two triangles along an edge");
+            Slider distance = Add_Label_Slider(grid, 1, "Distance From Segment", 0, 1, SCORING_DISTANCE, "how far the edge is from the stroke segment");
+            Slider along_dot = Add_Label_Slider(grid, 2, "Direction parallel to segment", 0, 1, SCORING_ALONG_DOT, "how parallel the edge and stroke segment are");
+            Slider orth_dist = Add_Label_Slider(grid, 3, "Position perpendicular to segment", 0, 1, SCORING_ORTH_DIST, "brush stroke segment forms an infinite cylinder.  This is edge's distance from the two plates of that cylinder (touching or above/below)");
+
+            Slider maxscore_diff = Add_Label_Slider(grid, 5, "Best Score Diff", 0, 1, BEST_SCORE_DIFF, "winning edge's score must be this much greater than next best score to be declared winner (avoids a near tie to win)");
+            Slider minscore = Add_Label_Slider(grid, 6, "Min Allowed Score", 0, 1, BEST_SCORE_MIN, "winning edge must have at least this score");
+
+            CheckBox show_dots = Add_Checkbox(grid, 8, "Show Dots", false);
+            CheckBox show_scores = Add_Checkbox(grid, 9, "Show Scores", false);
+            CheckBox show_winner = Add_Checkbox(grid, 10, "Show Winner", false);        // this gets set to true in window loaded event to force a redraw
+
+            var visuals = new List<Visual3D>();
+
+            bool has_autoset = false;
+
+            var redraw = new Action(() =>
+            {
+                // Get new scores of edges per segment
+                EdgeMatch[][] edges_scored = new EdgeMatch[points.Length - 1][];
+
+                for (int i = 0; i < points.Length - 1; i++)
+                    edges_scored[i] = ScoreEdges_SingleSegment(points[i], points[i + 1], matches_per_segment[i], search_radius, normal_dot.Value, distance.Value, along_dot.Value, orth_dist.Value);
+
+                // Group by edge
+                var distinct_edges = edges_scored.
+                    SelectMany(o => o).
+                    ToLookup(o => o.Edge.Token).
+                    Select(o => new
+                    {
+                        token = o.Key,
+                        by_score = o.
+                            OrderByDescending(p => p.Score).
+                            ToArray(),
+                    }).
+                    ToArray();
+
+                // Clear existing visuals
+                window.Visuals3D.Clear();
+                //window.Visuals3D.RemoveAll(visuals);      // this fails when removing all visuals
+                visuals.Clear();
+
+                // Brush segments
+                visuals.Add(window.AddDots(centered_points, sizes.dot * 0.3, Colors.DarkOliveGreen));
+                visuals.Add(window.AddLines(centered_points, sizes.line * 0.3, Colors.DarkSeaGreen));
+
+                // Edge Dots
+                if (show_dots.IsChecked.Value)
+                {
+                    var distinct_edge_points = distinct_edges.
+                        Select(o => new[] { (o.by_score[0].Edge.EdgePoint0 - center).ToPoint(), (o.by_score[0].Edge.EdgePoint1 - center).ToPoint() }).
+                        SelectMany(o => o).
+                        Distinct((o1, o2) => o1.IsNearValue(o2)).
+                        ToArray();
+
+                    visuals.Add(window.AddDots(distinct_edge_points, sizes.dot / 6, Colors.Silver));
+                }
+
+                for (int i = 0; i < distinct_edges.Length; i++)
+                {
+                    Color color = distinct_edges[i].by_score[0].Edge.Direction switch
+                    {
+                        TriangleFoldDirection.Peak => Colors.DarkRed,
+                        TriangleFoldDirection.Valley => Colors.MediumBlue,
+                        TriangleFoldDirection.Single => Colors.Black,
+                        _ => Colors.Magenta,
+                    };
+
+                    if (show_winner.IsChecked.Value && distinct_edges[i].by_score[0].Score >= minscore.Value && IsAnyWinner(distinct_edges[i].token, edges_scored, minscore.Value, maxscore_diff.Value))
+                        color = Colors.Goldenrod;
+
+                    Point3D edge_centered_0 = (distinct_edges[i].by_score[0].Edge.EdgePoint0 - center).ToPoint();
+                    Point3D edge_centered_1 = (distinct_edges[i].by_score[0].Edge.EdgePoint1 - center).ToPoint();
+
+                    Color final_color = UtilityWPF.AlphaBlend(color, Colors.Transparent, distinct_edges[i].by_score[0].Score);
+                    double line_thickness = sizes.line * distinct_edges[i].by_score[0].Score;
+
+                    visuals.Add(window.AddLine(edge_centered_0, edge_centered_1, line_thickness, final_color));
+
+                    if (show_scores.IsChecked.Value)
+                    {
+                        Point3D edge_center = Math3D.GetCenter(distinct_edges[i].by_score[0].Edge.EdgePoint0, distinct_edges[i].by_score[0].Edge.EdgePoint1);
+                        edge_center = (edge_center - center).ToPoint();
+
+                        visuals.Add(window.AddText3D(distinct_edges[i].by_score[0].Score.ToStringSignificantDigits(2), edge_center, -window.Camera_Look, score_text_height, Colors.DarkGreen, false, window.Camera_Right));
+                    }
+                }
+
+                if (!has_autoset)
+                {
+                    window.AutoSetCamera();
+                    has_autoset = true;
+                }
+            });
+
+            var redraw_slider = new RoutedPropertyChangedEventHandler<double>((s, e) => redraw());
+            var redraw_checkbox = new RoutedEventHandler((s, e) => redraw());
+
+            normal_dot.ValueChanged += redraw_slider;
+            distance.ValueChanged += redraw_slider;
+            along_dot.ValueChanged += redraw_slider;
+            orth_dist.ValueChanged += redraw_slider;
+            maxscore_diff.ValueChanged += redraw_slider;
+            minscore.ValueChanged += redraw_slider;
+            show_dots.Checked += redraw_checkbox;
+            show_dots.Unchecked += redraw_checkbox;
+            show_scores.Checked += redraw_checkbox;
+            show_scores.Unchecked += redraw_checkbox;
+            show_winner.Checked += redraw_checkbox;
+            show_winner.Unchecked += redraw_checkbox;
+
+            window.Messages_Top.Add(grid);      // even though it's called messages, it's just a list of uielements, so any control can be added to it
+
+            window.Loaded += (s, e) => { show_winner.IsChecked = true; };     // force the value change event to fire
 
             window.Show();
         }
@@ -583,6 +755,35 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             grid.Children.Add(checkbox);
 
             return checkbox;
+        }
+
+        private static bool IsAnyWinner(long edge_token, EdgeMatch[][] all_matched_edges, double minscore, double maxscore_diff)
+        {
+            foreach (EdgeMatch[] edges in all_matched_edges)
+            {
+                // NOTE: edges is already sorted decending by score.  see ScoreEdges_SingleSegment()
+
+                //if (edges_scored[0].Score >= minscore.Value)
+                //    if (edges_scored.Length == 1 || (edges_scored.Length > 1 && edges_scored[0].Score - edges_scored[1].Score > maxscore_diff.Value))
+
+                if (edges[0].Edge.Token != edge_token)
+                    // Not the winner for this brush segment
+                    continue;
+
+                if (edges[0].Score < minscore)
+                    // Score isn't high enough to be considered a winner
+                    continue;
+
+                if (edges.Length == 1)
+                    // There's only one edge, so no need to do a diff with second best
+                    return true;
+
+                if (edges[0].Score - edges[1].Score > maxscore_diff)
+                    // The difference in score between best and second best is significant enough to be considered a winner
+                    return true;
+            }
+
+            return false;
         }
 
         #endregion
