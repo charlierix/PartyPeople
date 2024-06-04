@@ -18,12 +18,12 @@ namespace Game.Bepu.Testers.EdgeDetect3D
     {
         private const bool SHOULD_DRAW = true;
 
-        private const double SCORING_NORMAL_DOT = 0.33;
-        private const double SCORING_DISTANCE = 0.8;
-        private const double SCORING_ALONG_DOT = 0.8;
-        private const double SCORING_ORTH_DIST = 0.8;
+        private const double SCORING_NORMAL_DOT = 0.5;
+        private const double SCORING_DISTANCE = 1;
+        private const double SCORING_ALONG_DOT = 1;
+        private const double SCORING_ORTH_DIST = 1;
 
-        private const double BEST_SCORE_DIFF = 0.05;
+        private const double BEST_SCORE_DIFF = 0.015;
         private const double BEST_SCORE_MIN = 0.25;
 
         #region record: EdgeMatch
@@ -71,11 +71,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             Draw_AllEdgeMatches(points, matches_per_segment);
 
-            Draw_EdgeMatches_PerSegment(points, matches_per_segment, search_radius);
-            Draw_EdgeMatches_AllSegments(points, matches_per_segment, search_radius);
+            Draw_PerSegment(points, matches_per_segment, search_radius);
+            Draw_AllSegments(points, matches_per_segment, search_radius);
 
-
-
+            Draw_Winners_NeighborSwingVotes(points, matches_per_segment, search_radius);
 
 
             // Join the best matches together, looking for long chains of edges
@@ -362,7 +361,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         /// Edges within range of that segment
         /// Various controls to adjust properties importance for the final score
         /// </summary>
-        private static void Draw_EdgeMatches_PerSegment(Point3D[] points, EdgeMatch[][] matches_per_segment, double search_radius)
+        private static void Draw_PerSegment(Point3D[] points, EdgeMatch[][] matches_per_segment, double search_radius)
         {
             if (!SHOULD_DRAW)
                 return;
@@ -372,6 +371,14 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 Select(o => o.Edge).
                 DistinctBy(o => o.Token).
                 ToArray();
+
+            //var exclude = GetExcludeSingles(deduped_edges);
+
+            //// Since this only draws winner, it's safe to just throw out all but the first of a dupe.  These patches should have
+            //// been cleaned up before this point
+            //deduped_edges = deduped_edges.
+            //    Where(o => !o.Token.In(exclude)).
+            //    ToArray();
 
             var used_points = points.
                 Concat(deduped_edges.SelectMany(o => new Point3D[] { o.EdgePoint0, o.EdgePoint1 })).
@@ -461,6 +468,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
                 for (int i = 0; i < edges_scored.Length; i++)
                 {
+                    // Edge
                     Color color = edges_scored[i].Edge.Direction switch
                     {
                         TriangleFoldDirection.Peak => Colors.DarkRed,
@@ -482,6 +490,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
                     visuals.Add(window.AddLine(edge_centered_0, edge_centered_1, line_thickness, final_color));
 
+                    // Score
                     if (show_scores.IsChecked.Value)
                     {
                         Point3D edge_center = Math3D.GetCenter(edges_scored[i].Edge.EdgePoint0, edges_scored[i].Edge.EdgePoint1);
@@ -523,7 +532,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             window.Show();
         }
 
-        private static void Draw_EdgeMatches_AllSegments(Point3D[] points, EdgeMatch[][] matches_per_segment, double search_radius)
+        private static void Draw_AllSegments(Point3D[] points, EdgeMatch[][] matches_per_segment, double search_radius)
         {
             if (!SHOULD_DRAW)
                 return;
@@ -533,6 +542,14 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 Select(o => o.Edge).
                 DistinctBy(o => o.Token).
                 ToArray();
+
+            //var exclude = GetExcludeSingles(deduped_edges);
+
+            //// Since this only draws winner, it's safe to just throw out all but the first of a dupe.  These patches should have
+            //// been cleaned up before this point
+            //deduped_edges = deduped_edges.
+            //    Where(o => !o.Token.In(exclude)).
+            //    ToArray();
 
             var used_points = points.
                 Concat(deduped_edges.SelectMany(o => new Point3D[] { o.EdgePoint0, o.EdgePoint1 })).
@@ -637,6 +654,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
                 for (int i = 0; i < distinct_edges.Length; i++)
                 {
+                    // Edge
                     Color color = distinct_edges[i].by_score[0].Edge.Direction switch
                     {
                         TriangleFoldDirection.Peak => Colors.DarkRed,
@@ -648,14 +666,15 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                     if (show_winner.IsChecked.Value && distinct_edges[i].by_score[0].Score >= minscore.Value && IsAnyWinner(distinct_edges[i].token, edges_scored, minscore.Value, maxscore_diff.Value))
                         color = Colors.Goldenrod;
 
-                    Point3D edge_centered_0 = (distinct_edges[i].by_score[0].Edge.EdgePoint0 - center).ToPoint();
-                    Point3D edge_centered_1 = (distinct_edges[i].by_score[0].Edge.EdgePoint1 - center).ToPoint();
-
                     Color final_color = UtilityWPF.AlphaBlend(color, Colors.Transparent, distinct_edges[i].by_score[0].Score);
                     double line_thickness = sizes.line * distinct_edges[i].by_score[0].Score;
 
+                    Point3D edge_centered_0 = (distinct_edges[i].by_score[0].Edge.EdgePoint0 - center).ToPoint();
+                    Point3D edge_centered_1 = (distinct_edges[i].by_score[0].Edge.EdgePoint1 - center).ToPoint();
+
                     visuals.Add(window.AddLine(edge_centered_0, edge_centered_1, line_thickness, final_color));
 
+                    // Score
                     if (show_scores.IsChecked.Value)
                     {
                         Point3D edge_center = Math3D.GetCenter(distinct_edges[i].by_score[0].Edge.EdgePoint0, distinct_edges[i].by_score[0].Edge.EdgePoint1);
@@ -693,6 +712,97 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             window.Loaded += (s, e) => { show_winner.IsChecked = true; };     // force the value change event to fire
 
             window.Show();
+        }
+
+        private static void Draw_Winners_NeighborSwingVotes(Point3D[] points, EdgeMatch[][] matches_per_segment, double search_radius)
+        {
+            if (!SHOULD_DRAW)
+                return;
+
+            var deduped_edges = matches_per_segment.
+                SelectMany(o => o).
+                Select(o => o.Edge).
+                DistinctBy(o => o.Token).
+                ToArray();
+
+            //var exclude = GetExcludeSingles(deduped_edges);
+
+            //// Since this only draws winner, it's safe to just throw out all but the first of a dupe.  These patches should have
+            //// been cleaned up before this point
+            //deduped_edges = deduped_edges.
+            //    Where(o => !o.Token.In(exclude)).
+            //    ToArray();
+
+            var used_points = points.
+                Concat(deduped_edges.SelectMany(o => new Point3D[] { o.EdgePoint0, o.EdgePoint1 })).
+                ToArray();
+
+            Point3D center = Math3D.GetCenter(used_points);
+
+            Point3D[] centered_points = points.
+                Select(o => (o - center).ToPoint()).
+                ToArray();
+
+            double score_text_height = Enumerable.Range(0, points.Length - 1).
+                Select(o => (centered_points[o + 1] - centered_points[o]).Length / 3).
+                Average();
+
+            // Get new scores of edges per segment
+            EdgeMatch[][] edges_scored = new EdgeMatch[points.Length - 1][];
+
+            for (int i = 0; i < points.Length - 1; i++)
+                edges_scored[i] = ScoreEdges_SingleSegment(points[i], points[i + 1], matches_per_segment[i], search_radius, SCORING_NORMAL_DOT, SCORING_DISTANCE, SCORING_ALONG_DOT, SCORING_ORTH_DIST);
+
+            // Group by edge
+            var distinct_edges = edges_scored.
+                SelectMany(o => o).
+                ToLookup(o => o.Edge.Token).
+                Select(o => new
+                {
+                    token = o.Key,
+                    by_score = o.
+                        OrderByDescending(p => p.Score).
+                        ToArray(),
+                }).
+                ToArray();
+
+
+            // foreach in distinct edges
+            //  get the winner
+
+
+
+
+            // Draw winning matches and corresponding brush segments in one color
+            // Split the lists between resolved and unresolved
+
+
+            // Look at neighbor edges of winners and see if they were 2nd place of any brush strokes
+            //  for this function, just hardcode one step away.  Future function may want to repeat
+            // Draw them in a different color
+
+
+            // Draw the remaining in another color
+
+
+
+
+            var distinct_edge_points = distinct_edges.
+                Select(o => new[] { (o.by_score[0].Edge.EdgePoint0 - center).ToPoint(), (o.by_score[0].Edge.EdgePoint1 - center).ToPoint() }).
+                SelectMany(o => o).
+                Distinct((o1, o2) => o1.IsNearValue(o2)).
+                ToArray();
+
+            //visuals.Add(window.AddDots(distinct_edge_points, sizes.dot / 6, Colors.Silver));
+
+
+
+
+
+
+
+
+
         }
 
         private static Slider Add_Label_Slider(Grid grid, int row_index, string text, double min, double max, double value, string label_tooltip, bool is_integer = false)
@@ -784,6 +894,46 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// This looks like edges that are single triangle.  Then it finds other single edges that perfectly match the position
+        /// </summary>
+        /// <remarks>
+        /// Basically, mini meshes get laid next to each other like a quilt and the edges of those patches dupe with neighbors
+        /// </remarks>
+        private static long[] GetExcludeSingles(NormalDot[] edges)
+        {
+            var retVal = new List<long>();
+
+            var singles = edges.
+                Where(o => o.Direction == TriangleFoldDirection.Single).
+                ToArray();
+
+            for (int i = 0; i < singles.Length - 1; i++)
+            {
+                for (int j = i + 1; j < singles.Length; j++)
+                {
+                    if (edges[i].EdgePoint0.IsNearValue(singles[j].EdgePoint0) && edges[i].EdgePoint1.IsNearValue(singles[j].EdgePoint1))
+                        retVal.Add(edges[j].Token);
+
+                    else if (edges[i].EdgePoint0.IsNearValue(singles[j].EdgePoint1) && edges[i].EdgePoint1.IsNearValue(singles[j].EdgePoint0))
+                        retVal.Add(edges[j].Token);
+                }
+            }
+
+            
+
+            // TODO: draw these edges (point and line)
+
+
+
+
+
+
+
+
+            return retVal.ToArray();
         }
 
         #endregion
