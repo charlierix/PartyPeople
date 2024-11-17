@@ -3,6 +3,7 @@ using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.Viewers;
 using NetOctree.Octree;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,6 +18,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
     public static class StrokeEdgeLinker
     {
         private const bool SHOULD_DRAW = true;
+
+        private const double MIN_ALONG_DOT = 0.85;
 
         private const double SCORING_NORMAL_DOT = 0.5;
         private const double SCORING_DISTANCE = 1;
@@ -202,9 +205,10 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         /// Returns copies of the edges with a new score based on priority params
         /// NOTE: They are sorted decending by score to make it easy to find the winner
         /// </summary>
-        private static EdgeMatch[] ScoreEdges_SingleSegment(Point3D seg_point0, Point3D seg_point1, EdgeMatch[] edges, double search_radius, double priority_normal_dot, double priority_distance, double priority_along_dot, double priority_orth_dist)
+        private static EdgeMatch[] ScoreEdges_SingleSegment(Point3D seg_point0, Point3D seg_point1, EdgeMatch[] edges, double search_radius, double min_along_dot, double priority_normal_dot, double priority_distance, double priority_along_dot, double priority_orth_dist)
         {
             return edges.
+                Where(o => o.Edge_Dot_Along >= min_along_dot).
                 Select(o => o with
                 {
                     Score = GetEdgeScore(seg_point0, seg_point1, o.Edge.Dot, o.Edge_Dist, o.Edge_Dot_Along, o.Edge_Orth_Dist, search_radius, priority_normal_dot, priority_distance, priority_along_dot, priority_orth_dist),
@@ -410,6 +414,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(8) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(8) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
@@ -423,17 +429,19 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
             Slider seg_index = Add_Label_Slider(grid, 0, "Segment Index", 0, points.Length - 2, 1, "which brush stroke segment to analyze", true);       // setting to one so that window loaded can set to zero, causing a change and redraw
 
-            Slider normal_dot = Add_Label_Slider(grid, 2, "Edge Steepness", 0, 1, SCORING_NORMAL_DOT, "dot product between the two triangles along an edge");
-            Slider distance = Add_Label_Slider(grid, 3, "Distance From Segment", 0, 1, SCORING_DISTANCE, "how far the edge is from the stroke segment");
-            Slider along_dot = Add_Label_Slider(grid, 4, "Direction parallel to segment", 0, 1, SCORING_ALONG_DOT, "how parallel the edge and stroke segment are");
-            Slider orth_dist = Add_Label_Slider(grid, 5, "Position perpendicular to segment", 0, 1, SCORING_ORTH_DIST, "brush stroke segment forms an infinite cylinder.  This is edge's distance from the two plates of that cylinder (touching or above/below)");
+            Slider min_along_dot = Add_Label_Slider(grid, 2, "Min direction parallel to segment", 0, 1, MIN_ALONG_DOT, "ignore edges that aren't parallel enough to the stroke segment");
 
-            Slider maxscore_diff = Add_Label_Slider(grid, 7, "Best Score Diff", 0, 1, BEST_SCORE_DIFF, "winning edge's score must be this much greater than next best score to be declared winner (avoids a near tie to win)");
-            Slider minscore = Add_Label_Slider(grid, 8, "Min Allowed Score", 0, 1, BEST_SCORE_MIN, "winning edge must have at least this score");
+            Slider normal_dot = Add_Label_Slider(grid, 4, "Edge Steepness", 0, 1, SCORING_NORMAL_DOT, "dot product between the two triangles along an edge");
+            Slider distance = Add_Label_Slider(grid, 5, "Distance From Segment", 0, 1, SCORING_DISTANCE, "how far the edge is from the stroke segment");
+            Slider along_dot = Add_Label_Slider(grid, 6, "Direction parallel to segment", 0, 1, SCORING_ALONG_DOT, "how parallel the edge and stroke segment are");
+            Slider orth_dist = Add_Label_Slider(grid, 7, "Position perpendicular to segment", 0, 1, SCORING_ORTH_DIST, "brush stroke segment forms an infinite cylinder.  This is edge's distance from the two plates of that cylinder (touching or above/below)");
 
-            CheckBox show_dots = Add_Checkbox(grid, 10, "Show Dots", false);
-            CheckBox show_scores = Add_Checkbox(grid, 11, "Show Scores", false);
-            CheckBox show_winner = Add_Checkbox(grid, 12, "Show Winner", true);
+            Slider maxscore_diff = Add_Label_Slider(grid, 9, "Best Score Diff", 0, 1, BEST_SCORE_DIFF, "winning edge's score must be this much greater than next best score to be declared winner (avoids a near tie to win)");
+            Slider minscore = Add_Label_Slider(grid, 10, "Min Allowed Score", 0, 1, BEST_SCORE_MIN, "winning edge must have at least this score");
+
+            CheckBox show_dots = Add_Checkbox(grid, 12, "Show Dots", false);
+            CheckBox show_scores = Add_Checkbox(grid, 13, "Show Scores", false);
+            CheckBox show_winner = Add_Checkbox(grid, 14, "Show Winner", true);
 
             var visuals = new List<Visual3D>();
 
@@ -444,7 +452,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 // Apply a score to current segment's edge matches
                 int index = seg_index.Value.ToInt_Floor();
 
-                EdgeMatch[] edges_scored = ScoreEdges_SingleSegment(points[index], points[index + 1], matches_per_segment[index], search_radius, normal_dot.Value, distance.Value, along_dot.Value, orth_dist.Value);
+                EdgeMatch[] edges_scored = ScoreEdges_SingleSegment(points[index], points[index + 1], matches_per_segment[index], search_radius, min_along_dot.Value, normal_dot.Value, distance.Value, along_dot.Value, orth_dist.Value);
 
                 // Clear existing visuals
                 window.Visuals3D.Clear();
@@ -457,7 +465,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
 
                 if (show_dots.IsChecked.Value)
                 {
-                    var distinct_edge_points = matches_per_segment[index].
+                    var distinct_edge_points = edges_scored.
                         Select(o => new[] { (o.Edge.EdgePoint0 - center).ToPoint(), (o.Edge.EdgePoint1 - center).ToPoint() }).
                         SelectMany(o => o).
                         Distinct((o1, o2) => o1.IsNearValue(o2)).
@@ -512,6 +520,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             var redraw_checkbox = new RoutedEventHandler((s, e) => redraw());
 
             seg_index.ValueChanged += redraw_slider;
+            min_along_dot.ValueChanged += redraw_slider;
             normal_dot.ValueChanged += redraw_slider;
             distance.ValueChanged += redraw_slider;
             along_dot.ValueChanged += redraw_slider;
@@ -532,6 +541,9 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             window.Show();
         }
 
+        /// <summary>
+        /// All edges scored against brush stroke segments
+        /// Clear winners shown in gold
         private static void Draw_AllSegments(Point3D[] points, EdgeMatch[][] matches_per_segment, double search_radius)
         {
             if (!SHOULD_DRAW)
@@ -583,6 +595,8 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             grid.ColumnDefinitions.Add(new ColumnDefinition() { Width = new GridLength(50) });
 
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(8) });
+            grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
@@ -594,17 +608,19 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
             grid.RowDefinitions.Add(new RowDefinition() { Height = new GridLength(1, GridUnitType.Auto) });
 
-            Slider normal_dot = Add_Label_Slider(grid, 0, "Edge Steepness", 0, 1, SCORING_NORMAL_DOT, "dot product between the two triangles along an edge");
-            Slider distance = Add_Label_Slider(grid, 1, "Distance From Segment", 0, 1, SCORING_DISTANCE, "how far the edge is from the stroke segment");
-            Slider along_dot = Add_Label_Slider(grid, 2, "Direction parallel to segment", 0, 1, SCORING_ALONG_DOT, "how parallel the edge and stroke segment are");
-            Slider orth_dist = Add_Label_Slider(grid, 3, "Position perpendicular to segment", 0, 1, SCORING_ORTH_DIST, "brush stroke segment forms an infinite cylinder.  This is edge's distance from the two plates of that cylinder (touching or above/below)");
+            Slider min_along_dot = Add_Label_Slider(grid, 0, "Min direction parallel to segment", 0, 1, MIN_ALONG_DOT, "ignore edges that aren't parallel enough to the stroke segment");
 
-            Slider maxscore_diff = Add_Label_Slider(grid, 5, "Best Score Diff", 0, 1, BEST_SCORE_DIFF, "winning edge's score must be this much greater than next best score to be declared winner (avoids a near tie to win)");
-            Slider minscore = Add_Label_Slider(grid, 6, "Min Allowed Score", 0, 1, BEST_SCORE_MIN, "winning edge must have at least this score");
+            Slider normal_dot = Add_Label_Slider(grid, 2, "Edge Steepness", 0, 1, SCORING_NORMAL_DOT, "dot product between the two triangles along an edge");
+            Slider distance = Add_Label_Slider(grid, 3, "Distance From Segment", 0, 1, SCORING_DISTANCE, "how far the edge is from the stroke segment");
+            Slider along_dot = Add_Label_Slider(grid, 4, "Direction parallel to segment", 0, 1, SCORING_ALONG_DOT, "how parallel the edge and stroke segment are");
+            Slider orth_dist = Add_Label_Slider(grid, 5, "Position perpendicular to segment", 0, 1, SCORING_ORTH_DIST, "brush stroke segment forms an infinite cylinder.  This is edge's distance from the two plates of that cylinder (touching or above/below)");
 
-            CheckBox show_dots = Add_Checkbox(grid, 8, "Show Dots", false);
-            CheckBox show_scores = Add_Checkbox(grid, 9, "Show Scores", false);
-            CheckBox show_winner = Add_Checkbox(grid, 10, "Show Winner", false);        // this gets set to true in window loaded event to force a redraw
+            Slider maxscore_diff = Add_Label_Slider(grid, 7, "Best Score Diff", 0, 1, BEST_SCORE_DIFF, "winning edge's score must be this much greater than next best score to be declared winner (avoids a near tie to win)");
+            Slider minscore = Add_Label_Slider(grid, 8, "Min Allowed Score", 0, 1, BEST_SCORE_MIN, "winning edge must have at least this score");
+
+            CheckBox show_dots = Add_Checkbox(grid, 10, "Show Dots", false);
+            CheckBox show_scores = Add_Checkbox(grid, 11, "Show Scores", false);
+            CheckBox show_winner = Add_Checkbox(grid, 12, "Show Winner", false);        // this gets set to true in window loaded event to force a redraw
 
             var visuals = new List<Visual3D>();
 
@@ -616,7 +632,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 EdgeMatch[][] edges_scored = new EdgeMatch[points.Length - 1][];
 
                 for (int i = 0; i < points.Length - 1; i++)
-                    edges_scored[i] = ScoreEdges_SingleSegment(points[i], points[i + 1], matches_per_segment[i], search_radius, normal_dot.Value, distance.Value, along_dot.Value, orth_dist.Value);
+                    edges_scored[i] = ScoreEdges_SingleSegment(points[i], points[i + 1], matches_per_segment[i], search_radius, min_along_dot.Value, normal_dot.Value, distance.Value, along_dot.Value, orth_dist.Value);
 
                 // Group by edge
                 var distinct_edges = edges_scored.
@@ -751,7 +767,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
             EdgeMatch[][] edges_scored = new EdgeMatch[points.Length - 1][];
 
             for (int i = 0; i < points.Length - 1; i++)
-                edges_scored[i] = ScoreEdges_SingleSegment(points[i], points[i + 1], matches_per_segment[i], search_radius, SCORING_NORMAL_DOT, SCORING_DISTANCE, SCORING_ALONG_DOT, SCORING_ORTH_DIST);
+                edges_scored[i] = ScoreEdges_SingleSegment(points[i], points[i + 1], matches_per_segment[i], search_radius, MIN_ALONG_DOT, SCORING_NORMAL_DOT, SCORING_DISTANCE, SCORING_ALONG_DOT, SCORING_ORTH_DIST);
 
             // Group by edge
             var distinct_edges = edges_scored.
@@ -871,6 +887,9 @@ namespace Game.Bepu.Testers.EdgeDetect3D
         {
             foreach (EdgeMatch[] edges in all_matched_edges)
             {
+                if (edges.Length == 0)
+                    continue;
+
                 // NOTE: edges is already sorted decending by score.  see ScoreEdges_SingleSegment()
 
                 //if (edges_scored[0].Score >= minscore.Value)
@@ -922,7 +941,7 @@ namespace Game.Bepu.Testers.EdgeDetect3D
                 }
             }
 
-            
+
 
             // TODO: draw these edges (point and line)
 
