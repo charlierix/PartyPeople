@@ -940,12 +940,31 @@ namespace Game.Core
 
             Random rand = StaticRandom.GetRandomForThread();
 
-            for (int cntr = count - 1; cntr >= 0; cntr--)
+            for (int i = count - 1; i >= 0; i--)
             {
                 // Come up with a random value that hasn't been returned yet
-                int index1 = rand.Next(cntr + 1);
+                int index1 = rand.Next(i + 1);
                 int index2 = indices[index1];
-                indices[index1] = indices[cntr];
+                indices[index1] = indices[i];
+
+                yield return index2;
+            }
+        }
+        public static IEnumerable<long> RandomRange(long start, int count)
+        {
+            // Prepare a list of indices (these represent what's left to return)
+            long[] indices = new long[count];
+            for (int cntr = 0; cntr < count; cntr++)
+                indices[cntr] = start + cntr;
+
+            Random rand = StaticRandom.GetRandomForThread();
+
+            for (int i = count - 1; i >= 0; i--)
+            {
+                // Come up with a random value that hasn't been returned yet
+                int index1 = rand.Next(i + 1);
+                long index2 = indices[index1];
+                indices[index1] = indices[i];
 
                 yield return index2;
             }
@@ -972,7 +991,7 @@ namespace Game.Core
                 Random rand = StaticRandom.GetRandomForThread();
 
                 // Rather than going through the overhead of building an array of all values up front, just remember what's been returned
-                List<int> used = new List<int>();
+                List<int> used = [];
                 int maxValue = start + rangeCount;
 
                 for (int i = 0; i < iterateCount; i++)
@@ -1002,17 +1021,55 @@ namespace Game.Core
 
                 // Reuse the other overload, just stop prematurely
 
-                int cntr = 0;
-                foreach (int retVal in RandomRange(start, rangeCount))
-                {
+                foreach (int retVal in RandomRange(start, rangeCount).Take(iterateCount))
                     yield return retVal;
 
-                    cntr++;
-                    if (cntr == iterateCount)
+                #endregion
+            }
+        }
+        public static IEnumerable<long> RandomRange(long start, long rangeCount, int iterateCount)
+        {
+            if (iterateCount > rangeCount)
+                iterateCount = (int)rangeCount;
+
+            if (iterateCount < rangeCount / 3 || rangeCount - start >= int.MaxValue)
+            {
+                #region While Loop
+
+                Random rand = StaticRandom.GetRandomForThread();
+
+                // Rather than going through the overhead of building an array of all values up front, just remember what's been returned
+                List<long> used = [];
+                long maxValue = start + rangeCount;
+
+                for (int i = 0; i < iterateCount; i++)
+                {
+                    // Find a value that hasn't been returned yet
+                    long retVal = 0;
+                    while (true)
                     {
-                        break;
+                        retVal = rand.NextInt64(start, maxValue);
+
+                        if (!used.Contains(retVal))
+                        {
+                            used.Add(retVal);
+                            break;
+                        }
                     }
+
+                    // Return this
+                    yield return retVal;
                 }
+
+                #endregion
+            }
+            else if (iterateCount > 0)
+            {
+                #region Maintain Array
+
+                // Reuse the other overload, just stop prematurely
+                foreach (int retVal in RandomRange(0, (int)(rangeCount - start)).Take(iterateCount))
+                    yield return retVal + start;
 
                 #endregion
             }
@@ -1028,20 +1085,17 @@ namespace Game.Core
         public static IEnumerable<int> RandomRange(int start, int rangeCount, int iterateCount, Func<int, int, int> rand)
         {
             if (iterateCount > rangeCount)
-            {
-                //throw new ArgumentOutOfRangeException(string.Format("iterateCount can't be greater than rangeCount.  iterateCount={0}, rangeCount={1}", iterateCount.ToString(), rangeCount.ToString()));
                 iterateCount = rangeCount;
-            }
 
             if (iterateCount < rangeCount * .15)
             {
                 #region While Loop
 
                 // Rather than going through the overhead of building an array of all values up front, just remember what's been returned
-                List<int> used = new List<int>();
+                List<int> used = [];
                 int maxValue = start + rangeCount;
 
-                for (int cntr = 0; cntr < iterateCount; cntr++)
+                for (int i = 0; i < iterateCount; i++)
                 {
                     // Find a value that hasn't been returned yet
                     int retVal = 0;
@@ -1076,6 +1130,61 @@ namespace Game.Core
                     int index = rand(0, available.Count);
 
                     yield return available[index];
+                    available.RemoveAt(index);
+                }
+
+                #endregion
+            }
+        }
+        public static IEnumerable<long> RandomRange(long start, long rangeCount, int iterateCount, Func<long, long, long> rand)
+        {
+            if (iterateCount > rangeCount)
+                iterateCount = (int)rangeCount;
+
+            if (iterateCount < rangeCount * .15 || rangeCount - start >= int.MaxValue)
+            {
+                #region While Loop
+
+                // Rather than going through the overhead of building an array of all values up front, just remember what's been returned
+                List<long> used = [];
+                long maxValue = start + rangeCount;
+
+                for (int i = 0; i < iterateCount; i++)
+                {
+                    // Find a value that hasn't been returned yet
+                    long retVal = 0;
+                    while (true)
+                    {
+                        retVal = rand(start, maxValue);
+
+                        if (!used.Contains(retVal))
+                        {
+                            used.Add(retVal);
+                            break;
+                        }
+                    }
+
+                    // Return this
+                    yield return retVal;
+                }
+
+                #endregion
+            }
+            else if (iterateCount > 0)
+            {
+                #region Destroy list
+
+                // Since the random passed in is custom, there is a good chance that the list the indices will be used for is sorted.
+                // So create a list of candidate indices, and whittle that down
+
+                List<int> available = new List<int>(Enumerable.Range(0, (int)(rangeCount - start)));
+
+                for (int i = 0; i < iterateCount; i++)
+                {
+                    long index_offset = rand(start, start + available.Count);
+                    int index = (int)(index_offset - start);
+
+                    yield return available[index] + start;
                     available.RemoveAt(index);
                 }
 
