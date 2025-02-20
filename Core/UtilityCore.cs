@@ -289,6 +289,32 @@ namespace Game.Core
             return retVal;
         }
 
+        private static readonly string[] SizeSuffixes = { "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
+        /// <summary>
+        /// Returns the number of bytes as a number below 1024 with the corresponding suffix
+        /// </summary>
+        /// <remarks>
+        /// https://stackoverflow.com/questions/14488796/does-net-provide-an-easy-way-convert-bytes-to-kb-mb-gb-etc
+        /// </remarks>
+        public static string Format_SizeSuffix(long value, int decimalPlaces = 1)
+        {
+            if (value < 0)
+                return "-" + Format_SizeSuffix(-value, decimalPlaces);
+
+            if (value == 0)
+                return "0 bytes";
+
+            int i = 0;
+            decimal dValue = (decimal)value;
+            while (Math.Round(dValue, decimalPlaces) >= 1000)
+            {
+                dValue /= 1024;
+                i++;
+            }
+
+            return string.Format("{0:n" + decimalPlaces + "} {1}", dValue, SizeSuffixes[i]);
+        }
+
         /// <summary>
         /// This takes the base 10 offset, converts to a base 26 number, and represents each of those as letters
         /// </summary>

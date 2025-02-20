@@ -12,6 +12,7 @@
     <PackageReference Include="Accord.Math" Version="3.8.0" />
     <PackageReference Include="Accord.Statistics" Version="3.8.0" />
     <PackageReference Include="GeneticSharp" Version="2.6.0" />
+    <PackageReference Include="Markdig" Version="0.40.0" />
     <PackageReference Include="Microsoft.ML" Version="1.7.1" />
     <PackageReference Include="Microsoft.ML.CpuMath" Version="1.7.1" />
     <PackageReference Include="Microsoft.ML.DataView" Version="1.7.1" />
