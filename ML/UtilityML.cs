@@ -78,6 +78,8 @@ namespace Game.ML
                 ToArray();
         }
 
+        // NOTE: client requires nuget reference to Accord.MachineLearning
+        // NOTE: be careful about sending too many vectors.  1000 is a good amount for speed, 10000 just hangs
         public static void TSNE(VectorND_Sparse[] vectors, TSNEArgs args)
         {
             TSNE(vectors.Select(o => o.ToDense()).ToArray(), args);
