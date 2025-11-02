@@ -103,14 +103,9 @@ namespace Game.Math_WPF.Mathematics
 
             int numDecimals = GetNumDecimals(value);
 
-            if (numDecimals < 0)
-            {
-                return ToStringSignificantDigits_PossibleScientific(value, significantDigits);
-            }
-            else
-            {
-                return ToStringSignificantDigits_Standard(value, significantDigits, true);
-            }
+            return numDecimals < 0 ?
+                ToStringSignificantDigits_PossibleScientific(value, significantDigits) :
+                ToStringSignificantDigits_Standard(value, significantDigits, true);
         }
 
         #endregion
@@ -189,14 +184,9 @@ namespace Game.Math_WPF.Mathematics
 
             int numDecimals = GetNumDecimals(value);
 
-            if (numDecimals < 0)
-            {
-                return ToStringSignificantDigits_PossibleScientific(value, significantDigits);
-            }
-            else
-            {
-                return ToStringSignificantDigits_Standard(value, significantDigits, true);
-            }
+            return numDecimals < 0 ?
+                ToStringSignificantDigits_PossibleScientific(value, significantDigits) :
+                ToStringSignificantDigits_Standard(value, significantDigits, true);
         }
 
         #endregion
@@ -211,14 +201,14 @@ namespace Game.Math_WPF.Mathematics
         public static bool IsNearZero(this Vector3 vector)
         {
             return vector.X.IsNearZero() &&
-                        vector.Y.IsNearZero() &&
-                        vector.Z.IsNearZero();
+                vector.Y.IsNearZero() &&
+                vector.Z.IsNearZero();
         }
         public static bool IsNearValue(this Vector3 vector, Vector3 compare)
         {
             return vector.X.IsNearValue(compare.X) &&
-                        vector.Y.IsNearValue(compare.Y) &&
-                        vector.Z.IsNearValue(compare.Z);
+                vector.Y.IsNearValue(compare.Y) &&
+                vector.Z.IsNearValue(compare.Z);
         }
 
         public static bool IsInvalid(this Vector3 vector)
@@ -353,19 +343,14 @@ namespace Game.Math_WPF.Mathematics
             // c = (a dot unit(b)) * unit(b)
 
             if (vector.IsNearZero() || alongVector.IsNearZero())
-            {
                 return new Vector3(0, 0, 0);
-            }
 
             Vector3 alongVectorUnit = Vector3.Normalize(alongVector);
 
             float length = Vector3.Dot(vector, alongVectorUnit);
 
             if (!eitherDirection && length < 0)
-            {
-                // It's in the oppositie direction, and that isn't allowed
-                return new Vector3(0, 0, 0);
-            }
+                return new Vector3(0, 0, 0);        // it's in the oppositie direction, and that isn't allowed
 
             return alongVectorUnit * length;
         }
@@ -391,9 +376,7 @@ namespace Game.Math_WPF.Mathematics
             Vector3 retVal = Vector3.Normalize(vector);
 
             if (!useNaNIfInvalid && retVal.IsInvalid())
-            {
                 retVal = new Vector3(0, 0, 0);
-            }
 
             return retVal;
         }
@@ -416,9 +399,7 @@ namespace Game.Math_WPF.Mathematics
         public static bool IsNearZero(this VectorND vector)
         {
             if (vector.VectorArray == null)
-            {
                 return true;
-            }
 
             return vector.VectorArray.All(o => o.IsNearZero());
         }
@@ -431,17 +412,11 @@ namespace Game.Math_WPF.Mathematics
         {
             double[] arr = vector.VectorArray;
             if (arr == null)
-            {
                 return false;       // it could be argued that this is invalid, but all the other types that have IsInvalid only consider the values that Math1D.IsInvalid looks at
-            }
 
             foreach (double value in arr)
-            {
                 if (Math1D.IsInvalid(value))
-                {
                     return true;
-                }
-            }
 
             return false;
         }
@@ -450,9 +425,7 @@ namespace Game.Math_WPF.Mathematics
         {
             double[] arr = vector.VectorArray;
             if (arr == null)
-            {
                 return "<null>";
-            }
 
             return arr.
                 Select(o => o.ToStringSignificantDigits(significantDigits, shouldRound)).
@@ -471,19 +444,14 @@ namespace Game.Math_WPF.Mathematics
             // c = (a dot unit(b)) * unit(b)
 
             if (vector.IsNearZero() || alongVector.IsNearZero())
-            {
                 return MathND.GetZeroVector(vector, alongVector);
-            }
 
             VectorND alongVectorUnit = alongVector.ToUnit();
 
             double length = VectorND.DotProduct(vector, alongVectorUnit);
 
             if (!eitherDirection && length < 0)
-            {
-                // It's in the oppositie direction, and that isn't allowed
-                return MathND.GetZeroVector(vector, alongVector);
-            }
+                return MathND.GetZeroVector(vector, alongVector);       // it's in the oppositie direction, and that isn't allowed
 
             return alongVectorUnit * length;
         }
@@ -495,9 +463,9 @@ namespace Game.Math_WPF.Mathematics
         public static bool IsNearValue(this Quaternion quaternion, Quaternion compare)
         {
             return quaternion.X.IsNearValue(compare.X) &&
-                        quaternion.Y.IsNearValue(compare.Y) &&
-                        quaternion.Z.IsNearValue(compare.Z) &&
-                        quaternion.W.IsNearValue(compare.W);
+                quaternion.Y.IsNearValue(compare.Y) &&
+                quaternion.Z.IsNearValue(compare.Z) &&
+                quaternion.W.IsNearValue(compare.W);
         }
 
         // The code is copied in each of these overloads, rather than make a private method to increase speed
@@ -508,9 +476,7 @@ namespace Game.Math_WPF.Mathematics
         public static void GetRotatedVector(this Quaternion quaternion, Vector3[] vectors)
         {
             for (int cntr = 0; cntr < vectors.Length; cntr++)
-            {
                 vectors[cntr] = Vector3.Transform(vectors[cntr], quaternion);
-            }
         }
 
         /// <summary>
@@ -523,13 +489,12 @@ namespace Game.Math_WPF.Mathematics
         public static float GetRadians(this Quaternion quaternion)
         {
             if (!quaternion.LengthSquared().IsNearValue(1f))
-            {
                 return quaternion.ToUnit().GetRadians();
-            }
 
             float qw = Math.Abs(quaternion.W);
             if (qw > 1)
                 return 0;
+
             return 2 * (float)Math.Acos(qw);
         }
         /// <summary>
@@ -544,9 +509,7 @@ namespace Game.Math_WPF.Mathematics
         public static (Vector3 axis, float radians) GetAxisRadians(this Quaternion quaternion)
         {
             if (!quaternion.LengthSquared().IsNearValue(1f))        // this isn't the same as the length of the axis
-            {
                 return quaternion.ToUnit().GetAxisRadians();
-            }
 
             Vector3 axis;
 
@@ -655,13 +618,10 @@ namespace Game.Math_WPF.Mathematics
         public static VectorND ToVectorND(this double[] values)
         {
             if (values == null)
-            {
                 throw new ArgumentNullException("values");
-            }
+
             else if (values.Length == 0)
-            {
                 throw new ArgumentOutOfRangeException("values", "This method requires the double array to be greater than length 0");
-            }
 
             return new VectorND(values);
         }
@@ -674,9 +634,14 @@ namespace Game.Math_WPF.Mathematics
         {
             double retVal = value;
 
-            if (retVal < int.MinValue) retVal = int.MinValue;
-            else if (retVal > int.MaxValue) retVal = int.MaxValue;
-            else if (Math1D.IsInvalid(retVal)) retVal = int.MaxValue;
+            if (retVal < int.MinValue)
+                retVal = int.MinValue;
+
+            else if (retVal > int.MaxValue)
+                retVal = int.MaxValue;
+
+            else if (Math1D.IsInvalid(retVal))
+                retVal = int.MaxValue;
 
             return Convert.ToInt32(retVal);
         }
@@ -684,8 +649,11 @@ namespace Game.Math_WPF.Mathematics
         {
             int retVal = ToIntSafe(Math.Ceiling(value));
 
-            if (retVal < 0) retVal = 0;
-            else if (retVal > 255) retVal = 255;
+            if (retVal < 0)
+                retVal = 0;
+
+            else if (retVal > 255)
+                retVal = 255;
 
             return Convert.ToByte(retVal);
         }
@@ -705,23 +673,13 @@ namespace Game.Math_WPF.Mathematics
         private static int GetNumDecimals_ToString(string text)
         {
             if (Regex.IsMatch(text, "[a-z]", RegexOptions.IgnoreCase))
-            {
-                // This is in exponential notation, just give up (or maybe NaN)
-                return -1;
-            }
+                return -1;      // this is in exponential notation, just give up (or maybe NaN)
 
             int decimalIndex = text.IndexOf(".");
 
-            if (decimalIndex < 0)
-            {
-                // It's an integer
-                return 0;
-            }
-            else
-            {
-                // Just count the decimals
-                return (text.Length - 1) - decimalIndex;
-            }
+            return decimalIndex < 0 ?
+                0 :     // it's an integer
+                (text.Length - 1) - decimalIndex;        // just count the decimals
         }
 
         private static string ToStringSignificantDigits_PossibleScientific(float value, int significantDigits)
@@ -749,10 +707,7 @@ namespace Game.Math_WPF.Mathematics
         {
             Match match = Regex.Match(textInvariant, @"^(?<num>(-|)\d\.\d+)(?<exp>E(-|)\d+)$");
             if (!match.Success)
-            {
-                // Unknown
-                return text;
-            }
+                return text;        // unknown
 
             string standard = ToStringSignificantDigits_Standard(Convert.ToDouble(match.Groups["num"].Value), significantDigits, false);
 
@@ -772,52 +727,32 @@ namespace Game.Math_WPF.Mathematics
             // Get the integer portion
             //long intPortion = Convert.ToInt64(Math.Truncate(value));		// going directly against the value for this (min could go from 1 to 1000.  1 needs two decimal places, 10 needs one, 100+ needs zero)
             BigInteger intPortion = new BigInteger(Math.Truncate(value));       // ran into a case that didn't fit in a long
-            int numInt;
-            if (intPortion == 0)
-            {
-                numInt = 0;
-            }
-            else
-            {
-                numInt = intPortion.ToString().Length;
-            }
+            int numInt = intPortion == 0 ?
+                0 :
+                intPortion.ToString().Length;
 
             // Limit the number of significant digits
             int numPlaces;
             if (numInt == 0)
-            {
                 numPlaces = significantDigits;
-            }
             else if (numInt >= significantDigits)
-            {
                 numPlaces = 0;
-            }
             else
-            {
                 numPlaces = significantDigits - numInt;
-            }
 
             // I was getting an exception from round, but couldn't recreate it, so I'm just throwing this in to avoid the exception
             if (numPlaces < 0)
-            {
                 numPlaces = 0;
-            }
             else if (numPlaces > 15)
-            {
                 numPlaces = 15;
-            }
 
             // Show a rounded number
             decimal rounded = Math.Round(value, numPlaces);
             int numActualDecimals = GetNumDecimals(rounded);
-            if (numActualDecimals < 0 || !useN)
-            {
-                return rounded.ToString();		// it's weird, don't try to make it more readable
-            }
-            else
-            {
-                return rounded.ToString("N" + numActualDecimals);
-            }
+
+            return numActualDecimals < 0 || !useN ?
+                rounded.ToString() :     // it's weird, don't try to make it more readable
+                rounded.ToString("N" + numActualDecimals);
         }
 
         #endregion

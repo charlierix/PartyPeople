@@ -143,6 +143,24 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
 
         #endregion
 
+        #region Public Methods
+
+        public void LoadSceneDirect(LogScene scene)
+        {
+            try
+            {
+                grdFilename.Visibility = Visibility.Collapsed;      // if this public function is called, then the viewer is being shown programatically and there won't be a log file
+
+                LoadScene(scene);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        #endregion
+
         #region Event Listeners
 
         private void Window_Loaded(object sender, RoutedEventArgs e)

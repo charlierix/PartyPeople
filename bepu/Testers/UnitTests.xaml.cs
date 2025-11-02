@@ -1,7 +1,8 @@
 ﻿using Game.Core;
 using Game.Math_WPF.Mathematics;
 using Game.Math_WPF.WPF;
-using Game.Math_WPF.WPF.Controls3D;
+using Game.Math_WPF.WPF.DebugLogViewer;
+using Game.Math_WPF.WPF.DebugLogViewer.Models;
 using Game.Math_WPF.WPF.Viewers;
 using NetOctree.Octree;
 using System;
@@ -28,6 +29,126 @@ namespace Game.Bepu.Testers
     /// </remarks>
     public partial class UnitTests : Window
     {
+        #region class: SamplePoints
+
+        /// <summary>
+        /// These are relative to center of body and body forward/up (from PlayerRagdollUtil)
+        /// </summary>
+        public class SamplePoints
+        {
+            public Vector3 HeadPos { get; set; }
+            public Vector3 HeadForward { get; set; }
+            public Vector3 HeadUp { get; set; }
+
+            public Vector3 LeftPos { get; set; }
+            public Vector3 LeftForward { get; set; }
+            public Vector3 LeftUp { get; set; }
+
+            public Vector3 RightPos { get; set; }
+            public Vector3 RightForward { get; set; }
+            public Vector3 RightUp { get; set; }
+
+            public float[] ToVector()
+            {
+                return ToVector(this);
+            }
+            public static float[] ToVector(SamplePoints sample)
+            {
+                if (sample == null)
+                    throw new ArgumentNullException(nameof(sample));
+
+                return new float[]
+                {
+                    sample.HeadPos.X, sample.HeadPos.Y, sample.HeadPos.Z,
+                    sample.HeadForward.X, sample.HeadForward.Y, sample.HeadForward.Z,
+                    sample.HeadUp.X, sample.HeadUp.Y, sample.HeadUp.Z,
+
+                    sample.LeftPos.X, sample.LeftPos.Y, sample.LeftPos.Z,
+                    sample.LeftForward.X, sample.LeftForward.Y, sample.LeftForward.Z,
+                    sample.LeftUp.X, sample.LeftUp.Y, sample.LeftUp.Z,
+
+                    sample.RightPos.X, sample.RightPos.Y, sample.RightPos.Z,
+                    sample.RightForward.X, sample.RightForward.Y, sample.RightForward.Z,
+                    sample.RightUp.X, sample.RightUp.Y, sample.RightUp.Z
+                };
+            }
+            public static SamplePoints FromVector(float[] vector)
+            {
+                if (vector == null)
+                    throw new ArgumentNullException(nameof(vector));
+
+                if (vector.Length != 27)
+                    throw new ArgumentException($"vector needs to be length 27: {vector.Length}");
+
+                var head_dirs = GetRepairedForwardUp(new Vector3(vector[3], vector[4], vector[5]), new Vector3(vector[6], vector[7], vector[8]));
+                var left_dirs = GetRepairedForwardUp(new Vector3(vector[12], vector[13], vector[14]), new Vector3(vector[15], vector[16], vector[17]));
+                var right_dirs = GetRepairedForwardUp(new Vector3(vector[21], vector[22], vector[23]), new Vector3(vector[24], vector[25], vector[26]));
+
+                return new SamplePoints
+                {
+                    HeadPos = new Vector3(vector[0], vector[1], vector[2]),
+                    HeadForward = head_dirs.forward,
+                    HeadUp = head_dirs.up,
+
+                    LeftPos = new Vector3(vector[9], vector[10], vector[11]),
+                    LeftForward = left_dirs.forward,
+                    LeftUp = left_dirs.up,
+
+                    RightPos = new Vector3(vector[18], vector[19], vector[20]),
+                    RightForward = right_dirs.forward,
+                    RightUp = right_dirs.up,
+                };
+            }
+
+            public static float[] GetWeights(float headPos = 1, float headForward = 1, float headUp = 1, float leftPos = 1, float leftForward = 1, float leftUp = 1, float rightPos = 1, float rightForward = 1, float rightUp = 1)
+            {
+                return [
+                    headPos, headPos, headPos,
+                    headForward, headForward, headForward,
+                    headUp, headUp, headUp,
+                    leftPos, leftPos, leftPos,
+                    leftForward, leftForward, leftForward,
+                    leftUp, leftUp, leftUp,
+                    rightPos, rightPos, rightPos,
+                    rightForward, rightForward, rightForward,
+                    rightUp, rightUp, rightUp];
+            }
+
+            internal static (Vector3 forward, Vector3 up) GetRepairedForwardUp(Vector3 forward, Vector3 up)
+            {
+                forward = forward.ToUnit();
+                up = up.ToUnit();
+
+                float dot = Vector3.Dot(forward, up);
+
+                // If already perpendicular (or nearly so), return as is
+                if (dot.IsNearZero())
+                    return (forward, up);
+
+                if (Math.Abs(dot).IsNearValue(1))
+                    return (forward, Math3D.GetArbitraryOrthogonal(forward.ToVector_wpf()).ToVector3());        // special case where they are parallel or opposed.  there's no good correct answer, so assume that forward is correct and return an arbitrary up
+
+                // Create a perpendicular vector using cross product
+                Vector3 perpendicular = Vector3.Cross(forward, up).ToUnit();
+                //Vector3 mid = Math3D.GetAverage(forward.ToVector_wpf(), up.ToVector_wpf()).ToUnit().ToVector3();
+
+                double angle = Math.Acos(Math.Clamp(dot, -1, 1));
+                angle = Math1D.RadiansToDegrees(angle);
+                angle = 90 - angle;
+
+                var quat = new System.Windows.Media.Media3D.Quaternion(perpendicular.ToVector_wpf(), -angle / 2);
+
+                forward = quat.GetRotatedVector(forward.ToVector_wpf()).ToVector3();
+
+                quat.Invert();
+                up = quat.GetRotatedVector(up.ToVector_wpf()).ToVector3();
+
+                return (forward, up);
+            }
+        }
+
+        #endregion
+
         #region Constructor
 
         public UnitTests()
@@ -859,6 +980,265 @@ namespace Game.Bepu.Testers
             }
         }
 
+        private void KMeans_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var samples = GetKMeansSamples_PureRandom(true);
+
+
+                // Cluster
+                var results = KMeansClusterer.DoClustering(samples.samples_kmeans, 4);
+
+                var results2 = KMeansClusterer.SortItemsByDistFromCenters(results);
+
+
+
+                //// Repair Forward/Up
+                //var tests = Enumerable.Range(0, 12).
+                //    Select(o => new
+                //    {
+                //        forward = Math3D.GetRandomVector_Spherical(0.5, 2),
+                //        up = Math3D.GetRandomVector_Spherical(0.5, 2),
+                //    }).
+                //    Select(o => new
+                //    {
+                //        o.forward,
+                //        o.up,
+                //        repaired = SamplePoints.GetRepairedForwardUp(o.forward.ToVector3(), o.up.ToVector3()),
+                //    }).
+                //    ToArray();
+
+                //var sizes = Debug3DWindow.GetDrawSizes(4);
+
+                //foreach (var test in tests)
+                //{
+                //    var window = new Debug3DWindow();
+
+                //    window.AddLine(new Point3D(), test.forward.ToPoint(), sizes.line, Colors.White);
+                //    window.AddLine(new Point3D(), test.up.ToPoint(), sizes.line, Colors.White);
+
+                //    window.AddLine(new Point3D(), test.repaired.forward.ToPoint_wpf(), sizes.line, Colors.Chartreuse);
+                //    window.AddLine(new Point3D(), test.repaired.up.ToPoint_wpf(), sizes.line, Colors.Chartreuse);
+
+                //    window.AddText($"before: {Vector3D.AngleBetween(test.forward, test.up).ToStringSignificantDigits(3)}");
+                //    window.AddText($"after: {Vector3D.AngleBetween(test.repaired.forward.ToVector_wpf(), test.repaired.up.ToVector_wpf()).ToStringSignificantDigits(3)}");
+
+                //    window.Show();
+                //}
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void KMeansElbow_Click(object sender, RoutedEventArgs e)
+        {
+            const double DIR_LEN = 0.15;
+            const double GRAPH_SIZE = 4;
+            const bool INCLUDE_DIRECTIONS = false;
+
+            try
+            {
+                // NOTE: the sample data being pure random makes this test difficult to see results, but it still proves that
+                // it works and will be further proven in vr with real data
+
+                var samples = GetKMeansSamples_PureRandom(INCLUDE_DIRECTIONS);
+                //float[] weights = SamplePoints.GetWeights(0.5f, 0, 0, 2, 0, 0, 2, 0, 0);
+                float[] weights = SamplePoints.GetWeights(1, 0, 0, 0, 0, 0, 0, 0, 0);
+
+
+
+                var results = KMeansClusterer.DoClustering(samples.samples_kmeans, weights, true);
+
+                #region draw chart
+
+                // draw line graph of k vs sum squares, also draw line from [0] to [^1]
+                var window = new Debug3DWindow();
+
+                var sizes = Debug3DWindow.GetDrawSizes(GRAPH_SIZE);
+
+                var graph = Debug3DWindow.GetGraph(results.Runs.Select(o => (double)o.sse).ToArray());      // sse by k
+                window.AddGraph(graph, new Point3D(0, 0, -0.01), GRAPH_SIZE);
+
+                //graph = Debug3DWindow.GetGraph([(double)results.Runs[0].sse, (double)results.Runs[^1].sse]);      // can't just give 2 points, the number of items needs to be the same as previous graph so the x's line up
+                var trend_points = Enumerable.Range(0, results.Runs.Length).
+                    Select(o => UtilityMath.GetScaledValue_Capped(results.Runs[0].sse, results.Runs[^1].sse, 0, results.Runs.Length - 1, o)).       // line from k=1 to k=max
+                    ToArray();
+                graph = Debug3DWindow.GetGraph(trend_points);
+
+                window.AddGraph(graph, new Point3D(0, 0, 0.01), GRAPH_SIZE);
+
+                window.AddText(results.Runs.
+                    Select((o, i) => $"{o.k}: {UtilityCore.Format_ThousandsSuffix((long)o.distance)}{(i == results.BestIndex ? " [winner]" : "")}").
+                    ToJoin(Environment.NewLine));
+
+                window.Show();
+
+                #endregion
+                #region draw clusters
+
+                // draw a set of results (page slider at bottom) showing cluster results (mark the chosen one with some kind of color)
+                var window2 = new DebugLogWindow();
+
+                var frames = new List<LogFrame>();
+
+                var colors = UtilityWPF.GetRandomColors(results.Runs.Length, 64, 250);
+
+                var categories = Enumerable.Range(0, results.Runs.Length).
+                    Select(o => new Category
+                    {
+                        name = results.Runs[o].k.ToString(),
+                        size_mult = 1,
+                        color = colors[o],
+                    }).
+                    ToArray();
+
+                var items = new List<ItemBase>();
+
+                var add_sample_set = new Action<SamplePoints, int, double>((samp, cat, scale) =>
+                {
+                    // head
+                    items.Add(new ItemDot
+                    {
+                        position = samp.HeadPos.ToPoint_wpf(),
+                        category = categories[cat],
+                        size_mult = scale,
+                    });
+
+                    if (INCLUDE_DIRECTIONS)
+                    {
+                        items.Add(new ItemLine
+                        {
+                            point1 = samp.HeadPos.ToPoint_wpf(),
+                            point2 = samp.HeadPos.ToPoint_wpf() + (samp.HeadForward.ToVector_wpf() * DIR_LEN * scale),
+                            category = categories[cat],
+                            size_mult = scale,
+                        });
+
+                        items.Add(new ItemLine
+                        {
+                            point1 = samp.HeadPos.ToPoint_wpf(),
+                            point2 = samp.HeadPos.ToPoint_wpf() + (samp.HeadUp.ToVector_wpf() * DIR_LEN * scale),
+                            category = categories[cat],
+                            size_mult = scale,
+                        });
+                    }
+
+                    // left
+                    items.Add(new ItemDot
+                    {
+                        position = samp.LeftPos.ToPoint_wpf(),
+                        category = categories[cat],
+                        size_mult = scale * 0.25,
+                    });
+
+                    if (INCLUDE_DIRECTIONS)
+                    {
+                        items.Add(new ItemLine
+                        {
+                            point1 = samp.LeftPos.ToPoint_wpf(),
+                            point2 = samp.LeftPos.ToPoint_wpf() + (samp.LeftForward.ToVector_wpf() * DIR_LEN * scale),
+                            category = categories[cat],
+                            size_mult = scale,
+                        });
+
+                        items.Add(new ItemLine
+                        {
+                            point1 = samp.LeftPos.ToPoint_wpf(),
+                            point2 = samp.LeftPos.ToPoint_wpf() + (samp.LeftUp.ToVector_wpf() * DIR_LEN * scale),
+                            category = categories[cat],
+                            size_mult = scale,
+                        });
+                    }
+
+                    // right
+                    items.Add(new ItemDot
+                    {
+                        position = samp.RightPos.ToPoint_wpf(),
+                        category = categories[cat],
+                        size_mult = scale * 0.25,
+                    });
+
+                    if (INCLUDE_DIRECTIONS)
+                    {
+                        items.Add(new ItemLine
+                        {
+                            point1 = samp.RightPos.ToPoint_wpf(),
+                            point2 = samp.RightPos.ToPoint_wpf() + (samp.RightForward.ToVector_wpf() * DIR_LEN * scale),
+                            category = categories[cat],
+                            size_mult = scale,
+                        });
+
+                        items.Add(new ItemLine
+                        {
+                            point1 = samp.RightPos.ToPoint_wpf(),
+                            point2 = samp.RightPos.ToPoint_wpf() + (samp.RightUp.ToVector_wpf() * DIR_LEN * scale),
+                            category = categories[cat],
+                            size_mult = scale,
+                        });
+                    }
+
+                    // links
+                    items.Add(new ItemLine
+                    {
+                        point1 = samp.HeadPos.ToPoint_wpf(),
+                        point2 = samp.LeftPos.ToPoint_wpf(),
+                        category = categories[cat],
+                        color = Color.FromArgb(32, categories[cat].color.Value.R, categories[cat].color.Value.G, categories[cat].color.Value.B), 
+                        size_mult = 0.5 * scale,
+                    });
+
+                    items.Add(new ItemLine
+                    {
+                        point1 = samp.HeadPos.ToPoint_wpf(),
+                        point2 = samp.RightPos.ToPoint_wpf(),
+                        category = categories[cat],
+                        color = Color.FromArgb(32, categories[cat].color.Value.R, categories[cat].color.Value.G, categories[cat].color.Value.B),
+                        size_mult = 0.5 * scale,
+                    });
+                });
+
+                for (int i = 0; i < results.Runs.Length; i++)
+                {
+                    var run = results.Runs[i];
+                    items.Clear();
+
+                    for (int j = 0; j < run.clusters.Length; j++)
+                    {
+                        // generate a sample from the center
+                        var center = SamplePoints.FromVector(run.clusters[j].Center);
+                        add_sample_set(center, j, 2);
+
+                        foreach (var sample in run.clusters[j].Items)
+                            add_sample_set(sample.Source, j, 1);
+                    }
+
+                    frames.Add(new LogFrame
+                    {
+                        name = $"count: {run.k}{(i == results.BestIndex ? " [winner]" : "")}",
+                        items = items.ToArray(),
+                    });
+                }
+
+                var scene = new LogScene
+                {
+                    categories = categories,
+                    frames = frames.ToArray(),
+                };
+
+                window2.LoadSceneDirect(scene);
+                window2.Show();
+
+                #endregion
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void ClosestSegmentSegment_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -995,6 +1375,43 @@ namespace Game.Bepu.Testers
                     string filename = System.IO.Path.Combine(txtFolder.Text, $"icosahedron {i}.json");
                     File.WriteAllText(filename, json);
                 }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void IcoUniqueLines_Click(object sender, RoutedEventArgs e)
+        {
+            // this is used for drawing a wireframe sphere (PerfectlyNormalBaS.DebugRenderer3D.AddWireframeSphere)
+            try
+            {
+                var report = new StringBuilder();
+
+                for (int i = 0; i <= 1; i++)
+                {
+                    var ico = Polytopes.GetIcosahedron(1, i);       // 0 recursions is 20 faces, 1 recursion is 80
+
+                    var lines = TriangleIndexed_wpf.GetUniqueLines(ico);
+
+                    var points = ico[0].AllPoints;
+
+                    report.AppendLine($"---------- {i} recursions ----------");
+                    report.AppendLine("### doubles ###");
+
+                    foreach (var line in lines)
+                        report.AppendLine($"({points[line.Item1].X}, {points[line.Item1].Y}, {points[line.Item1].Z}) - ({points[line.Item2].X}, {points[line.Item2].Y}, {points[line.Item2].Z})");
+
+                    report.AppendLine();
+                    report.AppendLine("### floats ###");
+
+                    foreach (var line in lines)
+                        report.AppendLine($"({(float)points[line.Item1].X}f, {(float)points[line.Item1].Y}f, {(float)points[line.Item1].Z}f) - ({(float)points[line.Item2].X}f, {(float)points[line.Item2].Y}f, {(float)points[line.Item2].Z}f)");
+
+                    report.AppendLine();
+                }
+
+                Clipboard.SetText(report.ToString());
             }
             catch (Exception ex)
             {
@@ -1336,6 +1753,45 @@ namespace Game.Bepu.Testers
             json.AppendLine("}");
 
             return json.ToString();
+        }
+
+        // TODO: make a version that constrains left to a box or front box, head to a small box, right to opposite of left's boxs
+        // the directions should also be more sensible, maybe somewhat dependent on position
+        private static (SamplePoints[] samples_vr, KMeansClusterer.Sample<SamplePoints>[] samples_kmeans) GetKMeansSamples_PureRandom(bool include_directions)
+        {
+            // Make some sample points (the positions don't make sense, but it's enough to test the clusterer)
+            Vector3D min = new Vector3D(-12, -12, -12);
+            Vector3D max = new Vector3D(12, 12, 12);
+
+            var samples_vr = Enumerable.Range(0, 256).
+                Select(o => new SamplePoints
+                {
+                    HeadPos = Math3D.GetRandomVector(min, max).ToVector3(),
+                    HeadForward = include_directions ? Math3D.GetRandomVector_Spherical_Shell(1).ToVector3() : new Vector3(),
+                    LeftPos = Math3D.GetRandomVector(min, max).ToVector3(),
+                    LeftForward = include_directions ? Math3D.GetRandomVector_Spherical_Shell(1).ToVector3() : new Vector3(),
+                    RightPos = Math3D.GetRandomVector(min, max).ToVector3(),
+                    RightForward = include_directions ? Math3D.GetRandomVector_Spherical_Shell(1).ToVector3() : new Vector3(),
+                }).
+                ToArray();
+
+            for (int i = 0; i < samples_vr.Length; i++)
+            {
+                samples_vr[i].HeadUp = include_directions ? Math3D.GetArbitraryOrthogonal(samples_vr[i].HeadForward.ToVector_wpf()).ToVector3() : new Vector3();
+                samples_vr[i].LeftUp = include_directions ? Math3D.GetArbitraryOrthogonal(samples_vr[i].LeftForward.ToVector_wpf()).ToVector3() : new Vector3();
+                samples_vr[i].RightUp = include_directions ? Math3D.GetArbitraryOrthogonal(samples_vr[i].RightForward.ToVector_wpf()).ToVector3() : new Vector3();
+            }
+
+            // Make inputs that the clusterer can use
+            var samples_kmeans = samples_vr.
+                Select(o => new KMeansClusterer.Sample<SamplePoints>
+                {
+                    Vector = o.ToVector(),
+                    Source = o,
+                }).
+                ToArray();
+
+            return (samples_vr, samples_kmeans);
         }
 
         #endregion

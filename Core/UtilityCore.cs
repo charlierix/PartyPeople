@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -313,6 +314,41 @@ namespace Game.Core
             }
 
             return string.Format("{0:n" + decimalPlaces + "} {1}", dValue, SizeSuffixes[i]);
+        }
+
+        private static readonly string[] ThousandsSuffixes = [
+            "",
+            "K", "M", "B", "T", "Qd", "Qn", "Sx", "Sp", "Oc", "No",                         // 1e+3 - 1e+30
+            "De", "UDe", "DDe", "TDe", "QdDe", "QnDe", "SxDe", "SpDe", "OcDe", "NoDe",      // 1e+33 - 1e+60
+            "Vt", "UVt", "DVt", "TVt", "QdVt", "QnVt", "SxVt", "SpVt", "OcVt", "NoVt",      // 1e+63 - 1e+90
+            "Tg", "UTg", "DTg", "TTg", "QdTg", "QnTg", "SxTg", "SpTg", "OcTg", "NoTg",      // 1e+93 - 1e+120
+            "qg", "Uqg", "Dqg", "Tqg", "Qdqg", "Qnqg", "Sxqg", "Spqg", "Ocqg", "Noqg",      // 1e+123 - 1e+150
+            "Qg", "UQg", "DQg", "TQg", "QdQg", "QnQg", "SxQg", "SpQg", "OcQg", "NoQg"];     // 1e+153 - 1e+180
+        /// <summary>
+        /// Rounds to the nearest 1000 and gives a suffix (3,084 is 3K, 4,123,123,123 is 4B)
+        /// </summary>
+        /// <remarks>
+        /// https://button-simulatored.fandom.com/wiki/Suffix_List
+        /// 
+        /// TODO: may want to support BigInteger, but would need to use something besides decimal for rounding
+        /// </remarks>
+        public static string Format_ThousandsSuffix(long value, int decimalPlaces = 1)
+        {
+            if (value < 0)
+                return "-" + Format_ThousandsSuffix(-value, decimalPlaces);
+
+            if (value == 0)
+                return "0";
+
+            int i = 0;
+            decimal dValue = (decimal)value;
+            while (Math.Round(dValue, decimalPlaces) >= 1000)
+            {
+                dValue /= 1000;
+                i++;
+            }
+
+            return string.Format("{0:n" + decimalPlaces + "}{1}{2}", dValue, ThousandsSuffixes[i].Length > 0 ? " " : "", ThousandsSuffixes[i]);
         }
 
         /// <summary>

@@ -31,7 +31,7 @@
 
         <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="6,6,6,0">
             <!-- Filename -->
-            <Grid>
+            <Grid x:Name="grdFilename">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="auto"/>
                     <ColumnDefinition Width="4"/>
