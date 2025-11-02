@@ -1,9 +1,11 @@
-﻿using Game.Core;
+﻿using Accord.MachineLearning.Boosting;
+using Game.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Documents;
 
 namespace Game.Math_WPF.Mathematics
 {
@@ -36,16 +38,6 @@ namespace Game.Math_WPF.Mathematics
         }
 
         #endregion
-        #region class: ElbowResult
-
-        private class ElbowResult<T>
-        {
-            public int NumClusters { get; set; }
-            public Cluster<T>[] Result { get; set; }
-            public float SumSquares { get; set; }
-        }
-
-        #endregion
         #region class: ElbowRunStats
 
         public class ElbowRunStats<T>
@@ -71,6 +63,7 @@ namespace Game.Math_WPF.Mathematics
 
         #endregion
 
+
         /// <summary>
         /// This does multiple kmeans and uses elbow method to return the one with the best number of clusters
         /// </summary>
@@ -83,7 +76,7 @@ namespace Game.Math_WPF.Mathematics
         /// True: use if doing analysis/visualization of all the data
         /// False: only the optimal cluster is left populated.  this is more memory efficient and is what should be used in production
         /// </param>
-        public static ElbowRunStats<T> DoClustering<T>(IList<Sample<T>> data, float[] weights = null, bool keep_all_clusters = false)
+        public static ElbowRunStats<T> DoClustering_ATTEMPT1<T>(IList<Sample<T>> data, float[] weights = null, bool keep_all_clusters = false)
         {
             if (data == null || data.Count == 0)
                 return new ElbowRunStats<T>
@@ -170,6 +163,15 @@ namespace Game.Math_WPF.Mathematics
             };
         }
 
+        public static Cluster<T>[] DoClustering<T>(IList<Sample<T>> data, float[] weights = null)
+        {
+            return DoClustering_private(data, weights, false).Result;
+        }
+        public static ElbowRunStats<T> DoClustering_Debug<T>(IList<Sample<T>> data, float[] weights = null)
+        {
+            return DoClustering_private(data, weights, true);
+        }
+
         public static Cluster<T>[] DoClustering<T>(IList<Sample<T>> data, int num_clusters, float[] weights = null)
         {
             if (data == null)
@@ -236,10 +238,91 @@ namespace Game.Math_WPF.Mathematics
 
         #region Private Methods - elbow
 
-        private static ElbowResult<T> GetElbowSample<T>(int num_clusters, IList<Sample<T>> data)
+        private static ElbowRunStats<T> DoClustering_private<T>(IList<Sample<T>> data, float[] weights = null, bool keep_all_clusters = false)
+        {
+            if (data == null || data.Count == 0)
+                return new ElbowRunStats<T>
+                {
+                    BestIndex = -1,
+                    MinK = 0,
+                    MaxK = 0,
+                    Runs = [],
+                };
+
+            if (weights == null)
+                weights = Enumerable.Range(0, data[0].Vector.Length).
+                    Select(o => 1f).
+                    ToArray();
+
+            if (weights.Length != data[0].Vector.Length)
+                throw new InvalidOperationException($"weights isn't same length as first sample's vector length.  weights: {weights.Length}, vector: {data[0].Vector.Length}");
+
+            // Determine the maximum number of clusters to test
+            int maxK = Math.Max(2, (int)Math.Sqrt(data.Count));
+
+            // Store (k, sse) pairs for all tested cluster counts
+            //var kSSEList = new List<(int k, float sse, Cluster<T>[] clusters)>();
+            var runs = new ElbowRunStats_Run<T>[maxK];
+
+            runs[0] = GetElbowRun_Initial(1, data, weights);
+            runs[^1] = GetElbowRun_Initial(maxK, data, weights);
+
+            // Extract first and last (k, sse) points for line reference
+            var first = runs[0];
+            var last = runs[^1];
+            int optimalIndex = 0;
+            float maxDistance = 0f;
+
+            // Loop through all points except the first and last to find the maximum perpendicular distance
+            for (int i = 1; i < runs.Length - 1; i++)
+            {
+                runs[i] = GetElbowRun_Initial(i + 1, data, weights);
+
+                runs[i].distance = GetElbowDist(runs[i].k, runs[i].sse, first.k, first.sse, last.k, last.sse);
+
+                if (runs[i].distance > maxDistance)
+                {
+                    maxDistance = runs[i].distance;
+                    optimalIndex = i;
+
+                    if (!keep_all_clusters)
+                        runs[i - 1].clusters = null;        // (i starts at one, so i-1 is safe) it might already be null, but it also might have been the prev winner
+                }
+                else
+                {
+                    if (!keep_all_clusters)
+                        runs[i].clusters = null;
+                }
+            }
+
+            // Fallback: if no elbow is found, use the last k (lowest SSE)
+            if (maxDistance == 0)
+            {
+                optimalIndex = runs.Length - 1;
+
+                if (!keep_all_clusters)
+                    runs[^2].clusters = null;
+            }
+            else
+            {
+                if (!keep_all_clusters)
+                    runs[^1].clusters = null;
+            }
+
+            // Return final clustering with the chosen optimal number of clusters
+            return new ElbowRunStats<T>
+            {
+                MinK = first.k,
+                MaxK = last.k,
+                BestIndex = optimalIndex,
+                Runs = runs.ToArray(),
+            };
+        }
+
+        private static ElbowRunStats_Run<T> GetElbowRun_Initial<T>(int k, IList<Sample<T>> data, float[] weights)
         {
             // Perform clustering for k clusters (Assume a method DoClustering is available)
-            Cluster<T>[] clusters = DoClustering(data, num_clusters);
+            Cluster<T>[] clusters = DoClustering(data, k, weights);
 
             // Compute the total within-cluster sum of squares (WSS)
             float totalSSE = 0f;
@@ -248,13 +331,14 @@ namespace Game.Math_WPF.Mathematics
                 for (int i = 0; i < cluster.Item_DistSqr_FromCenter.Length; i++)
                     totalSSE += cluster.Item_DistSqr_FromCenter[i];
 
-            return new ElbowResult<T>
+            return new ElbowRunStats_Run<T>
             {
-                NumClusters = num_clusters,
-                Result = clusters,
-                SumSquares = totalSSE,
+                k = k,
+                sse = totalSSE,
+                clusters = clusters,
             };
         }
+
 
         private static float GetElbowDist(int num_clusters, float sumSquares, int first_numclusters, float first_sumsqr, int last_numclusters, float last_sumsqr)
         {

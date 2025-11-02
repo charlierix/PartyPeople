@@ -1050,7 +1050,10 @@ namespace Game.Bepu.Testers
 
 
 
-                var results = KMeansClusterer.DoClustering(samples.samples_kmeans, weights, true);
+                var results1 = KMeansClusterer.DoClustering(samples.samples_kmeans, weights);
+                var results = KMeansClusterer.DoClustering_Debug(samples.samples_kmeans, weights);
+
+
 
                 #region draw chart
 
@@ -1186,7 +1189,7 @@ namespace Game.Bepu.Testers
                         point1 = samp.HeadPos.ToPoint_wpf(),
                         point2 = samp.LeftPos.ToPoint_wpf(),
                         category = categories[cat],
-                        color = Color.FromArgb(32, categories[cat].color.Value.R, categories[cat].color.Value.G, categories[cat].color.Value.B), 
+                        color = Color.FromArgb(32, categories[cat].color.Value.R, categories[cat].color.Value.G, categories[cat].color.Value.B),
                         size_mult = 0.5 * scale,
                     });
 
@@ -1215,11 +1218,16 @@ namespace Game.Bepu.Testers
                             add_sample_set(sample.Source, j, 1);
                     }
 
-                    frames.Add(new LogFrame
+                    string text = $"count: {run.k}{(i == results.BestIndex ? " [winner]" : "")}";
+
+                    var frame = new LogFrame
                     {
-                        name = $"count: {run.k}{(i == results.BestIndex ? " [winner]" : "")}",
+                        name = text,
+                        text = [new Text { text = text }],
                         items = items.ToArray(),
-                    });
+                    };
+
+                    frames.Add(frame);
                 }
 
                 var scene = new LogScene
