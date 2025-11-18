@@ -22,5 +22,10 @@ namespace Game.Math_WPF.WPF.DebugLogViewer.Models
         public Vector3D axis_z { get; init; }
 
         public double size { get; init; }
+
+        public override Point3D[] GetPoints()
+        {
+            return [position, position + axis_x, position + axis_y, position + axis_z];
+        }
     }
 }

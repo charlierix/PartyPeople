@@ -177,6 +177,8 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                     //InertiaPercentRetainPerSecond_Angular = ???,
                 };
                 _trackball.Mappings.AddRange(TrackBallMapping.GetPrebuilt(TrackBallMapping.PrebuiltMapping.MouseComplete));
+                _trackball.MouseWheelScale /= 4;
+                _trackball.PanScale /= 4;
                 //_trackball.GetOrbitRadius += new GetOrbitRadiusHandler(Trackball_GetOrbitRadius);
 
                 LoadSettings();
@@ -590,7 +592,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             if (_scene.frames.Length > 0)
                 ShowFrame(_scene.frames[0]);
 
-            Util_Creation.ShowText(panelGlobalText, _scene.text, _defaultBrushes.Text_Brush);
+            Util_Creation.ShowText(panelGlobalText, _scene.text, _defaultBrushes.Text_Brush, new Util_Creation.DrawSizes());        // font size is constant, so don't take the expense of getting all points from all frames, just to be ignored
 
             RefreshColors();
         }
@@ -622,9 +624,11 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                 OrderBy(o => o.sort_val).
                 Select(o => o.item);
 
+            var sizes = Util_Creation.GetDrawSizes(frame);
+
             foreach (var item in sorted_items)
             {
-                Visual3D visual = Util_Creation.GetVisual(item, _defaultBrushes, _lines_defaultColor);
+                Visual3D visual = Util_Creation.GetVisual(item, _defaultBrushes, _lines_defaultColor, sizes);
                 if (visual == null)
                     continue;
 
@@ -647,7 +651,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                 _hasAutoSetCamera = true;
             }
 
-            Util_Creation.ShowText(panelFrameText, frame.text, _defaultBrushes.Text_Brush);
+            Util_Creation.ShowText(panelFrameText, frame.text, _defaultBrushes.Text_Brush, sizes);
 
             RefreshColors();
         }

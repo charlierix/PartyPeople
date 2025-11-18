@@ -4,9 +4,6 @@ using Game.Math_WPF.WPF.DebugLogViewer.Models;
 using Game.Math_WPF.WPF.Viewers;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -23,28 +20,31 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
     /// </remarks>
     public static class Util_Creation
     {
-        private const double SIZE_DOT = 0.06;
-        private const double SIZE_LINE = 0.025;
-        private const double SIZE_CIRCLE = 0.025;
-        private const double FONTSIZE = 11;
+        public class DrawSizes
+        {
+            public double Dot = 0.06;
+            public double Line = 0.025;
+            public double Circle = 0.025;
+            public double FontSize = 11;
+        }
 
         /// <summary>
         /// Creates an individual 3D item
         /// </summary>
-        public static Visual3D GetVisual(ItemBase item, DefaultColorBrushes defaultBrushes, List<BillboardLine3DSet> lines_defaultColor)
+        public static Visual3D GetVisual(ItemBase item, DefaultColorBrushes defaultBrushes, List<BillboardLine3DSet> lines_defaultColor, DrawSizes sizes)
         {
             if (item is ItemDot dot)
-                return GetVisual_Dot(dot, defaultBrushes.Dot_Brush);
+                return GetVisual_Dot(dot, defaultBrushes.Dot_Brush, sizes);
 
             if (item is ItemCircle_Edge circle)
-                return GetVisual_Circle(circle, defaultBrushes.Circle_Brush);
+                return GetVisual_Circle(circle, defaultBrushes.Circle_Brush, sizes);
 
             if (item is ItemSquare_Filled square)
                 return GetVisual_Square(square, defaultBrushes.Square_Brush);
 
             if (item is ItemLine line)
             {
-                var lineVisual = GetVisual_Line(line, defaultBrushes.Line_Color);
+                var lineVisual = GetVisual_Line(line, defaultBrushes.Line_Color, sizes);
 
                 if (lineVisual.isDefaultColor)
                     lines_defaultColor.Add(lineVisual.line);
@@ -53,7 +53,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             }
 
             if (item is ItemAxisLines axisLines)
-                return GetVisual_AxisLines(axisLines);
+                return GetVisual_AxisLines(axisLines, sizes);
 
             //return null;
             throw new ApplicationException($"Unexpected type: {item.GetType()}");
@@ -62,7 +62,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
         /// <summary>
         /// This populates a stackpanel with log text
         /// </summary>
-        public static void ShowText(StackPanel panel, Text[] text, SolidColorBrush defaultBrush)
+        public static void ShowText(StackPanel panel, Text[] text, SolidColorBrush defaultBrush, DrawSizes sizes)
         {
             panel.Children.Clear();
 
@@ -75,7 +75,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                 {
                     Text = entry.text,
                     TextWrapping = TextWrapping.Wrap,
-                    FontSize = FONTSIZE * (entry.fontsize_mult ?? 1),
+                    FontSize = sizes.FontSize * (entry.fontsize_mult ?? 1),
                     Margin = new Thickness(0, 1, 0, 3),
                     Foreground = entry.color != null ?
                         new SolidColorBrush(entry.color.Value) :
@@ -97,16 +97,46 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             return retVal;
         }
 
+        public static DrawSizes GetDrawSizes(LogFrame frame)
+        {
+            // get aabb of all points in the frame
+
+            // size is radius of diagonal
+
+            if (frame?.items == null)
+                return new DrawSizes();     // it has defaults already defined
+
+            var points = new List<Point3D>();
+
+            foreach (var item in frame.items)
+                points.AddRange(item.GetPoints());
+
+            var aabb = Math3D.GetAABB(points);
+
+            double radius = (aabb.max - aabb.min).Length / 2;
+
+            if (radius.IsNearZero())
+                return new DrawSizes();
+
+            return new DrawSizes
+            {
+                Dot = radius * .0075,
+                Line = radius * .005,
+                Circle = radius * .005,
+                //FontSize = radius * 1.375,       // since this is used for regular text (not 3D in scene), just use the standard size
+            };
+        }
+
         #region Private Methods
 
-        private static Visual3D GetVisual_Dot(ItemDot dot, Brush defaultBrush)
+        private static Visual3D GetVisual_Dot(ItemDot dot, Brush defaultBrush, DrawSizes sizes)
         {
             Material material = GetMaterial(GetBrush(dot, defaultBrush));
 
             GeometryModel3D geometry = new GeometryModel3D();
             geometry.Material = material;
             geometry.BackMaterial = material;
-            geometry.Geometry = UtilityWPF.GetSphere_Ico(SIZE_DOT * GetSizeMult(dot), 1, true);
+            geometry.Geometry = UtilityWPF.GetSphere_Ico(sizes.Dot * GetSizeMult(dot), 1, true);
             geometry.Transform = new TranslateTransform3D(dot.position.ToVector());
 
             var retVal = new ModelVisual3D
@@ -123,7 +153,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
 
             return retVal;
         }
-        private static (BillboardLine3DSet line, bool isDefaultColor) GetVisual_Line(ItemLine line, Color defaultColor)
+        private static (BillboardLine3DSet line, bool isDefaultColor) GetVisual_Line(ItemLine line, Color defaultColor, DrawSizes sizes)
         {
             var color = GetColor(line, defaultColor);
 
@@ -131,13 +161,13 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             visual.Color = color.color;
             visual.BeginAddingLines();
 
-            visual.AddLine(line.point1, line.point2, SIZE_LINE * GetSizeMult(line));
+            visual.AddLine(line.point1, line.point2, sizes.Line * GetSizeMult(line));
 
             visual.EndAddingLines();
 
             return (visual, color.isDefault);
         }
-        private static Visual3D GetVisual_Circle(ItemCircle_Edge circle, Brush defaultBrush)
+        private static Visual3D GetVisual_Circle(ItemCircle_Edge circle, Brush defaultBrush, DrawSizes sizes)
         {
             Material material = GetMaterial(GetBrush(circle, defaultBrush));
 
@@ -145,7 +175,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
             geometry.Material = material;
             geometry.BackMaterial = material;
 
-            geometry.Geometry = UtilityWPF.GetTorus(30, 7, SIZE_CIRCLE * GetSizeMult(circle), circle.radius);
+            geometry.Geometry = UtilityWPF.GetTorus(30, 7, sizes.Circle * GetSizeMult(circle), circle.radius);
 
             geometry.Transform = GetTransform_2D_to_3D(circle.center, circle.normal);
 
@@ -172,7 +202,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
                 },
             };
         }
-        private static Visual3D GetVisual_AxisLines(ItemAxisLines axislines)
+        private static Visual3D GetVisual_AxisLines(ItemAxisLines axislines, DrawSizes sizes)
         {
             var geometry = new Model3DGroup();
 
@@ -184,7 +214,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
 
                 Color = UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_X),
 
-                Thickness = SIZE_LINE * GetSizeMult(axislines),
+                Thickness = sizes.Line * GetSizeMult(axislines),
             };
             geometry.Children.Add(line.Model);
 
@@ -196,7 +226,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
 
                 Color = UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_Y),
 
-                Thickness = SIZE_LINE * GetSizeMult(axislines),
+                Thickness = sizes.Line * GetSizeMult(axislines),
             };
             geometry.Children.Add(line.Model);
 
@@ -208,7 +238,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer
 
                 Color = UtilityWPF.ColorFromHex(Debug3DWindow.AXISCOLOR_Z),
 
-                Thickness = SIZE_LINE * GetSizeMult(axislines),
+                Thickness = sizes.Line * GetSizeMult(axislines),
             };
             geometry.Children.Add(line.Model);
 

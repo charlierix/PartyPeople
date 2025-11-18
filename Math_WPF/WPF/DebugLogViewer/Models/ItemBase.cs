@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Media;
+﻿using System.Windows.Media;
+using System.Windows.Media.Media3D;
 
 namespace Game.Math_WPF.WPF.DebugLogViewer.Models
 {
@@ -19,5 +15,7 @@ namespace Game.Math_WPF.WPF.DebugLogViewer.Models
         public double? size_mult { get; init; }
 
         public string tooltip { get; init; }
+
+        public abstract Point3D[] GetPoints();
     }
 }

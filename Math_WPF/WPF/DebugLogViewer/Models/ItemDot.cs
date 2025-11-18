@@ -10,5 +10,10 @@ namespace Game.Math_WPF.WPF.DebugLogViewer.Models
     public record ItemDot : ItemBase
     {
         public Point3D position { get; init; }
+
+        public override Point3D[] GetPoints()
+        {
+            return [position];
+        }
     }
 }
