@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Numerics;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -514,38 +513,44 @@ namespace Game.Core
         /// WARNING: If there are multiple threads/processes using this same method on the same file, they'll all get the same
         /// "unique" name.  If you want to guarantee unique, have this return a filestream that was opened with createnew
         /// </summary>
-        public static string GetUniqueFilename(string folder, string filename, string extension = null)
+        public static (string name_nofolder, string full_path) GetUniqueFilename(string folder, string filename, string extension)
         {
-            int cntr = 0;
+            // 1. Normalize folder: use it as-is if non-empty, default to current directory
+            folder = !string.IsNullOrEmpty(folder) ?
+                folder :
+                ".";
 
-            while (true)
+            // 2. Normalize the extension by ensuring it starts with a period
+            string? normalizedExtension = string.IsNullOrEmpty(extension) ? null :
+                (extension.StartsWith(".") ? extension : "." + extension);
+
+            // 3. If an extension is provided, split filename into base and extension
+            string baseName = filename;
+            if (!string.IsNullOrEmpty(normalizedExtension))
             {
-                string retVal = filename;
-
-                if (cntr > 0)
-                {
-                    retVal += "_" + cntr.ToString();
-                }
-
-                if (!string.IsNullOrWhiteSpace(extension))
-                {
-                    if (!extension.StartsWith("."))
-                    {
-                        retVal += ".";
-                    }
-
-                    retVal += extension;
-                }
-
-                retVal = Path.Combine(folder, retVal);
-
-                if (!File.Exists(retVal))
-                {
-                    return retVal;
-                }
-
-                cntr++;
+                if (filename.EndsWith(normalizedExtension, StringComparison.OrdinalIgnoreCase))
+                    baseName = filename.Substring(0, filename.Length - normalizedExtension.Length);
             }
+
+            // 4. Uniqueness: increment counter until a unique file is found
+            int counter = 0;
+            string uniqueName;
+            string uniquePath;
+
+            do
+            {
+                counter++;
+
+                uniqueName = counter == 1 ?
+                    baseName :
+                    $"{baseName}_{counter}";
+
+                uniqueName += normalizedExtension ?? "";
+
+                uniquePath = Path.Combine(folder, uniqueName);
+            } while (File.Exists(uniquePath));
+
+            return (uniqueName, uniquePath);
         }
 
         /// <summary>
@@ -636,14 +641,10 @@ namespace Game.Core
             string built = builder.ToString();
 
             if (built == "")
-            {
                 return "_";
-            }
 
             if (built.EndsWith(" ") || built.EndsWith("."))
-            {
                 built = built.Substring(0, built.Length - 1) + "_";
-            }
 
             // These are reserved names, in either the folder or file name, but they are fine if following a dot
             // CON, PRN, AUX, NUL, COM0 .. COM9, LPT0 .. LPT9
@@ -653,9 +654,7 @@ namespace Game.Core
             {
                 Group group = match.Groups["bad"];
                 if (group.Index > index)
-                {
                     builder.Append(built.Substring(index, match.Index - index + 1));
-                }
 
                 builder.Append(group.Value);
                 builder.Append("_");        // putting an underscore after this keyword is enough to make it acceptable
@@ -664,16 +663,48 @@ namespace Game.Core
             }
 
             if (index == 0)
-            {
                 return built;
-            }
 
             if (index < built.Length - 1)
-            {
                 builder.Append(built.Substring(index));
-            }
 
             return builder.ToString();
+        }
+        /// <summary>
+        /// Escapes invalid characters for Linux filenames
+        /// </summary>
+        /// <remarks>
+        /// - Replaces path separators ('/') and control characters with underscores
+        /// - Handles reserved names/edge cases for safety
+        /// </remarks>
+        public static string EscapeFilename_Linux(string filename, bool containsFolder = false)
+        {
+            if (string.IsNullOrEmpty(filename))
+                return "_";
+
+            StringBuilder builder = new StringBuilder(filename.Length + 12);
+
+            // Replace invalid characters
+            foreach (char c in filename)
+            {
+                // Replace control characters (ASCII 0-31 and 127) and path separators
+                if (c <= 0x1F || c == 0x7F || c == '/')
+                    builder.Append('_');
+                else
+                    builder.Append(c);
+            }
+
+            string built = builder.ToString();
+
+            // Handle empty string case
+            if (string.IsNullOrEmpty(built))
+                return "_";
+
+            // Fix trailing spaces or dots
+            if (built.EndsWith(" ") || built.EndsWith("."))
+                built = built.Substring(0, built.Length - 1) + "_";
+
+            return built;
         }
 
         #endregion
