@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Windows;
-using System.Windows.Media;
 
 namespace Game.Math_WPF.WPF.Viewers
 {
@@ -27,9 +26,10 @@ namespace Game.Math_WPF.WPF.Viewers
                 foreach (Window window in Application.Current.Windows)
                 {
                     if (window is DebugTextWindow)
-                    {
                         window.Close();
-                    }
+
+                    if (window is DebugMarkdownWindow)
+                        window.Close();
                 }
             }
             catch (Exception ex)
