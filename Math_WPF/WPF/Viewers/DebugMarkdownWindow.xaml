@@ -1,4 +1,4 @@
-﻿<Window x:Class="Game.Math_WPF.WPF.Viewers.DebugMarkdownWindow"
+<Window x:Class="Game.Math_WPF.WPF.Viewers.DebugMarkdownWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -6,9 +6,11 @@
         xmlns:local="clr-namespace:Game.Math_WPF.WPF.Viewers"
         Title="Debug Markdown" ResizeMode="CanResizeWithGrip" Width="800" Height="800">
     <Grid>
+        <FlowDocumentScrollViewer x:Name="docViewer"
+                                  IsToolBarVisible="True"
+                                  VerticalScrollBarVisibility="Auto"
+                                  Padding="4"/>
 
-        <!-- TODO: put a markdown viewing textbox here -->
-        
         <Button Content="close all" ToolTip="Close all debug text windows" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Top" Click="CloseAll_Click"/>
     </Grid>
 </Window>

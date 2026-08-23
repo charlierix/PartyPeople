@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows;
@@ -19,6 +19,13 @@ namespace Game.Math_WPF.WPF.Viewers
             InitializeComponent();
 
             DataContext = this;
+
+            Loaded += DebugMarkdownWindow_Loaded;
+        }
+
+        private void DebugMarkdownWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            RenderDocument();
         }
 
         public string MarkdownText
@@ -26,7 +33,24 @@ namespace Game.Math_WPF.WPF.Viewers
             get { return (string)GetValue(MarkdownTextProperty); }
             set { SetValue(MarkdownTextProperty, value); }
         }
-        public static readonly DependencyProperty MarkdownTextProperty = DependencyProperty.Register("MarkdownText", typeof(string), typeof(DebugMarkdownWindow), new PropertyMetadata(""));
+        public static readonly DependencyProperty MarkdownTextProperty =
+            DependencyProperty.Register("MarkdownText", typeof(string), typeof(DebugMarkdownWindow),
+                new PropertyMetadata("", OnMarkdownTextChanged));
+
+        private static void OnMarkdownTextChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is DebugMarkdownWindow window)
+                window.RenderDocument();
+        }
+
+        private void RenderDocument()
+        {
+            if (docViewer == null)
+                return;
+
+            //docViewer.Document = MarkdownToFlowDocument.Convert(MarkdownText ?? "");
+            //docViewer.Document = TODO: parse using markdig
+        }
 
         private void CloseAll_Click(object sender, RoutedEventArgs e)
         {
