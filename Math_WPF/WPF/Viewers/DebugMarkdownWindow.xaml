@@ -6,10 +6,7 @@
         xmlns:local="clr-namespace:Game.Math_WPF.WPF.Viewers"
         Title="Debug Markdown" ResizeMode="CanResizeWithGrip" Width="800" Height="800">
     <Grid>
-        <FlowDocumentScrollViewer x:Name="docViewer"
-                                  IsToolBarVisible="True"
-                                  VerticalScrollBarVisibility="Auto"
-                                  Padding="4"/>
+        <FlowDocumentScrollViewer x:Name="docViewer" IsToolBarVisible="True" VerticalScrollBarVisibility="Auto" Padding="4" Margin="4"/>
 
         <Button Content="close all" ToolTip="Close all debug text windows" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Top" Click="CloseAll_Click"/>
     </Grid>

@@ -4,6 +4,7 @@ using Game.Math_WPF.WPF;
 using Game.Math_WPF.WPF.DebugLogViewer;
 using Game.Math_WPF.WPF.DebugLogViewer.Models;
 using Game.Math_WPF.WPF.Viewers;
+using Microsoft.Win32;
 using NetOctree.Octree;
 using System;
 using System.Collections.Generic;
@@ -1527,6 +1528,35 @@ namespace Game.Bepu.Testers
                 var mesh = UtilityWPF.GetCylinder(24, point0, point1, 1);
 
                 window.AddMesh(mesh, UtilityWPF.ColorFromHex("801E90FF"));
+
+                window.Show();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString(), Title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void MarkdownViewer_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var openFileDialog = new OpenFileDialog()
+                {
+                    Filter = "Markdown files (*.md)|*.md|All files (*.*)|*.*",
+                    FilterIndex = 1,
+                    RestoreDirectory = true,
+                };
+
+                if (!(openFileDialog.ShowDialog() ?? false))
+                {
+                    return;
+                }
+
+                var window = new DebugMarkdownWindow()
+                {
+                    MarkdownText = File.ReadAllText(openFileDialog.FileName),
+                };
 
                 window.Show();
             }

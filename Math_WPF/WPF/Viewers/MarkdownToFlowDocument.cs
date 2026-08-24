@@ -1,38 +1,30 @@
 using System;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
+using System.Linq;
 using System.Windows;
 using System.Windows.Documents;
 using System.Windows.Media;
+using Markdig.Syntax.Inlines;
+using Markdig.Syntax;
+using Markdig.Extensions.Tables;
+using Markdig;
 
 namespace Game.Math_WPF.WPF.Viewers
 {
     /// <summary>
-    /// Lightweight markdown-to-FlowDocument converter with zero external dependencies.
-    /// Supports: headers, bold, italic, strikethrough, inline code, fenced code blocks,
-    /// bullet lists, numbered lists, blockquotes, horizontal rules, and links.
+    /// Converts markdown to a WPF FlowDocument by walking Markdig's parsed AST.
+    /// Supports: headers, bold, italic, strikethrough, inline/fenced code,
+    /// bullet/numbered lists, blockquotes, horizontal rules, links, tables, and paragraphs.
     /// </summary>
     public static class MarkdownToFlowDocument
     {
-        private static readonly Regex _headerRegex = new(@"^(#{1,6})\s+(.*)$", RegexOptions.Compiled);
-        private static readonly Regex _hrRegex = new(@"^(-{3,}|\*{3,}|_{3,})\s*$", RegexOptions.Compiled);
-        private static readonly Regex _bulletRegex = new(@"^\s*[-*+]\s+", RegexOptions.Compiled);
-        private static readonly Regex _numberedRegex = new(@"^\s*\d+\.\s+", RegexOptions.Compiled);
-
-        // Order matters: code first (so ** inside `code` isn't parsed), then bold, italic, strike, link
-        private static readonly Regex _inlineRegex = new(
-            @"(`[^`]+`)" +               // `code`
-            @"|(\*\*[^*]+\*\*)" +      // **bold**
-            @"|(__[^_]+__)" +             // __bold__
-            @"|(\*[^*]+\*)" +           // *italic*
-            @"|(~~[^~]+~~)" +            // ~~strike~~
-            @"|(\[[^\]]+\]\([^)]+\))",  // [text](url)
-            RegexOptions.Compiled);
-
         private static readonly string _monoFont = "Cascadia Mono, Consolas, Courier New";
         private static readonly string _bodyFont = "Segoe UI";
-
         private static readonly double[] _headerSizes = { 28, 24, 20, 18, 16, 14 };
+
+        // Cached pipeline with advanced extensions (tables, task lists, strikethrough, etc.)
+        private static readonly MarkdownPipeline _pipeline = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .Build();
 
         public static FlowDocument Convert(string markdown)
         {
@@ -47,153 +39,108 @@ namespace Game.Math_WPF.WPF.Viewers
             if (string.IsNullOrWhiteSpace(markdown))
                 return doc;
 
-            markdown = markdown.Replace("\r\n", "\n").Replace("\r", "\n");
-            string[] lines = markdown.Split('\n');
-            int i = 0;
+            var parsed = Markdown.Parse(markdown, _pipeline);
 
-            while (i < lines.Length)
+            foreach (var block in parsed)
             {
-                string line = lines[i];
-
-                if (string.IsNullOrWhiteSpace(line))
-                {
-                    i++;
-                    continue;
-                }
-
-                string trimmed = line.TrimStart();
-
-                // Fenced code block
-                if (trimmed.StartsWith("```") || trimmed.StartsWith("~~~"))
-                {
-                    string fence = trimmed.Substring(0, 3);
-                    var codeLines = new List<string>();
-                    i++;
-                    while (i < lines.Length && !lines[i].TrimStart().StartsWith(fence))
-                    {
-                        codeLines.Add(lines[i]);
-                        i++;
-                    }
-                    i++; // skip closing fence
-                    doc.Blocks.Add(MakeCodeBlock(codeLines));
-                    continue;
-                }
-
-                // Header
-                var headerMatch = _headerRegex.Match(line);
-                if (headerMatch.Success)
-                {
-                    int level = headerMatch.Groups[1].Length;
-                    string text = headerMatch.Groups[2].Value.Trim().TrimEnd('#').Trim();
-                    doc.Blocks.Add(MakeHeader(text, level));
-                    i++;
-                    continue;
-                }
-
-                // Horizontal rule
-                if (_hrRegex.IsMatch(line))
-                {
-                    doc.Blocks.Add(MakeHorizontalRule());
-                    i++;
-                    continue;
-                }
-
-                // Blockquote
-                if (trimmed.StartsWith(">"))
-                {
-                    var quoteLines = new List<string>();
-                    while (i < lines.Length && lines[i].TrimStart().StartsWith(">"))
-                    {
-                        string q = lines[i].TrimStart().Substring(1);
-                        quoteLines.Add(q.TrimStart());
-                        i++;
-                    }
-                    doc.Blocks.Add(MakeBlockquote(quoteLines));
-                    continue;
-                }
-
-                // Bullet list
-                if (_bulletRegex.IsMatch(line))
-                {
-                    var items = new List<string>();
-                    while (i < lines.Length && _bulletRegex.IsMatch(lines[i]))
-                    {
-                        items.Add(_bulletRegex.Replace(lines[i], "", 1));
-                        i++;
-                    }
-                    doc.Blocks.Add(MakeList(items, TextMarkerStyle.Disc));
-                    continue;
-                }
-
-                // Numbered list
-                if (_numberedRegex.IsMatch(line))
-                {
-                    var items = new List<string>();
-                    while (i < lines.Length && _numberedRegex.IsMatch(lines[i]))
-                    {
-                        items.Add(_numberedRegex.Replace(lines[i], "", 1));
-                        i++;
-                    }
-                    doc.Blocks.Add(MakeList(items, TextMarkerStyle.Decimal));
-                    continue;
-                }
-
-                // Paragraph — collect consecutive non-empty, non-special lines
-                var paraLines = new List<string>();
-                while (i < lines.Length &&
-                       !string.IsNullOrWhiteSpace(lines[i]) &&
-                       !IsBlockStart(lines[i]))
-                {
-                    paraLines.Add(lines[i].Trim());
-                    i++;
-                }
-                if (paraLines.Count > 0)
-                    doc.Blocks.Add(MakeParagraph(string.Join(" ", paraLines)));
+                var flowBlock = BlockToFlow(block);
+                if (flowBlock != null)
+                    doc.Blocks.Add(flowBlock);
             }
 
             return doc;
         }
 
-        private static bool IsBlockStart(string line)
+        // Block dispatch
+
+        private static System.Windows.Documents.Block BlockToFlow(Markdig.Syntax.Block block)
         {
-            string trimmed = line.TrimStart();
-            return trimmed.StartsWith("```") ||
-                   trimmed.StartsWith("~~~") ||
-                   trimmed.StartsWith(">") ||
-                   _headerRegex.IsMatch(line) ||
-                   _hrRegex.IsMatch(line) ||
-                   _bulletRegex.IsMatch(line) ||
-                   _numberedRegex.IsMatch(line);
+            switch (block)
+            {
+                case HeadingBlock heading:
+                    return MakeHeader(heading);
+
+                case ParagraphBlock paragraph:
+                    return MakeParagraph(paragraph);
+
+                case FencedCodeBlock:
+                case CodeBlock:
+                    return MakeCodeBlock((CodeBlock)block);
+
+                case ListBlock list:
+                    return MakeList(list);
+
+                case QuoteBlock quote:
+                    return MakeBlockquote(quote);
+
+                case ThematicBreakBlock:
+                    return MakeHorizontalRule();
+
+                case Markdig.Extensions.Tables.Table table:
+                    return MakeTable(table);
+
+                default:
+                    if (block is ContainerBlock container)
+                    {
+                        var para = new Paragraph { Margin = new Thickness(0, 4, 0, 4) };
+                        foreach (var child in container)
+                        {
+                            var childBlock = BlockToFlow(child);
+                            if (childBlock is Paragraph childPara)
+                                while (childPara.Inlines.Count > 0)
+                                    para.Inlines.Add(childPara.Inlines.FirstInline);
+                        }
+                        return para.Inlines.Count > 0 ? para : null;
+                    }
+                    return null;
+            }
         }
 
-        // ── Block factories ──
+        // Block factories
 
-        private static Paragraph MakeHeader(string text, int level)
+        private static System.Windows.Documents.Block MakeHeader(HeadingBlock heading)
         {
+            int level = Math.Min(heading.Level, 6);
             var para = new Paragraph
             {
                 Margin = new Thickness(0, 12, 0, 6)
             };
-            var run = new Run(text)
+
+            if (heading.Inline != null)
             {
-                FontWeight = FontWeights.Bold,
-                FontSize = _headerSizes[Math.Min(level, 6) - 1]
-            };
-            para.Inlines.Add(run);
+                AddInlines(para, heading.Inline);
+                foreach (var inline in para.Inlines.ToList())
+                {
+                    if (inline is Run run)
+                    {
+                        run.FontWeight = FontWeights.Bold;
+                        run.FontSize = _headerSizes[level - 1];
+                    }
+                }
+            }
+            else
+            {
+                para.Inlines.Add(new Run(" ")
+                {
+                    FontWeight = FontWeights.Bold,
+                    FontSize = _headerSizes[level - 1]
+                });
+            }
             return para;
         }
 
-        private static Paragraph MakeParagraph(string text)
+        private static System.Windows.Documents.Block MakeParagraph(ParagraphBlock paragraph)
         {
             var para = new Paragraph
             {
                 Margin = new Thickness(0, 4, 0, 4)
             };
-            AddInlines(para, text);
+            if (paragraph.Inline != null)
+                AddInlines(para, paragraph.Inline);
             return para;
         }
 
-        private static Paragraph MakeCodeBlock(List<string> lines)
+        private static System.Windows.Documents.Block MakeCodeBlock(CodeBlock code)
         {
             var para = new Paragraph
             {
@@ -205,11 +152,14 @@ namespace Game.Math_WPF.WPF.Viewers
                 Padding = new Thickness(8),
                 Margin = new Thickness(0, 4, 0, 4)
             };
-            para.Inlines.Add(new Run(string.Join("\n", lines)));
+            var sb = new System.Text.StringBuilder();
+            foreach (var line in code.Lines)
+                sb.AppendLine(line.ToString());
+            para.Inlines.Add(new Run(sb.ToString().TrimEnd('\n', '\r')));
             return para;
         }
 
-        private static Paragraph MakeBlockquote(List<string> lines)
+        private static System.Windows.Documents.Block MakeBlockquote(QuoteBlock quote)
         {
             var para = new Paragraph
             {
@@ -220,32 +170,38 @@ namespace Game.Math_WPF.WPF.Viewers
                 FontStyle = FontStyles.Italic,
                 Foreground = new SolidColorBrush(Color.FromRgb(102, 102, 102))
             };
-            for (int j = 0; j < lines.Count; j++)
+            bool first = true;
+            foreach (var child in quote)
             {
-                AddInlines(para, lines[j]);
-                if (j < lines.Count - 1)
+                if (!first)
                     para.Inlines.Add(new LineBreak());
+                AddBlockInlines(para, child);
+                first = false;
             }
             return para;
         }
 
-        private static List MakeList(List<string> items, TextMarkerStyle marker)
+        private static System.Windows.Documents.Block MakeList(ListBlock list)
         {
-            var list = new List
+            var flowList = new List
             {
-                MarkerStyle = marker,
+                MarkerStyle = list.IsOrdered ? TextMarkerStyle.Decimal : TextMarkerStyle.Disc,
                 Margin = new Thickness(20, 4, 0, 4)
             };
-            foreach (var item in items)
+            foreach (var item in list)
             {
-                var para = new Paragraph();
-                AddInlines(para, item);
-                list.ListItems.Add(new ListItem(para));
+                if (item is ListItemBlock listItem)
+                {
+                    var para = new Paragraph();
+                    foreach (var child in listItem)
+                        AddBlockInlines(para, child);
+                    flowList.ListItems.Add(new ListItem(para));
+                }
             }
-            return list;
+            return flowList;
         }
 
-        private static Paragraph MakeHorizontalRule()
+        private static System.Windows.Documents.Block MakeHorizontalRule()
         {
             var para = new Paragraph
             {
@@ -257,77 +213,208 @@ namespace Game.Math_WPF.WPF.Viewers
             return para;
         }
 
-        // ── Inline parsing ──
-
-        private static void AddInlines(Paragraph para, string text)
+        private static System.Windows.Documents.Block MakeTable(Markdig.Extensions.Tables.Table table)
         {
-            int pos = 0;
-            foreach (Match m in _inlineRegex.Matches(text))
+            var flowTable = new System.Windows.Documents.Table
             {
-                if (m.Index > pos)
-                    para.Inlines.Add(new Run(text.Substring(pos, m.Index - pos)));
+                Margin = new Thickness(0, 4, 0, 4),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(221, 221, 221)),
+                BorderThickness = new Thickness(1),
+                CellSpacing = 0
+            };
 
-                string match = m.Value;
+            int colCount = table.Count > 0 && table[0] is Markdig.Extensions.Tables.TableRow firstRow ? firstRow.Count : 1;
+            for (int c = 0; c < colCount; c++)
+                flowTable.Columns.Add(new TableColumn { Width = new GridLength(1, GridUnitType.Star) });
 
-                if (match.StartsWith("`"))
+            var rowGroup = new TableRowGroup();
+            bool isHeader = true;
+
+            foreach (var row in table)
+            {
+                if (row is Markdig.Extensions.Tables.TableRow tableRow)
                 {
-                    para.Inlines.Add(new Run(match.Substring(1, match.Length - 2))
+                    var flowRow = new System.Windows.Documents.TableRow();
+
+                    foreach (var cell in tableRow)
+                    {
+                        if (cell is Markdig.Extensions.Tables.TableCell tableCell)
+                        {
+                            var para = new Paragraph { Margin = new Thickness(2) };
+                            foreach (var cellBlock in tableCell)
+                                AddBlockInlines(para, cellBlock);
+
+                            var tableCellElem = new System.Windows.Documents.TableCell(para)
+                            {
+                                BorderBrush = new SolidColorBrush(Color.FromRgb(221, 221, 221)),
+                                BorderThickness = new Thickness(1),
+                                Padding = new Thickness(4)
+                            };
+                            if (isHeader)
+                            {
+                                tableCellElem.FontWeight = FontWeights.Bold;
+                                tableCellElem.Background = new SolidColorBrush(Color.FromRgb(240, 240, 240));
+                            }
+                            flowRow.Cells.Add(tableCellElem);
+                        }
+                    }
+                    rowGroup.Rows.Add(flowRow);
+                    isHeader = false;
+                }
+            }
+            flowTable.RowGroups.Add(rowGroup);
+            return flowTable;
+        }
+
+        // Helper: extract inlines from a block into a paragraph
+
+        private static void AddBlockInlines(Paragraph para, Markdig.Syntax.Block block)
+        {
+            if (block is ParagraphBlock paraBlock && paraBlock.Inline != null)
+                AddInlines(para, paraBlock.Inline);
+            else if (block is ContainerBlock container)
+            {
+                foreach (var child in container)
+                    AddBlockInlines(para, child);
+            }
+        }
+
+        // Inline parsing (walk Markdig AST)
+
+        private static void AddInlines(Paragraph para, Markdig.Syntax.Inlines.Inline inline)
+        {
+            while (inline != null)
+            {
+                AddInline(para.Inlines, inline);
+                inline = inline.NextSibling;
+            }
+        }
+
+        private static void AddInlinesToSpan(Span span, Markdig.Syntax.Inlines.Inline inline)
+        {
+            while (inline != null)
+            {
+                AddInline(span.Inlines, inline);
+                inline = inline.NextSibling;
+            }
+        }
+
+        private static void AddInline(InlineCollection parent, Markdig.Syntax.Inlines.Inline inline)
+        {
+            switch (inline)
+            {
+                case LiteralInline literal:
+                    parent.Add(new Run(literal.Content.ToString()));
+                    break;
+
+                case EmphasisInline emphasis:
+                    if (emphasis.DelimiterChar == '~')
+                    {
+                        var strikeSpan = new Span
+                        {
+                            TextDecorations = TextDecorations.Strikethrough
+                        };
+                        AddInlinesToSpan(strikeSpan, emphasis.FirstChild);
+                        parent.Add(strikeSpan);
+                    }
+                    else if (emphasis.DelimiterCount == 2)
+                    {
+                        var inner = new Span();
+                        AddInlinesToSpan(inner, emphasis.FirstChild);
+                        parent.Add(new Bold(inner));
+                    }
+                    else
+                    {
+                        var inner = new Span();
+                        AddInlinesToSpan(inner, emphasis.FirstChild);
+                        parent.Add(new Italic(inner));
+                    }
+                    break;
+
+                case CodeInline code:
+                    parent.Add(new Run(code.Content)
                     {
                         FontFamily = new FontFamily(_monoFont),
                         Background = new SolidColorBrush(Color.FromRgb(238, 238, 238))
                     });
-                }
-                else if (match.StartsWith("**"))
-                {
-                    para.Inlines.Add(new Bold(new Run(match.Substring(2, match.Length - 4))));
-                }
-                else if (match.StartsWith("__"))
-                {
-                    para.Inlines.Add(new Bold(new Run(match.Substring(2, match.Length - 4))));
-                }
-                else if (match.StartsWith("*"))
-                {
-                    para.Inlines.Add(new Italic(new Run(match.Substring(1, match.Length - 2))));
-                }
-                else if (match.StartsWith("~~"))
-                {
-                    para.Inlines.Add(new Run(match.Substring(2, match.Length - 4))
+                    break;
+
+                case LineBreakInline lineBreak:
+                    if (lineBreak.IsHard)
+                        parent.Add(new LineBreak());
+                    else
+                        parent.Add(new Run(" "));
+                    break;
+
+                case LinkInline link:
+                    var linkSpan = new Span();
+                    AddInlinesToSpan(linkSpan, link.FirstChild);
+                    if (Uri.TryCreate(link.Url, UriKind.Absolute, out var uri))
                     {
-                        TextDecorations = TextDecorations.Strikethrough
-                    });
-                }
-                else if (match.StartsWith("["))
-                {
-                    var linkMatch = Regex.Match(match, @"\[([^\]]+)\]\(([^)]+)\)");
-                    if (linkMatch.Success && Uri.TryCreate(linkMatch.Groups[2].Value, UriKind.Absolute, out var uri))
-                    {
-                        var link = new Hyperlink(new Run(linkMatch.Groups[1].Value))
-                        {
-                            NavigateUri = uri
-                        };
-                        link.RequestNavigate += (s, e) =>
-                        {
-                            try
-                            {
-                                System.Diagnostics.Process.Start(
-                                    new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri)
-                                    { UseShellExecute = true });
-                            }
-                            catch { }
-                        };
-                        para.Inlines.Add(link);
+                        var hyperlink = new Hyperlink(linkSpan) { NavigateUri = uri };
+                        hyperlink.RequestNavigate += OnRequestNavigate;
+                        parent.Add(hyperlink);
                     }
                     else
                     {
-                        para.Inlines.Add(new Run(match));
+                        parent.Add(linkSpan);
                     }
-                }
+                    break;
 
-                pos = m.Index + match.Length;
+                case AutolinkInline autolink:
+                    if (Uri.TryCreate(autolink.Url, UriKind.Absolute, out var autoUri))
+                    {
+                        var hyperlink = new Hyperlink(new Run(autolink.Url)) { NavigateUri = autoUri };
+                        hyperlink.RequestNavigate += OnRequestNavigate;
+                        parent.Add(hyperlink);
+                    }
+                    else
+                    {
+                        parent.Add(new Run(autolink.Url));
+                    }
+                    break;
+
+                case HtmlInline html:
+                    parent.Add(new Run(html.Tag));
+                    break;
+
+                case HtmlEntityInline entity:
+                    parent.Add(new Run(entity.Transcoded.ToString()));
+                    break;
+
+                case ContainerInline container:
+                    var child = container.FirstChild;
+                    while (child != null)
+                    {
+                        AddInline(parent, child);
+                        child = child.NextSibling;
+                    }
+                    break;
+
+                default:
+                    if (inline is ContainerInline transitive)
+                    {
+                        var span = new Span();
+                        AddInlinesToSpan(span, transitive.FirstChild);
+                        parent.Add(span);
+                    }
+                    else
+                    {
+                        parent.Add(new Run(inline.ToString()));
+                    }
+                    break;
             }
+        }
 
-            if (pos < text.Length)
-                para.Inlines.Add(new Run(text.Substring(pos)));
+        private static void OnRequestNavigate(object sender, System.Windows.Navigation.RequestNavigateEventArgs e)
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(
+                    new System.Diagnostics.ProcessStartInfo(e.Uri.AbsoluteUri)
+                    { UseShellExecute = true });
+            }
+            catch { }
         }
     }
 }

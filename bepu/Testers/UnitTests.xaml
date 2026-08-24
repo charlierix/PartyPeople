@@ -65,6 +65,9 @@
             <Button Content="Capsule Random" Click="DrawCapsule_Click"/>
             <Button Content="Cylinder Along Z" Click="DrawCylinderZ_Click"/>
             <Button Content="Cylinder Random" Click="DrawCylinder_Click"/>
+
+            <Label Content="Misc" Margin="0,8,0,0"/>
+            <Button Content="MarkdownViewer" Click="MarkdownViewer_Click"/>
         </StackPanel>
     </Grid>
 </Window>

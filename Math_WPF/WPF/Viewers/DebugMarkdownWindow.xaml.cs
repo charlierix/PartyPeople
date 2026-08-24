@@ -48,8 +48,7 @@ namespace Game.Math_WPF.WPF.Viewers
             if (docViewer == null)
                 return;
 
-            //docViewer.Document = MarkdownToFlowDocument.Convert(MarkdownText ?? "");
-            //docViewer.Document = TODO: parse using markdig
+            docViewer.Document = MarkdownToFlowDocument.Convert(MarkdownText ?? "");
         }
 
         private void CloseAll_Click(object sender, RoutedEventArgs e)
